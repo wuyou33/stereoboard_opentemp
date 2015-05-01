@@ -252,10 +252,10 @@ int main(void)
    *******************/
 
   // Avoidance parameters;
-  uint16_t obst_thr1 = 1700; // number of pixels with high disparity [1700] [3000]
+  uint16_t obst_thr1 = 2000; // number of pixels with high disparity [1700] [3000]
   uint8_t obst_thr2 = 5; // number of obstacle detections in row
-  uint16_t obst_wait = 0; //2000; // time to wait before avoidance manoeuver [ms]
-  uint16_t obst_thr3 = 1500; // number of pixels with low disparity (phase 3)
+  uint16_t obst_wait = 2779; // time to wait before avoidance manoeuver [ms]
+  uint16_t obst_thr3 = 2000; // number of pixels with low disparity (phase 3) [1500]
   uint8_t obst_thr4 = 2; // number of NO obstacle detections in row (phase 3)
   uint16_t obst_entr = 70; // entropy threshold
   uint8_t obst_thr5 = 3; // number of obstacle detections in row (phase 4)
@@ -268,7 +268,7 @@ int main(void)
   uint8_t obst_dect2 = 0;
   uint32_t obst_time2 = 0;
 
-  uint8_t disparity_threshold = 5; // [5] [4]
+  uint8_t disparity_threshold = 4; // [5] [4]
   uint32_t disparities_high = 0;
   uint32_t entropy;
 
