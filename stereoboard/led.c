@@ -4,6 +4,8 @@
 
 #include "led.h"
 
+char led_is_on;
+
 void led_init(void)
 {
   GPIO_InitTypeDef  GPIO_InitStructure;
@@ -23,11 +25,21 @@ void led_init(void)
 void led_set(void)
 {
   GPIO_SetBits(GPIOB, GPIO_Pin_12);
+  led_is_on = 1;
 }
 
 void led_clear(void)
 {
   GPIO_ResetBits(GPIOB, GPIO_Pin_12);
+  led_is_on = 0;
 }
 
+void led_switch(void)
+{
+  if (led_is_on) {
+    led_clear();
+  } else {
+    led_set();
+  }
 
+}

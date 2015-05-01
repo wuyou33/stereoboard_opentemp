@@ -252,9 +252,9 @@ int main(void)
    *******************/
 
   // Avoidance parameters;
-  uint16_t obst_thr1 = 1700; // number of pixels with high disparity
+  uint16_t obst_thr1 = 1700; // number of pixels with high disparity [1700] [3000]
   uint8_t obst_thr2 = 5; // number of obstacle detections in row
-  uint16_t obst_wait = 800; // time to wait before avoidance manoeuver [ms]
+  uint16_t obst_wait = 0; //2000; // time to wait before avoidance manoeuver [ms]
   uint16_t obst_thr3 = 1500; // number of pixels with low disparity (phase 3)
   uint8_t obst_thr4 = 2; // number of NO obstacle detections in row (phase 3)
   uint16_t obst_entr = 70; // entropy threshold
@@ -268,12 +268,12 @@ int main(void)
   uint8_t obst_dect2 = 0;
   uint32_t obst_time2 = 0;
 
-  uint8_t disparity_threshold = 5;
+  uint8_t disparity_threshold = 5; // [5] [4]
   uint32_t disparities_high = 0;
   uint32_t entropy;
 
   // Stereo parameters:
-  uint32_t disparity_range = 10; // at a distance of 1m, disparity is 7-8
+  uint32_t disparity_range = 15; // at a distance of 1m, disparity is 7-8
   uint8_t thr1 = 4;
   uint8_t thr2 = 4;
   uint8_t diff_threshold = 4; // for filtering
@@ -329,7 +329,6 @@ int main(void)
     // wait for new frame
     while (frame_counter == processed)
       ;
-
     if (SEND_IMAGE) {
       Send(current_image_buffer);
     }
@@ -342,8 +341,12 @@ int main(void)
         // Determine disparities:
         min_y = 0;
         max_y = 95;
-        stereo_vision(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1, thr2,
-                      min_y, max_y);
+        //stereo_vision(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1, thr2, min_y, max_y);
+        stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1,
+                           thr2, min_y, max_y);
+
+
+
         if (SEND_DISPARITY_MAP) {
           SendDisparityMap(disparity_image_buffer_8bit);
         }
@@ -368,6 +371,8 @@ int main(void)
         //min_disp = detect_escape(disparity_image_buffer_8bit, image_width, image_height, escape_coordinate, integral_image, n_cells);
 
       } else {
+        led_switch();
+
         n_red_pixels = filter_red_color(current_image_buffer, filtered_image, image_width, image_height, min_U, max_U, min_V,
                                         max_V);
         /*
@@ -433,7 +438,7 @@ int main(void)
       if (SEND_COMMANDS) {
         // Control logic
         if (phase == 1) { // unobstructed flight
-          if (disparities_high > obst_thr1 || entropy < obst_entr) { // if true, obstacle in sight
+          if (disparities_high > obst_thr1) { //|| entropy < obst_entr) // if true, obstacle in sight
             obst_dect++;
           } else {
             obst_dect = 0;

@@ -26,9 +26,9 @@ uint16_t filter_red_color(uint8_t *in, uint8_t *out, uint32_t image_width, uint3
       //ill = in[n_channels * (y*image_width+x) + 1];
       u = in[n_channels * (y * image_width + x)];
       v = in[n_channels * (y * image_width + x) + 2];
-      out[y * image_width + x / 2] = 0;
+      out[y * image_width + x / 2] = 128;
       if (u <= max_U) {
-        out[y * image_width + x / 2] = (v >= min_V);
+        out[y * image_width + x / 2] = (v >= min_V) * 0;
       }
       //out[y*image_width+x/2] = u;
 
