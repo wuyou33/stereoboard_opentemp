@@ -13,7 +13,7 @@
  *****************/
 
 // uncomment for communication with the microcrontroller, this is for sending images:
-//#define USART_3000000 // commented for competition
+//#define USART_3000000 // commented for competition - necessary for sending images / disparity maps.
 #define USE_COLOR 0 // 0
 #define SEND_COMMANDS 1 // 1
 #define SEND_IMAGE 0 //0
