@@ -1,6 +1,6 @@
 
 #include "tcm8230.h"
-
+#include "dcmi.h"
 #include "stm32f4xx_i2c.h"
 
 
@@ -90,7 +90,11 @@ uint8_t tcm8230_ReadReg(uint8_t Addr, uint8_t *reply);
 void camera_tcm8230_config(void)
 {
   tcm8230_WriteReg(TCM_FPS, TCM_FPS_FAST);
-  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_subQCIF);//IMG_SIZE_QCIF);//IMG_SIZE_subQCIF);
+#ifdef SMALL_IMAGE
+  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_subQCIF);
+#else
+  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_QCIF);
+#endif
   tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
   tcm8230_WriteReg(TCM_EXP, EXP_DEFAULT | EXP_SHORT);
 }

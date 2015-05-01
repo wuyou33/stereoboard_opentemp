@@ -18,14 +18,19 @@ void camera_dcmi_dma_enable(void);
 void camera_dcmi_it_init(void);
 void camera_dma_it_init(void);
 
-// To change image size, change:
-// - the width and height in the send-command in main.c
-// - the full image size in dcmi.h
-// - the dma copy (double buffering or not) in dcmi.c (op 3 plaatsen)
-// - the configuration of the camera in tcm8230.c
+// To change image size, change the following define:
+#define SMALL_IMAGE
+//#define LARGE_IMAGE
 
+#ifdef SMALL_IMAGE
 #define FULL_IMAGE_SIZE     (128*96*2)
-//#define FULL_IMAGE_SIZE     (176*144*2)
+#define IMAGE_WIDTH       128
+#define IMAGE_HEIGHT      96
+#else
+#define FULL_IMAGE_SIZE     (176*144*2)
+#define IMAGE_WIDTH       176
+#define IMAGE_HEIGHT      144
+#endif
 
 extern uint8_t *current_image_buffer;
 

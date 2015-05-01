@@ -111,6 +111,8 @@ tcm8230.c \
 jpeg.c \
 cpld.c \
 stereo_vision.c \
+window_detection.c \
+filter_color.c \
 entropy_patches.c \
 usbd_cdc_vcp.c \
 usb_bsp.c \

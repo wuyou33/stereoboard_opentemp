@@ -20,6 +20,7 @@ static const int8_t log2_lookup_table[250] = {
  * min_x/y, max_x/y: defines a rectangle in which to take samples on a grid
  * patch_size: patch size in pixels of which to determine entropy
  * step_size: in pixels. The bigger the step size, the fewer samples
+ * n_bins: number of bins in the histogram / pdf for entropy determination
  * */
 
 uint32_t get_entropy_patches(uint8_t right, uint8_t *in, uint32_t image_width, uint32_t image_height,

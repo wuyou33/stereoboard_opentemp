@@ -14,7 +14,7 @@
  * thr2: threshold for 2nd check (5)
  * */
 void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
-                   uint8_t thr1, uint8_t thr2)
+                   uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
   uint32_t image_size = image_width * image_height;
   uint32_t image_width_bytes = image_width * 2;
@@ -63,8 +63,8 @@ void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_
 
 
 
-  cnt0 = 0;
-  for (l = 0; l < image_height; l++) {
+  cnt0 = min_y * image_width_bytes;
+  for (l = min_y; l < max_y; l++) {
     // separate the image line into a left and right one (line1, lin2 respectively):
     separate_image_line(&in[cnt0], line1, line2, image_width_bytes);
 
@@ -203,6 +203,58 @@ void separate_image_line(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image
   }
 }
 
+void evaluate_central_disparities(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t *disparities,
+                                  uint8_t n_disp_bins, uint8_t min_y, uint8_t max_y)
+{
+  uint16_t b, y, x;
+  uint8_t border = 10;
+  uint16_t bin_size = (image_width - 2 * border) / n_disp_bins + 1;
+  uint32_t n_pixels[n_disp_bins];
+  uint16_t RESOLUTION = 100;
+  for (b = 0; b < n_disp_bins; b++) {
+    disparities[b] = 0;
+    n_pixels[b] = 0;
+  }
+  for (x = border; x < image_width - border; x++) {
+    // determine the bin index
+    b = (x - border) / bin_size;
+    if (b >= n_disp_bins) { b = n_disp_bins - 1; }
+    for (y = min_y; y < max_y; y++) {
+      disparities[b] += in[x + y * image_width];
+      n_pixels[b]++;
+    }
+  }
+  for (b = 0; b < n_disp_bins; b++) {
+    disparities[b] /= (n_pixels[b] / RESOLUTION);
+  }
+}
+
+void evaluate_central_disparities2(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t *disparities,
+                                   uint8_t n_disp_bins, uint8_t min_y, uint8_t max_y, uint8_t disp_threshold)
+{
+  uint16_t b, y, x;
+  uint8_t border = 10;
+  uint16_t bin_size = (image_width - 2 * border) / n_disp_bins + 1;
+  uint32_t n_pixels[n_disp_bins];
+  uint16_t RESOLUTION = 100;
+  uint32_t mean_x = 0;
+
+  for (b = 0; b < n_disp_bins; b++) {
+    disparities[b] = 0;
+    //n_pixels[b] = 0;
+  }
+  for (x = border; x < image_width - border; x++) {
+    for (y = min_y; y < max_y; y++) {
+      if (in[x + y * image_width] > disp_threshold) {
+        disparities[0]++;
+        mean_x += x;
+      }
+    }
+  }
+  disparities[1] = mean_x / disparities[0];
+
+}
+
 uint32_t evaluate_disparities(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t disparity_threshold,
                               uint32_t disparities_high)
 {
@@ -282,5 +334,28 @@ void evaluate_disparities_altitude(uint8_t *in, uint32_t image_width, uint32_t i
   for (i = 0; i < altitude_levels; i++) {
     disparities[i] -= min_d * RESOLUTION;
 
+  }
+}
+
+void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_width, uint32_t image_height,
+                          uint8_t min_y, uint8_t max_y)
+{
+  uint16_t x, y, abs_diff;
+  int diff;
+  for (x = 0; x < image_width; x++) {
+    for (y = min_y + 1; y < max_y - 1; y++) {
+      diff = ((int) in[x + y * image_width]) - ((int) in[x + (y - 1) * image_width]);
+      diff = (diff < 0) ? -diff : diff;
+      abs_diff = (uint16_t)(diff);
+      if (abs_diff >= diff_threshold) {
+        in[x + y * image_width] = 0;
+      }
+      diff = ((int) in[x + y * image_width]) - ((int) in[x + (y + 1) * image_width]);
+      diff = (diff < 0) ? -diff : diff;
+      abs_diff = (uint16_t)(diff);
+      if (abs_diff >= diff_threshold) {
+        in[x + y * image_width] = 0;
+      }
+    }
   }
 }

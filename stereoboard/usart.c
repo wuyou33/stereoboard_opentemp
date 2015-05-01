@@ -3,8 +3,10 @@
  *
  *      Author: pixhawk
  */
-#include "stm32f4xx_conf.h"
 
+#include "main_parameters.h"
+
+#include "stm32f4xx_conf.h"
 #include "stm32f4xx_usart.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
@@ -187,8 +189,11 @@ void usart_init()
   USART_InitStructure.USART_Parity = USART_Parity_No;
   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-
-  USART_InitStructure.USART_BaudRate = 3000000; //9600; //3000000; //921600; //19200; //6400 * 2; //9600 for APcomm;
+#ifdef USART_3000000
+  USART_InitStructure.USART_BaudRate = 3000000;
+#else
+  USART_InitStructure.USART_BaudRate = 9600; //9600; //3000000; //921600; //19200; //6400 * 2; //9600 for APcomm;
+#endif
   USART_Init(MY_USART_NR, &USART_InitStructure);
 
   USART_Cmd(MY_USART_NR, ENABLE);
@@ -249,6 +254,13 @@ void print_number(uint32_t number, uint8_t new_line)
   }
 
   usart_tx_ringbuffer_push((uint8_t *)&comm_buff, BLEN);
+}
+
+void print_space()
+{
+  char comm_buff[ 1 ];
+  comm_buff[0] = ' ';
+  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
 }
 
 void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
