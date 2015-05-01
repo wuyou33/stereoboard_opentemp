@@ -1,0 +1,5 @@
+file StereoLed.elf
+monitor version
+monitor swdp_scan
+attach 1
+load
