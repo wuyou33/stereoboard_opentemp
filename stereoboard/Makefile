@@ -74,12 +74,17 @@ ${STDPH_PATH}/src/stm32f4xx_syscfg.c \
 ${STDPH_PATH}/src/stm32f4xx_tim.c \
 ${STDPH_PATH}/src/stm32f4xx_usart.c \
 ${STDPH_PATH}/src/stm32f4xx_wwdg.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q7.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_negate_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q7.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_fill_q7.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_fill_q15.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_copy_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q15.c \

@@ -163,6 +163,7 @@
 #elif defined (__ICCARM__)     /* IAR Compiler */
 #define __packed    __packed
 #elif defined   ( __GNUC__ )   /* GNU Compiler */
+#undef __packed
 #define __packed    __attribute__ ((__packed__))
 #elif defined   (__TASKING__)  /* TASKING Compiler */
 #define __packed    __unaligned
@@ -196,6 +197,7 @@
 #elif defined (__ICCARM__)     /* IAR Compiler */
 #define __packed    __packed
 #elif defined   ( __GNUC__ )   /* GNU Compiler */
+#undef __packed
 #define __packed    __attribute__ ((__packed__))
 #elif defined   (__TASKING__)  /* TASKING Compiler */
 #define __packed    __unaligned
