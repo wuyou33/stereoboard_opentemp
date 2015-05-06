@@ -44,7 +44,7 @@ void camera_tcm8230_i2c_init(void)
   I2C_InitStruct.I2C_OwnAddress1 = 0xFE;
   I2C_InitStruct.I2C_Ack = I2C_Ack_Enable;
   I2C_InitStruct.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-  I2C_InitStruct.I2C_ClockSpeed = 50000;
+  I2C_InitStruct.I2C_ClockSpeed = 25000;
 
   // Initialize the I2C peripheral w/ selected parameters
   I2C_Init(I2C2, &I2C_InitStruct);

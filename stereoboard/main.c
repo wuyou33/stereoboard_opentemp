@@ -14,6 +14,7 @@
 #include "cpld.h"
 #include "usart.h"
 #include "tcm8230.h"
+#include "hmc5883.h"
 #include "stm32f4xx_conf.h"
 #include "jpeg.h"
 #include "arm_math.h"
@@ -63,6 +64,14 @@ void Send(uint8_t *b)
 
   uint16_t width = IMAGE_WIDTH;
   uint16_t height = IMAGE_HEIGHT;
+
+#ifdef SHOW_HMC
+  {
+    draw_mag_as_line(0);
+    draw_mag_as_line(1);
+    draw_mag_as_line(2);
+  }
+#endif
 
   int j = 0;
   for (j = 0; j < height; j++) {
@@ -225,7 +234,9 @@ int main(void)
   Delay(0x07FFFF);
   // Communicate with camera, setup image type and start streaming
   camera_tcm8230_config();
-  // Start DMA image transfer interrupts
+  // Start DCMI interrupts (interrupts on frame ready)
+  // camera_dcmi_it_init();
+  // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
   // Print welcome message
   char comm_buff[128] = " --- Stereo Camera --- \n\r";

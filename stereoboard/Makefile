@@ -129,10 +129,15 @@ entropy_patches.c \
 entropy_patches.h \
 usbd_cdc_vcp.c \
 usbd_cdc_vcp.h \
+usb.h \
+usb.c \
 usb_bsp.c \
 usbd_desc.c \
 usbd_usr.c \
 usb_core.c \
+hmc5883.h \
+hmc5883.c \
+utils.h \
 utils.c
 
 

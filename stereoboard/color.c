@@ -13,7 +13,7 @@
 uint32_t colorfilt_uyvy(struct img_struct *input, struct img_struct *output, uint8_t y_m, uint8_t y_M, uint8_t u_m,
                         uint8_t u_M, uint8_t v_m, uint8_t v_M, uint32_t *results)
 {
-  int x,y;
+  int x, y;
   int cnt = 0;
   results[0] = 0;
   results[1] = 0;

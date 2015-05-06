@@ -234,17 +234,23 @@ void myhex(uint8_t v, char *buf)
 
 }
 
-void print_number(uint32_t number, uint8_t new_line)
+void print_number(int32_t number, uint8_t new_line)
 {
   //usart_tx_ringbuffer_pop_to_usart();
-#define BLEN 8
+#define BLEN 16
   char comm_buff[ BLEN ];
   int ii;
   for (ii = 0; ii < BLEN; ii++) {
     comm_buff[ii] = ' ';
   }
 
-  itoa(comm_buff, (unsigned int) number, 10);
+  if (number < 0) {
+    number = -number;
+    comm_buff[0] = '-';
+    usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
+  }
+
+  itoa(comm_buff, number, 10);
   if (new_line) {
     comm_buff[BLEN - 2] = '\n';
     comm_buff[BLEN - 1] = '\r';
