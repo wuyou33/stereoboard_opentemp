@@ -30,6 +30,7 @@ void myhex(uint8_t v, char *buf);
 void print_space();
 void print_number(uint32_t number, uint8_t new_line);
 void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line);
-
+void print_byte(uint8_t b);
+void print_string(char *s, int len);
 
 #endif /* USART_H_ */

@@ -102,19 +102,33 @@ $(BIN_IMAGE): $(EXECUTABLE)
 
 MAIN_SRCS = \
 main.c \
+main_parameters.h \
 stm32f4xx_it.c \
 system_stm32f4xx.c \
 led.c \
+led.h \
 usart.c \
+usart.h \
 dcmi.c \
+dcmi.h \
 tcm8230.c \
+tcm8230.h \
 jpeg.c \
+jpeg.h \
 cpld.c \
+cpld.h \
 stereo_vision.c \
+stereo_vision.h \
 window_detection.c \
+window_detection.h \
 filter_color.c \
+filter_color.h \
+color.c \
+color.h \
 entropy_patches.c \
+entropy_patches.h \
 usbd_cdc_vcp.c \
+usbd_cdc_vcp.h \
 usb_bsp.c \
 usbd_desc.c \
 usbd_usr.c \

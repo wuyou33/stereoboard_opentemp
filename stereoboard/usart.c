@@ -276,3 +276,20 @@ void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
   print_number(numbers[size - 1], new_line);
 }
 
+void print_byte(uint8_t b)
+{
+  uint8_t code[1];
+  code[0] = b;
+
+  while (usart_tx_ringbuffer_push(code, 1) == 0)
+    ;
+}
+
+void print_string(char *s, int len)
+{
+
+  while (usart_tx_ringbuffer_push(s, len) == 0)
+    ;
+
+
+}

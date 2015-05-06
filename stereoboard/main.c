@@ -39,7 +39,7 @@ uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFF
   */
 
 /* Private function prototypes -----------------------------------------------*/
-void Delay(__IO uint32_t nCount);
+void Delay(volatile uint32_t nCount);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -542,7 +542,7 @@ int main(void)
   * @param  nCount:specifies the Delay time length.
   * @retval None
   */
-void Delay(__IO uint32_t nCount)
+void Delay(volatile uint32_t nCount)
 {
   while (nCount--) {
   }
