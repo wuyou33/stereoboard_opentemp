@@ -355,6 +355,7 @@ int main(void)
         //stereo_vision(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1, thr2, min_y, max_y);
         stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1,
                            thr2, min_y, max_y);
+        //stereo_vision_cigla(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, 12, thr2, diff_threshold, min_y, max_y);
 
 
 

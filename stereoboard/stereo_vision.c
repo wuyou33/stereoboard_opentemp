@@ -273,6 +273,253 @@ void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_
 
 }
 
+void stereo_vision_cigla(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
+                         uint8_t sadWS, uint8_t sigma, uint32_t diff_threshold, uint8_t min_y, uint8_t max_y)
+{
+  uint32_t image_size = image_width * image_height;
+  uint32_t image_width_bytes = image_width * 2;
+  uint32_t disparity_max = disparity_range - 1;
+
+  uint32_t image_width_disp = image_width - disparity_max;
+  uint32_t image_width_disp_sad = image_width_disp - sadWS + 1;
+
+  uint32_t sadWS2 = (sadWS - 1) / 2;
+
+  q15_t line1[image_width];
+  q15_t line2[image_width];
+  q15_t absdiff[image_width_disp];
+  q15_t sadCost;
+  q31_t sadCostVec[image_width_disp_sad];
+  q31_t costLeft[image_width_disp_sad * disparity_range];
+  q31_t costRight[image_width_disp_sad * disparity_range];
+  q31_t totalCostVec[image_width_disp_sad * disparity_range];
+  q31_t minCostVec[image_width_disp_sad];
+  q15_t absdiffNB[image_width_disp_sad - 1];
+
+  q7_t *disps;
+
+  uint32_t l; // line index
+  uint32_t d; // disparity index
+  uint32_t i; // general index counter
+  uint32_t j; // general index counter
+  uint32_t k; // general index counter
+
+  q15_t expNums[256] = { 1, 119, 59, 39, 29, 23, 19, 202, 7, 173, 204, 164, 140, 62, 156, 169, 36, 58, 183, 51, 91, 105, 149, 137, 61, 89, 59, 139, 37, 140, 37, 34, 44, 15, 101, 125, 118, 129, 112, 71, 115, 51, 73, 21, 61, 94, 59, 53, 102, 19, 103, 53, 95, 74, 37, 2, 35, 70, 89, 49, 71, 72, 58, 7, 53, 22, 1, 55, 66, 19, 71, 49, 25, 69, 67, 51, 51, 23, 67, 26, 63, 7, 64, 64, 18, 57, 57, 19, 3, 27, 27, 52, 30, 52, 43, 31, 43, 28, 33, 29, 17, 47, 19, 30, 44, 41, 27, 20, 20, 33, 39, 25, 15, 33, 35, 5, 23, 35, 34, 15, 18, 33, 25, 30, 10, 31, 6, 23, 9, 29, 26, 8, 28, 17, 3, 25, 17, 21, 25, 7, 16, 23, 3, 19, 23, 19, 5, 17, 14, 1, 11, 18, 5, 16, 1, 17, 13, 13, 13, 13, 13, 11, 17, 15, 13, 14, 11, 6, 9, 11, 1, 7, 12, 8, 6, 13, 5, 9, 7, 4, 12, 7, 9, 9, 11, 6, 5, 7, 11, 3, 7, 8, 9, 10, 8, 5, 9, 3, 9, 7, 1, 2, 1, 2, 1, 2, 1, 2, 1, 7, 7, 3, 4, 5, 5, 1, 5, 5, 6, 2, 6, 5, 5, 6, 6, 2, 4, 1, 3, 2, 5, 1, 5, 5, 5, 4, 1, 1, 4, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 3, 3, 3, 1, 1
+                       };
+  q15_t expDens[256] = { 1, 121, 61, 41, 31, 25, 21, 227, 8, 201, 241, 197, 171, 77, 197, 217, 47, 77, 247, 70, 127, 149, 215, 201, 91, 135, 91, 218, 59, 227, 61, 57, 75, 26, 178, 224, 215, 239, 211, 136, 224, 101, 147, 43, 127, 199, 127, 116, 227, 43, 237, 124, 226, 179, 91, 5, 89, 181, 234, 131, 193, 199, 163, 20, 154, 65, 3, 168, 205, 60, 228, 160, 83, 233, 230, 178, 181, 83, 246, 97, 239, 27, 251, 255, 73, 235, 239, 81, 13, 119, 121, 237, 139, 245, 206, 151, 213, 141, 169, 151, 90, 253, 104, 167, 249, 236, 158, 119, 121, 203, 244, 159, 97, 217, 234, 34, 159, 246, 243, 109, 133, 248, 191, 233, 79, 249, 49, 191, 76, 249, 227, 71, 253, 156, 28, 237, 164, 206, 249, 71, 165, 241, 32, 206, 254, 213, 57, 197, 165, 12, 134, 223, 63, 205, 13, 225, 175, 178, 181, 184, 187, 161, 253, 227, 200, 219, 175, 97, 148, 184, 17, 121, 211, 143, 109, 240, 94, 172, 136, 79, 241, 143, 187, 190, 236, 131, 111, 158, 252, 70, 166, 193, 221, 249, 203, 129, 236, 80, 244, 193, 28, 57, 29, 59, 30, 61, 31, 63, 32, 228, 232, 101, 137, 174, 177, 36, 183, 186, 227, 77, 235, 199, 202, 247, 251, 85, 173, 44, 134, 91, 231, 47, 239, 243, 247, 201, 51, 52, 211, 161, 164, 111, 113, 172, 175, 178, 181, 184, 187, 127, 129, 197, 200, 203, 69, 70
+                       };
+
+
+
+  disps = &out[0];
+
+  arm_fill_q7(0, disps, image_size);
+
+
+  for (l = min_y; l < max_y + 1; l++) {
+    // separate the image line into a left and right one (line1, line2 respectively)
+    separate_image_line(&in[l * image_width_bytes], line1, line2, image_width_bytes);
+
+    for (d = 0; d < disparity_range; d++) {
+      arm_sub_q15(&line1[disparity_max], &line2[disparity_max - d], absdiff,
+                  image_width_disp); // compute difference between left and right image lines for disparity d
+      arm_abs_q15(absdiff, absdiff, image_width_disp);   // convert to absolute error
+
+      sadCost = 0;
+      for (i = 0; i < sadWS; i++) {
+        sadCost += absdiff[i]; // compute first SAD window in the row
+      }
+
+      j = 1;
+      k = 0;
+      sadCostVec[0] = sadCost; // initialize SAD array for this image line
+      for (i = sadWS; i < image_width_disp; i++, j++, k++) {
+        sadCost -= absdiff[k];
+        sadCost += absdiff[i];
+        sadCostVec[j] = sadCost; // compute SAD values of the whole image line by using the value from the previous pixel
+      }
+
+      arm_sub_q15(&line1[disparity_max + sadWS2], &line1[disparity_max + sadWS2 + 1], absdiffNB,
+                  (image_width_disp_sad - 1)); // compute difference between left and right image lines at different disparities
+      arm_abs_q15(absdiffNB, absdiffNB, (image_width_disp_sad - 1)); // convert to absolute error
+
+
+      costLeft[(image_width_disp_sad * d) + 0] = sadCostVec[0];
+      j = 0;
+      for (i = 1; i < image_width_disp_sad; i++, j++) {
+        k = absdiffNB[j];
+        costLeft[(image_width_disp_sad * d) + i] = sadCostVec[i] + (costLeft[(image_width_disp_sad * d) + j] * expNums[k] /
+            expDens[k]); // update SAD costs over the image line using Information Permeability
+      }
+
+      costRight[(image_width_disp_sad * d) + image_width_disp_sad - 1] = sadCostVec[image_width_disp_sad - 1];
+      j = image_width_disp_sad - 1;
+      for (i = image_width_disp_sad - 2; i > 0; i--, j--) {
+        k = absdiffNB[i];
+        costRight[(image_width_disp_sad * d) + i] = sadCostVec[i] + (costRight[(image_width_disp_sad * d) + j] * expNums[k] /
+            expDens[k]); // update SAD costs over the image line using Information Permeability
+      }
+
+    }
+
+    arm_add_q31(costLeft, costRight, totalCostVec,
+                image_width_disp_sad * disparity_range); // add left and right permeability cost measures
+
+    arm_copy_q31(&totalCostVec[0], minCostVec, image_width_disp_sad);
+
+    disps = &out[ l * image_width ];
+
+    // compute disparity map
+    for (d = 1; d < disparity_range; d++) {
+      for (i = 0; i < image_width_disp_sad; i++) {
+        if (totalCostVec[image_width_disp_sad * d + i] < minCostVec[i]) {
+          minCostVec[i] = totalCostVec[image_width_disp_sad * d + i]; // keep track of smallest cost per pixel ....
+          disps[disparity_max + sadWS2 + i] = d; // ... and keep track of corresponding disparity value
+
+        }
+      }
+    }
+
+    //update disparity map
+    uint8_t unreliable = 1;
+    int32_t minCost = 100000000;
+    int32_t maxCost = 0;
+    i = 0;
+    while (unreliable && i < image_width_disp_sad) {
+      for (d = 0; d < disparity_range; d++) {
+        if (costLeft[image_width_disp_sad * d + i] > maxCost) {
+          maxCost = costLeft[image_width_disp_sad * d + i];
+        }
+
+        if (costLeft[image_width_disp_sad * d + i] < minCost) {
+          minCost = costLeft[image_width_disp_sad * d + i];
+        }
+      }
+
+      if (maxCost > minCost + diff_threshold) {
+        unreliable = 0;
+      } else {
+        disps[disparity_max + sadWS2 + i] = disparity_range * 2;
+        i++;
+      }
+    }
+
+    unreliable = 1;
+    minCost = 100000000;
+    maxCost = 0;
+    i = image_width_disp_sad - 1;
+
+
+    while (unreliable && i > 0) {
+      for (d = 1; d < disparity_range; d++) {
+        if (costRight[image_width_disp_sad * d + i] > maxCost) {
+          maxCost = costRight[image_width_disp_sad * d + i];
+        }
+
+        if (costRight[image_width_disp_sad * d + i] < minCost) {
+          minCost = costRight[image_width_disp_sad * d + i];
+        }
+      }
+
+      if (maxCost > minCost + diff_threshold) {
+        unreliable = 0;
+      } else {
+        disps[disparity_max + sadWS2 + i] = disparity_range * 2;
+        i--;
+      }
+    }
+
+  }
+
+}
+
+void evaluate_disparities_control(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t control_output,
+                                  uint32_t disparity_range, uint8_t sadWS, uint8_t crop, uint8_t thr3)
+{
+  uint32_t sadWS2 = (sadWS - 1) / 2;
+  uint32_t disparity_max = disparity_range - 1;
+  uint32_t image_width_disp = image_width - disparity_max;
+  uint32_t image_width_disp_sad = image_width_disp - sadWS + 1;
+
+  uint32_t disp_counts[disparity_range];
+  uint32_t disp_sums[disparity_range];
+  uint32_t disp_indices[disparity_range];
+
+  uint32_t i;
+  uint32_t l;
+  uint32_t x;
+
+  for (i = 0; i < disparity_range; i++) {
+    disp_counts[i] = 0;
+    disp_sums[i] = 0;
+  }
+
+  for (l = crop; l < (image_height - crop); l++) {
+    for (x = disparity_max + sadWS2; x < image_width_disp_sad + disparity_max + sadWS2; x++) {
+      disp_counts[in[l * image_width + x]]++;
+      disp_sums[in[l * image_width + x]] += x;
+    }
+  }
+
+  for (i = 0; i < disparity_range; i++) {
+    disp_indices[i] = disp_sums[i] / disp_counts[i];
+
+    if ((control_output == 0) && (disp_counts[i] > thr3)) {
+      control_output = disp_indices[i];
+    }
+  }
+
+  control_output = 350;
+
+
+}
+
+uint32_t evaluate_disparities_control2(uint8_t *in, uint32_t image_width, uint32_t image_height,
+                                       uint32_t disparity_range, uint8_t sadWS, uint8_t crop, uint32_t thr3)
+{
+  uint32_t sadWS2 = (sadWS - 1) / 2;
+  uint32_t disparity_max = disparity_range - 1;
+  uint32_t image_width_disp = image_width - disparity_max;
+  uint32_t image_width_disp_sad = image_width_disp - sadWS + 1;
+
+  uint32_t disp_counts[disparity_range + 1];
+  uint32_t disp_sums[disparity_range + 1];
+  uint32_t disp_indices[disparity_range + 1];
+
+  uint32_t i;
+  uint32_t l;
+  uint32_t x;
+
+  uint32_t control_output = 0;
+
+  for (i = 0; i < disparity_range; i++) {
+    disp_counts[i] = 0;
+    disp_sums[i] = 0;
+  }
+
+  for (l = crop; l < (image_height - crop); l++) {
+    for (x = disparity_max + sadWS2; x < image_width_disp_sad + disparity_max + sadWS2; x++) {
+      disp_counts[in[l * image_width + x]]++;
+      disp_sums[in[l * image_width + x]] += x;
+    }
+  }
+
+  for (i = 0; i < disparity_range; i++) {
+    disp_indices[i] = disp_sums[i] / disp_counts[i];
+
+    if ((control_output == 0) && (disp_counts[i] > thr3)) {
+      control_output = disp_indices[i];
+    }
+  }
+
+  //control_output = 350;
+
+  return control_output;
+
+
+}
+
+
 void separate_image_line(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes)
 {
   uint32_t i, j;
