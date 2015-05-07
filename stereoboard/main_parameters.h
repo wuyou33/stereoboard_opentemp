@@ -24,6 +24,8 @@
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_CAM_NUMBER  0//  0 = DelFly Explorer cam   1 = spare camera
+#define SMALL_IMAGE
+//#define LARGE_IMAGE
 
 
 #endif /* MAIN_PARAMETERS_H_ */

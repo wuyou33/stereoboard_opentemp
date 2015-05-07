@@ -31,9 +31,11 @@
 __ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
-uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
+uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
 //uint8_t* disparity_image_buffer_8bit = ((uint8_t*) 0x10000000);
+
+uint16_t offset_crop = 0;
 
 /** @addtogroup StereoCam
   * @{
@@ -62,6 +64,23 @@ void Send(uint8_t *b)
   code[1] = 0x00;
   code[2] = 0x00;
 
+  code[3] = 0xAF;
+  while (usart_tx_ringbuffer_push(code, 4) == 0)
+    ;
+
+  uint8_t msg = 0x07;
+  while (usart_tx_ringbuffer_push(&msg, 1) == 0)
+    ;
+
+#ifdef LARGE_IMAGE
+
+  if (offset_crop == 0) {
+    code[3] = 0xAC;
+    while (usart_tx_ringbuffer_push(code, 4) == 0)
+      ;
+  }
+
+#endif
   uint16_t width = IMAGE_WIDTH;
   uint16_t height = IMAGE_HEIGHT;
 
@@ -78,9 +97,7 @@ void Send(uint8_t *b)
     code[3] = 0x80;
     while (usart_tx_ringbuffer_push(code, 4) == 0)
       ;
-    while (usart_tx_ringbuffer_push(b + width * j * 2, width) == 0)
-      ;
-    while (usart_tx_ringbuffer_push(b + width * j * 2 + width, width) == 0)
+    while (usart_tx_ringbuffer_push(b + width * j * 2, width * 2 + 1) == 0)
       ;
 
     code[3] = 0xDA;
@@ -126,12 +143,15 @@ void SendDisparityMap(uint8_t *b)
   code[1] = 0x00;
   code[2] = 0x00;
 
+  uint16_t height = IMAGE_HEIGHT;
+  int16_t width = IMAGE_WIDTH;
+
   int j = 0;
-  for (j = 0; j < 96; j++) {
+  for (j = 0; j < height; j++) {
     code[3] = 0x80;
     while (usart_tx_ringbuffer_push(code, 4) == 0)
       ;
-    while (usart_tx_ringbuffer_push(b + 128 * j, 128) == 0)
+    while (usart_tx_ringbuffer_push(b + width * j, width) == 0)
       ;
 
     code[3] = 0xDA;
@@ -141,6 +161,15 @@ void SendDisparityMap(uint8_t *b)
 
   code[3] = 0xAB;
   while (usart_tx_ringbuffer_push(code, 4) == 0)
+    ;
+}
+
+void SendStartComm()
+{
+  uint8_t code[1];
+  code[0] = 0xff;
+
+  while (usart_tx_ringbuffer_push(code, 1) == 0)
     ;
 }
 
@@ -229,13 +258,13 @@ int main(void)
   camera_tcm8230_i2c_init();
   // Start listening to DCMI frames
   camera_dcmi_init();
+  // Start DCMI interrupts (interrupts on frame ready)
+  camera_dcmi_it_init();
   camera_dcmi_dma_enable();
   // Wait for at least 2000 clock cycles after reset
   Delay(0x07FFFF);
   // Communicate with camera, setup image type and start streaming
   camera_tcm8230_config();
-  // Start DCMI interrupts (interrupts on frame ready)
-  // camera_dcmi_it_init();
   // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
   // Print welcome message
@@ -334,9 +363,19 @@ int main(void)
   /***********
    * MAIN LOOP
    ***********/
+  //DCMI_CaptureCmd(ENABLE);
 
   int processed = 0;
   while (1) {
+
+#ifdef LARGE_IMAGE
+    offset_crop += 80;
+    if (offset_crop == 480) {
+      offset_crop = 0;
+    }
+    camera_crop(offset_crop);
+#endif
+    DCMI_CaptureCmd(ENABLE); // while no new frame, ask DCMI to capture a new frame
     // wait for new frame
     while (frame_counter == processed)
       ;

@@ -82,16 +82,25 @@ void camera_tcm8230_i2c_init(void)
 #define   EXP_SHORT       0x00
 #define   EXP_LONG        0x10
 
+// White Balance
 
-#define TCM_AWB 0x0A // auto white balance
-#define TCM_AWB_AUTO 0x00
-#define TCM_AWB_MANUAL 255
+#define TCM_AWB 0x0A // auto white balance ON/OFF
+#define TCM_AWB_AUTO 0x00  //ON
+#define TCM_AWB_MANUAL 128  //OFF
+
+#define TCM_MRG 0x0B // auto white balance gain [0-255]
+#define TCM_MBG 0x0C // auto white balance gain [0-255]
+
+// Auto luminance
 
 #define TCM_ALC 0x05 // auto luminance control
 #define TCM_ALC_AUTO 0
 #define TCM_ALC_MANUAL 128
 
-#define TCM_ALCL 0x09 // auto luminance control level
+#define TCM_ALCL 0x20 // auto luminance control level
+
+#define TCM_ALCMODE 0x08
+#define TCM_ALCMODE_CENTER_ONLY
 
 #define TCM_VHUE 0x13
 #define TCM_UHUE 0x14
@@ -110,17 +119,22 @@ void camera_tcm8230_config(void)
 #ifdef SMALL_IMAGE
   tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_subQCIF);
 #else
+#ifdef LARGE_IMAGE
+  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_VGA);
+#else
   tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_QCIF);
+#endif
 #endif
   tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
   tcm8230_WriteReg(TCM_EXP, EXP_DEFAULT | EXP_SHORT);
 
-  // Bibdemo: setup following 2 registers
-  // tcm8230_WriteReg(TCM_AWB, TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
-  // tcm8230_WriteReg(TCM_SATU, 255);
+
+  tcm8230_WriteReg(TCM_AWB,
+                   TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
+  tcm8230_WriteReg(TCM_SATU, 255);
 
   // Extra options:
-  // tcm8230_WriteReg(TCM_ALC, TCM_ALC_MANUAL);
+  //tcm8230_WriteReg(TCM_ALC, TCM_ALC_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
   // tcm8230_WriteReg(TCM_ALCL, 50);
   // tcm8230_WriteReg(TCM_VHUE, 255);
   // tcm8230_WriteReg(TCM_UHUE, 255);

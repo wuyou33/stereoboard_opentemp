@@ -150,21 +150,11 @@ void camera_dcmi_init(void)
   // Enable DCMI clock
   RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_DCMI, ENABLE);
 
-  // Crop Configuration center
-  //  DCMI_CROPInitTypeDef DCMI_CROPInitStructure;
-  //  DCMI_CROPInitStructure.DCMI_VerticalLineCount = 119;
-  //  DCMI_CROPInitStructure.DCMI_HorizontalOffsetCount = 282;
-  //  DCMI_CROPInitStructure.DCMI_VerticalStartLine = 180;
-  //  DCMI_CROPInitStructure.DCMI_CaptureCount = 187;
-  //  DCMI_CROPInitStructure.DCMI_VerticalLineCount = 63;
-  //  DCMI_CROPInitStructure.DCMI_HorizontalOffsetCount = 72;
-  //  DCMI_CROPInitStructure.DCMI_VerticalStartLine = 28;
-  //  DCMI_CROPInitStructure.DCMI_CaptureCount = 63;
-  //  DCMI_CROPConfig(&DCMI_CROPInitStructure);
-  //  DCMI_CROPCmd(ENABLE);
+  camera_crop(0);
 
   // DCMI configuration
-  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
+  //DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
+  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
   DCMI_InitStructure.DCMI_SynchroMode = DCMI_SynchroMode_Hardware;
   DCMI_InitStructure.DCMI_PCKPolarity = DCMI_PCKPolarity_Falling;
   DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_Low;
@@ -208,6 +198,17 @@ void camera_dcmi_init(void)
 
 }
 
+void camera_crop(uint16_t offset)
+{
+  DCMI_CROPInitTypeDef DCMI_CROPInitStructure;
+  DCMI_CROPInitStructure.DCMI_VerticalLineCount = IMAGE_HEIGHT - 1;
+  DCMI_CROPInitStructure.DCMI_HorizontalOffsetCount = 0;
+  DCMI_CROPInitStructure.DCMI_VerticalStartLine = offset;
+  DCMI_CROPInitStructure.DCMI_CaptureCount = IMAGE_WIDTH * 2;
+  DCMI_CROPConfig(&DCMI_CROPInitStructure);
+  DCMI_CROPCmd(ENABLE);
+}
+
 void camera_dcmi_dma_enable()
 {
   /* Enable DMA2 stream 1 and DCMI interface then start image capture */
@@ -236,17 +237,30 @@ void camera_dcmi_it_init()
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-  DCMI_ITConfig(DCMI_IT_FRAME, ENABLE);
+  DCMI_ITConfig(DCMI_IT_VSYNC, ENABLE);
 }
 
 volatile int frame_counter = 0;
-int led_toggle = 0;
+//int led_toggle = 0;
 #include "led.h"
 
 void dcmi_isr(void)
 {
-  if (DCMI_GetITStatus(DCMI_IT_FRAME) != RESET) {
-    DCMI_ClearITPendingBit(DCMI_IT_FRAME);
+  if (DCMI_GetITStatus(DCMI_IT_VSYNC) != RESET) {
+    DCMI_ClearITPendingBit(DCMI_IT_VSYNC);
+
+    //frame_counter++;  /////////////////
+
+    /*if ( frame_counter % 30 == 0 )
+      camera_crop( 60);
+
+    if ( frame_counter % 60 == 0 )
+      camera_crop( 0);*/
+
+    //camera_crop( 0);
+
+    // led_toggle();
+
   }
 
   return;
@@ -274,6 +288,11 @@ void dma2_stream1_isr(void)
   // Transfer Complete
   if (DMA_GetITStatus(DMA2_Stream1, DMA_IT_TCIF1) != RESET) {
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1);
+
+    frame_counter++;  /////////////////
+
+    led_toggle();
+
   }
 
   // Half Transfer
@@ -281,18 +300,7 @@ void dma2_stream1_isr(void)
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_HTIF1);
 
     // Count the frames
-    frame_counter++;
-    led_toggle = 1 - led_toggle;
-
-    /*
-    if (led_toggle == 0)
-    {
-      led_set();
-    }
-    else
-    {
-      led_clear();
-    }*/
+    //frame_counter++;
   }
 
   // Get the currently used buffer
@@ -304,8 +312,12 @@ void dma2_stream1_isr(void)
     current_image_buffer = dcmi_image_buffer_8bit_1;
   }
 #else
-  // 176 x 144
+#ifdef LARGE_IMAGE
   current_image_buffer = dcmi_image_buffer_8bit_1;
+#else
+  // 176 x 144
+  //current_image_buffer = dcmi_image_buffer_8bit_1;
+#endif
 #endif
 
 }
