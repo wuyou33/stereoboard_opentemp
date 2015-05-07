@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint8_t len);
+uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint16_t len);
 uint8_t usart_rx_ringbuffer_push();
 uint8_t usart_tx_ringbuffer_pop_to_usart();
 

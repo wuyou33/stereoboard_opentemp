@@ -13,7 +13,7 @@
 //#include "misc.h"
 
 // FIXME calculate buffer size, now it's just an estimation
-#define TXBUFFERSIZE    (64*64*8) // 4 KByte
+#define TXBUFFERSIZE    (64*64) // 4 KByte
 #define RXBUFFERSIZE    (64*64)
 
 uint8_t usart_tx_buffer[TXBUFFERSIZE] = "\n\rStereoCam\n\r";
@@ -34,14 +34,14 @@ uint8_t uart_tx_finished(void)
   return 1;
 }
 
-uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint8_t len)
+uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint16_t len)
 {
   USART_ITConfig(MY_USART_NR, USART_IT_TXE, DISABLE);
 
   /* if there is free space in buffer */
   if ((((usart_tx_counter_read - usart_tx_counter_write) - 1) + TXBUFFERSIZE) % TXBUFFERSIZE > len) {
 
-    uint8_t i;
+    uint16_t i;
     for (i = 0; i < len; i++) {
 
       usart_tx_buffer[usart_tx_counter_write] = ch[i];
