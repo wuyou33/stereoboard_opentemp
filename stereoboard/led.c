@@ -34,7 +34,7 @@ void led_clear(void)
   led_is_on = 0;
 }
 
-void led_switch(void)
+void led_toggle(void)
 {
   if (led_is_on) {
     led_clear();
