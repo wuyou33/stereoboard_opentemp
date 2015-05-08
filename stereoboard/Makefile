@@ -127,6 +127,8 @@ cpld.c \
 cpld.h \
 stereo_vision.c \
 stereo_vision.h \
+optic_flow.c \
+optic_flow.h \
 window_detection.c \
 window_detection.h \
 filter_color.c \
