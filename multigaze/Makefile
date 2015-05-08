@@ -1,4 +1,5 @@
-TARGET        = StereoBoard
+TARGET        = MultiGaze
+CAMERA	      = StereoBoard
 
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
@@ -87,14 +88,6 @@ ${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 
-USB_SRCS = \
-../libs/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.c \
-../libs/STM32_USB_Device_Library/Core/src/usbd_core.c  \
-../libs/STM32_USB_Device_Library/Core/src/usbd_ioreq.c \
-../libs/STM32_USB_Device_Library/Core/src/usbd_req.c \
-../libs/STM32_USB_OTG_Driver/src/usb_dcd.c      \
-../libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
-
 all: $(SUBMODULE) $(BIN_IMAGE)
 
 $(BIN_IMAGE): $(EXECUTABLE)
@@ -106,19 +99,7 @@ stm32f4xx_it.c \
 system_stm32f4xx.c \
 led.c \
 usart.c \
-dcmi.c \
-tcm8230.c \
-jpeg.c \
-cpld.c \
-stereo_vision.c \
-entropy_patches.c \
-usbd_cdc_vcp.c \
-usb_bsp.c \
-usbd_desc.c \
-usbd_usr.c \
-usb_core.c \
-utils.c \
-hmc5883.c
+utils.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
@@ -127,7 +108,6 @@ MAIN_LST = $(MAIN_SRCS:.c=.lst)
 $(EXECUTABLE): 	\
 		startup_stm32f4xx.s \
 		$(MAIN_OBJS) \
-		${USB_SRCS} \
 		${STDP_LIB}
 	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
 
@@ -152,7 +132,11 @@ com:
 #else
 BMP_PORT ?= /dev/ttyACM0
 
-upload:
+${CAMERA}.elf:
+	make -C ../stereoboard
+	cp ../stereoboard/${CAMERA}.elf ./
+
+upload: ${EXECUTABLE} ${CAMERA}.elf
 	@echo "Using Black Magic Probe"
 	@echo "Using GDB = $(GDB)"
 	$(GDB) --batch \
@@ -168,8 +152,8 @@ style:
 	find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/\r$$//' \;
 	find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
 	find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
-	./fix_code_style.sh *.c
-	./fix_code_style.sh *.h
+	../stereoboard/fix_code_style.sh *.c
+	../stereoboard/fix_code_style.sh *.h
 
 stdplib: $(STDP_LIB)
 

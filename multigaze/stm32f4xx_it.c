@@ -25,7 +25,6 @@
 #include "stm32f4xx_it.h"
 
 #include "usart.h"
-#include "dcmi.h"
 
 /** @addtogroup STM32F4_Discovery_Peripheral_Examples
   * @{
@@ -35,14 +34,7 @@
   * @{
   */
 
-#include "usb_core.h"
-#include "usbd_core.h"
-#include "usbd_cdc_core.h"
-
 volatile uint32_t stopwatch_ms;
-
-extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
-extern uint32_t USBD_OTG_ISR_Handler(USB_OTG_CORE_HANDLE *pdev);
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -174,12 +166,10 @@ void UART4_IRQHandler(void)
 
 void DCMI_IRQHandler(void)
 {
-  dcmi_isr();
 }
 
 void DMA2_Stream1_IRQHandler(void)
 {
-  dma2_stream1_isr();
 }
 
 /**
@@ -188,17 +178,10 @@ void DMA2_Stream1_IRQHandler(void)
 
 void OTG_FS_WKUP_IRQHandler(void)
 {
-  if (USB_OTG_dev.cfg.low_power) {
-    *(uint32_t *)(0xE000ED10) &= 0xFFFFFFF9 ;
-    SystemInit();
-    USB_OTG_UngateClock(&USB_OTG_dev);
-  }
-  EXTI_ClearITPendingBit(EXTI_Line18);
 }
 
 void OTG_FS_IRQHandler(void)
 {
-  USBD_OTG_ISR_Handler(&USB_OTG_dev);
 }
 
 

@@ -1,6 +1,16 @@
-file StereoBoard.elf
+monitor version
 monitor jtag_scan
+attach 2
+load MultiGaze.elf
 attach 1
-monitor option erase
-load
+load StereoBoard.elf
+kill
+attach 2
+load StereoBoard.elf
+kill
+attach 3
+load StereoBoard.elf
+kill
+attach 4
+load MultiGaze.elf
 kill
