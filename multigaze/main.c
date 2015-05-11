@@ -66,26 +66,25 @@ int main(void)
   while (1) {
     // Read PC input
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_7)) {
-      GPIO_SetBits(GPIOB, GPIO_Pin_6);
+      //GPIO_SetBits(GPIOB, GPIO_Pin_6);
       GPIO_SetBits(GPIOA, GPIO_Pin_9);     // UART1
       GPIO_SetBits(GPIOA, GPIO_Pin_2);      // UART2
       GPIO_SetBits(GPIOB, GPIO_Pin_10);     // UART3
       GPIO_SetBits(GPIOC, GPIO_Pin_10);     // UART4
       GPIO_SetBits(GPIOC, GPIO_Pin_12);     // UART5
       GPIO_SetBits(GPIOC, GPIO_Pin_6);      // UART6
-      led_clear();
+      //led_clear();
     } else {
-      GPIO_ResetBits(GPIOB, GPIO_Pin_6);
+      //GPIO_ResetBits(GPIOB, GPIO_Pin_6);
       GPIO_ResetBits(GPIOA, GPIO_Pin_9);     // UART1
       GPIO_ResetBits(GPIOA, GPIO_Pin_2);      // UART2
       GPIO_ResetBits(GPIOB, GPIO_Pin_10);     // UART3
       GPIO_ResetBits(GPIOC, GPIO_Pin_10);     // UART4
       GPIO_ResetBits(GPIOC, GPIO_Pin_12);     // UART5
       GPIO_ResetBits(GPIOC, GPIO_Pin_6);      // UART6
-      led_set();
+      //led_set();
     }
-/*
-    // Read Camera 3
+    // Read Camera 1
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_11)) {
       led_clear();
       GPIO_SetBits(GPIOB, GPIO_Pin_6);
@@ -93,7 +92,6 @@ int main(void)
       led_set();
       GPIO_ResetBits(GPIOB, GPIO_Pin_6);
     }
-*/
   }
 }
 
