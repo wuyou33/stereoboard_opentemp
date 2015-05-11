@@ -53,7 +53,7 @@ int main(void)
   led_set();
 
   // Initialize the serial communication (before the camera so we can print status)
-  usart_init();
+  // usart_init();
 
   // Camera interface init
   cameras_init();
@@ -67,10 +67,14 @@ int main(void)
 
 
   while (1) {
-    led_set();
-    Delay(0x07FFFF);
-    led_clear();
-    Delay(0x17FFFF);
+    // Read PC input
+    if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_7)) {
+      //GPIO_SetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14);
+      led_clear();
+    } else {
+      //GPIO_ResetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14);
+      led_set();
+    }
   }
 }
 
