@@ -58,23 +58,42 @@ int main(void)
   // Camera interface init
   cameras_init();
 
-  // Wait for at least 100 clock cycles
-  Delay(0x07FFFF);
-
   // Print welcome message
-  char comm_buff[128] = " --- Stereo Camera --- \n\r";
-  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, strlen(comm_buff));
+  //char comm_buff[128] = " --- Stereo Camera --- \n\r";
+  //usart_tx_ringbuffer_push((uint8_t *)&comm_buff, strlen(comm_buff));
 
 
   while (1) {
     // Read PC input
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_7)) {
-      //GPIO_SetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14);
+      GPIO_SetBits(GPIOB, GPIO_Pin_6);
+      GPIO_SetBits(GPIOA, GPIO_Pin_9);     // UART1
+      GPIO_SetBits(GPIOA, GPIO_Pin_2);      // UART2
+      GPIO_SetBits(GPIOB, GPIO_Pin_10);     // UART3
+      GPIO_SetBits(GPIOC, GPIO_Pin_10);     // UART4
+      GPIO_SetBits(GPIOC, GPIO_Pin_12);     // UART5
+      GPIO_SetBits(GPIOC, GPIO_Pin_6);      // UART6
       led_clear();
     } else {
-      //GPIO_ResetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14);
+      GPIO_ResetBits(GPIOB, GPIO_Pin_6);
+      GPIO_ResetBits(GPIOA, GPIO_Pin_9);     // UART1
+      GPIO_ResetBits(GPIOA, GPIO_Pin_2);      // UART2
+      GPIO_ResetBits(GPIOB, GPIO_Pin_10);     // UART3
+      GPIO_ResetBits(GPIOC, GPIO_Pin_10);     // UART4
+      GPIO_ResetBits(GPIOC, GPIO_Pin_12);     // UART5
+      GPIO_ResetBits(GPIOC, GPIO_Pin_6);      // UART6
       led_set();
     }
+/*
+    // Read Camera 3
+    if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_11)) {
+      led_clear();
+      GPIO_SetBits(GPIOB, GPIO_Pin_6);
+    } else {
+      led_set();
+      GPIO_ResetBits(GPIOB, GPIO_Pin_6);
+    }
+*/
   }
 }
 

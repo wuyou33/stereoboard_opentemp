@@ -151,7 +151,7 @@ void usart_init()
   GPIO_InitTypeDef GPIO_InitStructure;
 
   /* Enable the USART clocks */
-  RCC_APB1PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
   /* Enable GPIO clock */
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);

@@ -164,6 +164,11 @@ void UART4_IRQHandler(void)
   usart_isr();
 }
 
+void USART1_IRQHandler(void)
+{
+  usart_isr();
+}
+
 void DCMI_IRQHandler(void)
 {
 }
