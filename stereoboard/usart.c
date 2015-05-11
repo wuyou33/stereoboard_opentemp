@@ -24,7 +24,14 @@ int usart_tx_counter_write = 13;
 int usart_rx_counter_read = 0;
 int usart_rx_counter_write = 0;
 
+#define USE_UART4
+//#define USE_USART1
+
+#ifdef USE_USART1
+#define MY_USART_NR  USART1
+#else
 #define MY_USART_NR  UART4
+#endif
 
 uint8_t uart_tx_finished(void)
 {
@@ -138,6 +145,45 @@ void usart_init()
   // Configures the nested vectored interrupt controller.
   NVIC_InitTypeDef NVIC_InitStructure;
 
+#ifdef USE_USART1
+  // USART1:
+  // Tx1 = PA9
+  // Rx1 = PA10
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  /* Enable the USART clocks */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+  /* Connect UART pins to PA9, PA10 */
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
+
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;    // Alternate Function
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+#else
+
   // Enable the USARTx Interrupt
   NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
@@ -170,8 +216,11 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
+#endif
+
+
   /* Enable the USART OverSampling by 8 */
-  USART_OverSampling8Cmd(UART4, ENABLE);
+  USART_OverSampling8Cmd(MY_USART_NR, ENABLE);
 
 
   /* USARTx configured as follow:
