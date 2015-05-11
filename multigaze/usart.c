@@ -3,15 +3,17 @@
  *
  *      Author: pixhawk
  */
-#include "stm32f4xx_conf.h"
 
+//#include "main_parameters.h"
+
+#include "stm32f4xx_conf.h"
 #include "stm32f4xx_usart.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
 //#include "misc.h"
 
 // FIXME calculate buffer size, now it's just an estimation
-#define TXBUFFERSIZE    (64*64*8) // 4 KByte
+#define TXBUFFERSIZE    (64*64) // 4 KByte
 #define RXBUFFERSIZE    (64*64)
 
 uint8_t usart_tx_buffer[TXBUFFERSIZE] = "\n\rStereoCam\n\r";
@@ -22,7 +24,7 @@ int usart_tx_counter_write = 13;
 int usart_rx_counter_read = 0;
 int usart_rx_counter_write = 0;
 
-#define MY_USART_NR  UART4
+#define MY_USART_NR  USART1
 
 uint8_t uart_tx_finished(void)
 {
@@ -32,14 +34,14 @@ uint8_t uart_tx_finished(void)
   return 1;
 }
 
-uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint8_t len)
+uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint16_t len)
 {
   USART_ITConfig(MY_USART_NR, USART_IT_TXE, DISABLE);
 
   /* if there is free space in buffer */
   if ((((usart_tx_counter_read - usart_tx_counter_write) - 1) + TXBUFFERSIZE) % TXBUFFERSIZE > len) {
 
-    uint8_t i;
+    uint16_t i;
     for (i = 0; i < len; i++) {
 
       usart_tx_buffer[usart_tx_counter_write] = ch[i];
@@ -132,12 +134,15 @@ void usart_isr(void)
 
 void usart_init()
 {
+  // UART1:
+  // Tx1 = PB6
+  // Rx1 = PB7
 
   // Configures the nested vectored interrupt controller.
   NVIC_InitTypeDef NVIC_InitStructure;
 
   // Enable the USARTx Interrupt
-  NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -146,14 +151,14 @@ void usart_init()
   GPIO_InitTypeDef GPIO_InitStructure;
 
   /* Enable the USART clocks */
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
   /* Enable GPIO clock */
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
   /* Connect UART pins to PA0, PA1 */
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource0, GPIO_AF_UART4);
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_UART4);
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
 
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;    // Alternate Function
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -161,15 +166,15 @@ void usart_init()
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 
   /* usart TX pin configuration */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
 
   /* usart RX pin configuration */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
 
   /* Enable the USART OverSampling by 8 */
-  USART_OverSampling8Cmd(UART4, ENABLE);
+  USART_OverSampling8Cmd(USART1, ENABLE);
 
 
   /* USARTx configured as follow:
@@ -187,8 +192,11 @@ void usart_init()
   USART_InitStructure.USART_Parity = USART_Parity_No;
   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-
-  USART_InitStructure.USART_BaudRate = 1000000; //9600; //3000000; //921600; //19200; //6400 * 2; //9600 for APcomm;
+#ifdef USART_3000000
+  USART_InitStructure.USART_BaudRate = 3000000;
+#else
+  USART_InitStructure.USART_BaudRate = 9600; //9600; //3000000; //921600; //19200; //6400 * 2; //9600 for APcomm;
+#endif
   USART_Init(MY_USART_NR, &USART_InitStructure);
 
   USART_Cmd(MY_USART_NR, ENABLE);
@@ -241,6 +249,8 @@ void print_number(int32_t number, uint8_t new_line)
 
   if (number < 0) {
     number = -number;
+    comm_buff[0] = '-';
+    usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
   }
 
   itoa(comm_buff, number, 10);
@@ -253,6 +263,13 @@ void print_number(int32_t number, uint8_t new_line)
   }
 
   usart_tx_ringbuffer_push((uint8_t *)&comm_buff, BLEN);
+}
+
+void print_space()
+{
+  char comm_buff[ 1 ];
+  comm_buff[0] = ' ';
+  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
 }
 
 void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
@@ -268,3 +285,20 @@ void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
   print_number(numbers[size - 1], new_line);
 }
 
+void print_byte(uint8_t b)
+{
+  uint8_t code[1];
+  code[0] = b;
+
+  while (usart_tx_ringbuffer_push(code, 1) == 0)
+    ;
+}
+
+void print_string(char *s, int len)
+{
+
+  while (usart_tx_ringbuffer_push(s, len) == 0)
+    ;
+
+
+}

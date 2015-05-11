@@ -98,6 +98,7 @@ main.c \
 stm32f4xx_it.c \
 system_stm32f4xx.c \
 led.c \
+cameras.c \
 usart.c \
 utils.c
 
@@ -113,6 +114,7 @@ $(EXECUTABLE): 	\
 
 clean:
 	rm -rf $(EXECUTABLE)
+	rm -rf $(CAMERA).elf
 	rm -rf $(BIN_IMAGE)
 	rm -rf *.lst *.o
 

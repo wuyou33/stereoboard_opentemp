@@ -1,16 +1,17 @@
 monitor version
 monitor jtag_scan
-attach 2
-load MultiGaze.elf
 attach 1
 load StereoBoard.elf
-kill
 attach 2
 load StereoBoard.elf
-kill
 attach 3
 load StereoBoard.elf
-kill
 attach 4
+load StereoBoard.elf
+attach 5
+load StereoBoard.elf
+attach 6
+load StereoBoard.elf
+attach 7
 load MultiGaze.elf
 kill
