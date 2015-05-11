@@ -55,6 +55,8 @@ int main(void)
   // Initialize the serial communication (before the camera so we can print status)
   usart_init();
 
+  // Camera interface init
+  cameras_init();
 
   // Wait for at least 100 clock cycles
   Delay(0x07FFFF);
