@@ -144,6 +144,12 @@ upload: ${EXECUTABLE} ${CAMERA}.elf
 	$(GDB) --batch \
                 -ex 'target extended-remote $(BMP_PORT)' \
                 -x black_magic_probe_flash.scr ${EXECUTABLE}
+
+upload2: ${EXECUTABLE}
+	$(GDB) --batch \
+		-ex 'target extended-remote $(BMP_PORT)' \
+		-x black_magic_probe_flash_multigazeonly.scr ${EXECUTABLE}
+
 #endif
 
 cleanspaces:
