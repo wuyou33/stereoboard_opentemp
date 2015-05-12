@@ -12,17 +12,12 @@
 #include "stm32f4xx_rcc.h"
 //#include "misc.h"
 
-// FIXME calculate buffer size, now it's just an estimation
-#define TXBUFFERSIZE    (64*64) // 4 KByte
-#define RXBUFFERSIZE    (64*64)
+#include "usart.h"
 
-uint8_t usart_tx_buffer[TXBUFFERSIZE] = "\n\rStereoCam\n\r";
-uint8_t usart_rx_buffer[RXBUFFERSIZE] = "";
+struct UartDataStruct USART1_Data = {USART1, 0, 0, 0, 0};
+struct UartDataStruct USART4_Data = {UART4, 0, 0, 0, 0};
 
-int usart_tx_counter_read = 0;
-int usart_tx_counter_write = 13;
-int usart_rx_counter_read = 0;
-int usart_rx_counter_write = 0;
+
 
 #define USE_UART4
 //#define USE_USART1
@@ -33,30 +28,30 @@ int usart_rx_counter_write = 0;
 #define MY_USART_NR  UART4
 #endif
 
-uint8_t uart_tx_finished(void)
+uint8_t uart_tx_finished(struct UartDataStruct *dev)
 {
-  if (usart_tx_counter_read != usart_tx_counter_write) {
+  if (dev->usart_tx_counter_read != dev->usart_tx_counter_write) {
     return 0;
   }
   return 1;
 }
 
-uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint16_t len)
+uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16_t len)
 {
-  USART_ITConfig(MY_USART_NR, USART_IT_TXE, DISABLE);
+  USART_ITConfig(dev->device, USART_IT_TXE, DISABLE);
 
   /* if there is free space in buffer */
-  if ((((usart_tx_counter_read - usart_tx_counter_write) - 1) + TXBUFFERSIZE) % TXBUFFERSIZE > len) {
+  if ((((dev->usart_tx_counter_read - dev->usart_tx_counter_write) - 1) + TXBUFFERSIZE) % TXBUFFERSIZE > len) {
 
     uint16_t i;
     for (i = 0; i < len; i++) {
 
-      usart_tx_buffer[usart_tx_counter_write] = ch[i];
-      usart_tx_counter_write = (usart_tx_counter_write + 1) % TXBUFFERSIZE;
+      dev->usart_tx_buffer[dev->usart_tx_counter_write] = ch[i];
+      dev->usart_tx_counter_write = (dev->usart_tx_counter_write + 1) % TXBUFFERSIZE;
 
     }
 
-    USART_ITConfig(MY_USART_NR, USART_IT_TXE, ENABLE);
+    USART_ITConfig(dev->device, USART_IT_TXE, ENABLE);
     return 1;
   }
 
@@ -64,78 +59,78 @@ uint8_t usart_tx_ringbuffer_push(uint8_t *ch, uint16_t len)
   return 0;
 }
 
-int usart_char_available()
+int usart_char_available(struct UartDataStruct *dev)
 {
-  return (usart_rx_counter_read != usart_rx_counter_write);
+  return (dev->usart_rx_counter_read != dev->usart_rx_counter_write);
 }
 
-uint8_t usart_rx_ringbuffer_pop()
+uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev)
 {
 
-  USART_ITConfig(MY_USART_NR, USART_IT_RXNE, DISABLE);
+  USART_ITConfig(dev->device, USART_IT_RXNE, DISABLE);
 //  if ((RxCounterRead != RxCounterWrite)) {
 
-  uint8_t value = usart_rx_buffer[usart_rx_counter_read];
-  usart_rx_counter_read = (usart_rx_counter_read + 1) % TXBUFFERSIZE;
+  uint8_t value = dev->usart_rx_buffer[dev->usart_rx_counter_read];
+  dev->usart_rx_counter_read = (dev->usart_rx_counter_read + 1) % TXBUFFERSIZE;
 
-  USART_ITConfig(MY_USART_NR, USART_IT_RXNE, ENABLE);
+  USART_ITConfig(dev->device, USART_IT_RXNE, ENABLE);
   return value;
 //  }
 //  USART_ITConfig(MY_USART_NR, USART_IT_RXNE, ENABLE);
 //  return 0;
 }
 
-uint8_t usart_rx_ringbuffer_push_from_usart()
+uint8_t usart_rx_ringbuffer_push_from_usart(struct UartDataStruct *dev)
 {
   //USART_ITConfig(MY_USART_NR, USART_IT_TXE, DISABLE);
-  usart_rx_buffer[usart_rx_counter_write] = USART_ReceiveData(MY_USART_NR);
-  int temp = (usart_rx_counter_write + 1) % TXBUFFERSIZE;
+  dev->usart_rx_buffer[dev->usart_rx_counter_write] = USART_ReceiveData(MY_USART_NR);
+  int temp = (dev->usart_rx_counter_write + 1) % TXBUFFERSIZE;
 
-  if (temp == usart_rx_counter_read) {
+  if (temp == dev->usart_rx_counter_read) {
     return 0;
   }
 
-  usart_rx_counter_write = temp;
+  dev->usart_rx_counter_write = temp;
   return 1;
 }
 
-uint8_t usart_tx_ringbuffer_pop_to_usart()
+uint8_t usart_tx_ringbuffer_pop_to_usart(struct UartDataStruct *dev)
 {
 
 
-  if (usart_tx_counter_read != usart_tx_counter_write) {
+  if (dev->usart_tx_counter_read != dev->usart_tx_counter_write) {
 
-    USART_SendData(MY_USART_NR, usart_tx_buffer[usart_tx_counter_read]);
-    usart_tx_counter_read = (usart_tx_counter_read + 1) % TXBUFFERSIZE;
+    USART_SendData(dev->device, dev->usart_tx_buffer[dev->usart_tx_counter_read]);
+    dev->usart_tx_counter_read = (dev->usart_tx_counter_read + 1) % TXBUFFERSIZE;
     return 1;
   }
   return 0;
 }
 
-void uart_test(void)
+
+void usart_isr(struct UartDataStruct *dev)
 {
-  USART_SendData(MY_USART_NR, 0x55);
+  if (USART_GetITStatus(dev->device, USART_IT_RXNE) != RESET) {
+    if (usart_rx_ringbuffer_push_from_usart(dev) == 0) {
+      /* Disable the Receive interrupt if buffer is full */
+      USART_ITConfig(dev->device, USART_IT_RXNE, DISABLE);
+    }
+    return;
+  }
+
+  if (USART_GetITStatus(dev->device, USART_IT_TXE) != RESET) {
+    if (usart_tx_ringbuffer_pop_to_usart(dev) == 0) {
+      /* Disable the Transmit interrupt if buffer is empty */
+      USART_ITConfig(dev->device, USART_IT_TXE, DISABLE);
+    }
+
+    return;
+  }
 }
 
-
-void usart_isr(void)
+void usart_init_hw(struct UartDataStruct *dev)
 {
-  if (USART_GetITStatus(MY_USART_NR, USART_IT_RXNE) != RESET) {
-    if (usart_rx_ringbuffer_push_from_usart() == 0) {
-      /* Disable the Receive interrupt if buffer is full */
-      USART_ITConfig(MY_USART_NR, USART_IT_RXNE, DISABLE);
-    }
-    return;
-  }
 
-  if (USART_GetITStatus(MY_USART_NR, USART_IT_TXE) != RESET) {
-    if (usart_tx_ringbuffer_pop_to_usart() == 0) {
-      /* Disable the Transmit interrupt if buffer is empty */
-      USART_ITConfig(MY_USART_NR, USART_IT_TXE, DISABLE);
-    }
-
-    return;
-  }
 }
 
 
@@ -260,91 +255,3 @@ void usart_init()
 }
 
 
-void myhex(uint8_t v, char *buf)
-{
-  uint8_t a, b;
-  a = v & 0x0f;
-  b = v & 0xf0;
-  b = b >> 4;
-  if (a < 10) {
-    a += '0';
-  } else {
-    a += 'A' - 10;
-  }
-
-  if (b < 10) {
-    b += '0';
-  } else {
-    b += 'A' - 10;
-  }
-
-  buf[1] = a;
-  buf[0] = b;
-
-}
-
-void print_number(int32_t number, uint8_t new_line)
-{
-  //usart_tx_ringbuffer_pop_to_usart();
-#define BLEN 16
-  char comm_buff[ BLEN ];
-  int ii;
-  for (ii = 0; ii < BLEN; ii++) {
-    comm_buff[ii] = ' ';
-  }
-
-  if (number < 0) {
-    number = -number;
-    comm_buff[0] = '-';
-    usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
-  }
-
-  itoa(comm_buff, number, 10);
-  if (new_line) {
-    comm_buff[BLEN - 2] = '\n';
-    comm_buff[BLEN - 1] = '\r';
-  } else {
-    comm_buff[BLEN - 2] = ' ';
-    comm_buff[BLEN - 1] = ' ';
-  }
-
-  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, BLEN);
-}
-
-void print_space()
-{
-  char comm_buff[ 1 ];
-  comm_buff[0] = ' ';
-  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
-}
-
-void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
-{
-  //usart_tx_ringbuffer_pop_to_usart();
-
-  uint8_t ii;
-
-  for (ii = 0; ii < size - 1; ii++) {
-    print_number(numbers[ii], 0);
-  }
-
-  print_number(numbers[size - 1], new_line);
-}
-
-void print_byte(uint8_t b)
-{
-  uint8_t code[1];
-  code[0] = b;
-
-  while (usart_tx_ringbuffer_push(code, 1) == 0)
-    ;
-}
-
-void print_string(char *s, int len)
-{
-
-  while (usart_tx_ringbuffer_push(s, len) == 0)
-    ;
-
-
-}

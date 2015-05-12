@@ -199,3 +199,93 @@ void itoa(char *buf, unsigned int i, int base)
 //
 //  }
 //}
+
+void myhex(uint8_t v, char *buf)
+{
+  uint8_t a, b;
+  a = v & 0x0f;
+  b = v & 0xf0;
+  b = b >> 4;
+  if (a < 10) {
+    a += '0';
+  } else {
+    a += 'A' - 10;
+  }
+
+  if (b < 10) {
+    b += '0';
+  } else {
+    b += 'A' - 10;
+  }
+
+  buf[1] = a;
+  buf[0] = b;
+
+}
+
+void print_number(int32_t number, uint8_t new_line)
+{
+  //usart_tx_ringbuffer_pop_to_usart();
+#define BLEN 16
+  char comm_buff[ BLEN ];
+  int ii;
+  for (ii = 0; ii < BLEN; ii++) {
+    comm_buff[ii] = ' ';
+  }
+
+  if (number < 0) {
+    number = -number;
+    comm_buff[0] = '-';
+    usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
+  }
+
+  itoa(comm_buff, number, 10);
+  if (new_line) {
+    comm_buff[BLEN - 2] = '\n';
+    comm_buff[BLEN - 1] = '\r';
+  } else {
+    comm_buff[BLEN - 2] = ' ';
+    comm_buff[BLEN - 1] = ' ';
+  }
+
+  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, BLEN);
+}
+
+void print_space()
+{
+  char comm_buff[ 1 ];
+  comm_buff[0] = ' ';
+  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
+}
+
+void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
+{
+  //usart_tx_ringbuffer_pop_to_usart();
+
+  uint8_t ii;
+
+  for (ii = 0; ii < size - 1; ii++) {
+    print_number(numbers[ii], 0);
+  }
+
+  print_number(numbers[size - 1], new_line);
+}
+
+void print_byte(uint8_t b)
+{
+  uint8_t code[1];
+  code[0] = b;
+
+  while (usart_tx_ringbuffer_push(code, 1) == 0)
+    ;
+}
+
+void print_string(char *s, int len)
+{
+
+  while (usart_tx_ringbuffer_push(s, len) == 0)
+    ;
+
+
+}
+

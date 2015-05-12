@@ -156,7 +156,7 @@ void camera_tcm8230_read(void)
     res = tcm8230_ReadReg(r, &reply);
     myhex(reply, buff + 14);
     myhex(res, buff + 18);
-    usart_tx_ringbuffer_push((uint8_t *)&buff[0], 24);
+    UsartTx((uint8_t *)&buff[0], 24);
   }
 }
 

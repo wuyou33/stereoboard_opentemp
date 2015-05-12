@@ -65,18 +65,18 @@ void Send(uint8_t *b)
   code[2] = 0x00;
 
   code[3] = 0xAF;
-  while (usart_tx_ringbuffer_push(code, 4) == 0)
+  while (UsartTx(code, 4) == 0)
     ;
 
   uint8_t msg = 0x07;
-  while (usart_tx_ringbuffer_push(&msg, 1) == 0)
+  while (UsartTx(&msg, 1) == 0)
     ;
 
 #ifdef LARGE_IMAGE
 
   if (offset_crop == 0) {
     code[3] = 0xAC;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
   }
 
@@ -95,18 +95,18 @@ void Send(uint8_t *b)
   int j = 0;
   for (j = 0; j < height; j++) {
     code[3] = 0x80;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
-    while (usart_tx_ringbuffer_push(b + width * j * 2, width * 2 + 1) == 0)
+    while (UsartTx(b + width * j * 2, width * 2 + 1) == 0)
       ;
 
     code[3] = 0xDA;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
   }
 
   code[3] = 0xAB;
-  while (usart_tx_ringbuffer_push(code, 4) == 0)
+  while (UsartTx(code, 4) == 0)
     ;
 }
 
@@ -126,12 +126,12 @@ void SendJpeg(uint8_t *b, uint32_t size)
   code[8] = p[2];
   code[9] = 0x00;
 
-  while (usart_tx_ringbuffer_push(code, 10) == 0)
+  while (UsartTx(code, 10) == 0)
     ;
 
   int j = 0;
   for (j = 0; j < size; j++) {
-    while (usart_tx_ringbuffer_push(b + j, 1) == 0)
+    while (UsartTx(b + j, 1) == 0)
       ;
   }
 }
@@ -149,18 +149,18 @@ void SendDisparityMap(uint8_t *b)
   int j = 0;
   for (j = 0; j < height; j++) {
     code[3] = 0x80;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
-    while (usart_tx_ringbuffer_push(b + width * j, width) == 0)
+    while (UsartTx(b + width * j, width) == 0)
       ;
 
     code[3] = 0xDA;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
   }
 
   code[3] = 0xAB;
-  while (usart_tx_ringbuffer_push(code, 4) == 0)
+  while (UsartTx(code, 4) == 0)
     ;
 }
 
@@ -169,7 +169,7 @@ void SendStartComm()
   uint8_t code[1];
   code[0] = 0xff;
 
-  while (usart_tx_ringbuffer_push(code, 1) == 0)
+  while (UsartTx(code, 1) == 0)
     ;
 }
 
@@ -178,7 +178,7 @@ void SendCommand(uint8_t b)
   uint8_t code[1];
   code[0] = 'a' + b;
 
-  while (usart_tx_ringbuffer_push(code, 1) == 0)
+  while (UsartTx(code, 1) == 0)
     ;
 }
 
@@ -187,7 +187,7 @@ void SendCommandHeight(uint8_t b)
   uint8_t code[1];
   code[0] = b;
 
-  while (usart_tx_ringbuffer_push(code, 1) == 0)
+  while (UsartTx(code, 1) == 0)
     ;
 }
 
@@ -269,7 +269,7 @@ int main(void)
   camera_dma_it_init();
   // Print welcome message
   char comm_buff[128] = " --- Stereo Camera --- \n\r";
-  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, strlen(comm_buff));
+  UsartTx((uint8_t *)&comm_buff, strlen(comm_buff));
   // Disparity image buffer:
   uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
   uint16_t ind;

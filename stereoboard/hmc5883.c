@@ -63,8 +63,8 @@ void mag_send(void)
   values[2] = magneticfield[1];
   values[3] = magneticfield[2];
 
-  while (usart_tx_ringbuffer_push((uint8_t *)&c[0], 2) == 0);
-  while (usart_tx_ringbuffer_push((uint8_t *)&values[0], 16) == 0);
+  while (UsartTx((uint8_t *)&c[0], 2) == 0);
+  while (UsartTx((uint8_t *)&values[0], 16) == 0);
 
 }
 
@@ -105,14 +105,14 @@ void draw_mag_as_line(int m)
     }
 
     code[3] = 0x80;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
-    while (usart_tx_ringbuffer_push(debug, width) == 0)
+    while (UsartTx(debug, width) == 0)
       ;
-    while (usart_tx_ringbuffer_push(debug + width, width) == 0)
+    while (UsartTx(debug + width, width) == 0)
       ;
     code[3] = 0xDA;
-    while (usart_tx_ringbuffer_push(code, 4) == 0)
+    while (UsartTx(code, 4) == 0)
       ;
   }
 
@@ -183,7 +183,7 @@ void hmc5883_read(void)
     p[5] = e;
     p[4] = f;
     //print_number(val,0);
-    //usart_tx_ringbuffer_push((uint8_t*)&buff[0], 22);
+    //UsartTx((uint8_t*)&buff[0], 22);
     //magneticfield[i++] = val;
 
 #ifdef DEBUG_MAG

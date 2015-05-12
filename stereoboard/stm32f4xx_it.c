@@ -169,12 +169,12 @@ void SysTick_Handler(void)
 
 void UART4_IRQHandler(void)
 {
-  usart_isr();
+  usart_isr(&USART4_Data);
 }
 
 void USART1_IRQHandler(void)
 {
-  usart_isr();
+  usart_isr(&USART1_Data);
 }
 
 void DCMI_IRQHandler(void)
