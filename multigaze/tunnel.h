@@ -6,7 +6,7 @@
  */
 
 #ifndef CAMERAS_H_
-#define CAMERAS_H_
+#define TUNNELS_H_
 
 
 #define CAMERA1   Usart2
@@ -17,7 +17,7 @@
 #define CAMERA6   Usart3
 
 
-void cameras_init(void);
-void cameras_tunnel(void);
+void tunnel_init(void);
+void tunnel_run(void);
 
 #endif /* CAMERAS_H_ */

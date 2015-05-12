@@ -28,13 +28,13 @@
 
 
 
-#include "cameras.h"
+#include "tunnel.h"
 
 
 #include "stm32f4xx_conf.h"
 
 
-void cameras_init(void)
+void tunnel_init(void)
 {
   GPIO_InitTypeDef  GPIO_InitStructure;
 
@@ -186,7 +186,7 @@ void cameras_init(void)
 
 }
 
-void cameras_tunnel()
+void tunnel_run()
 {
   while (1) {
     // Read PC input

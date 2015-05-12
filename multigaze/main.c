@@ -10,6 +10,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "led.h"
+#include "tunnel.h"
 #include "usart.h"
 #include "stm32f4xx_conf.h"
 
@@ -52,11 +53,14 @@ int main(void)
   led_init();
   led_set();
 
+#ifdef TUNNEL_NONE
   // Initialize the serial communication (before the camera so we can print status)
-  // usart_init();
+   usart_init();
 
+#else
   // Camera interface init
-  cameras_init();
+  tunnel_init();
+#endif
 
   // Print welcome message
   //char comm_buff[128] = " --- Stereo Camera --- \n\r";
@@ -64,18 +68,7 @@ int main(void)
 
 
   while (1) {
-    cameras_tunnel();
-  }
-}
-
-/**
-  * @brief  Delay Function.
-  * @param  nCount:specifies the Delay time length.
-  * @retval None
-  */
-void Delay(__IO uint32_t nCount)
-{
-  while (nCount--) {
+    tunnel_run();
   }
 }
 
