@@ -185,3 +185,52 @@ void cameras_init(void)
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 }
+
+void cameras_tunnel()
+{
+  while (1) {
+    // Read PC input
+    if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_7)) {
+      //GPIO_SetBits(GPIOB, GPIO_Pin_6);
+      GPIO_SetBits(GPIOA, GPIO_Pin_9);     // UART1
+      GPIO_SetBits(GPIOA, GPIO_Pin_2);      // UART2
+      GPIO_SetBits(GPIOB, GPIO_Pin_10);     // UART3
+      GPIO_SetBits(GPIOC, GPIO_Pin_10);     // UART4
+      GPIO_SetBits(GPIOC, GPIO_Pin_12);     // UART5
+      GPIO_SetBits(GPIOC, GPIO_Pin_6);      // UART6
+      //led_clear();
+    } else {
+      //GPIO_ResetBits(GPIOB, GPIO_Pin_6);
+      GPIO_ResetBits(GPIOA, GPIO_Pin_9);     // UART1
+      GPIO_ResetBits(GPIOA, GPIO_Pin_2);      // UART2
+      GPIO_ResetBits(GPIOB, GPIO_Pin_10);     // UART3
+      GPIO_ResetBits(GPIOC, GPIO_Pin_10);     // UART4
+      GPIO_ResetBits(GPIOC, GPIO_Pin_12);     // UART5
+      GPIO_ResetBits(GPIOC, GPIO_Pin_6);      // UART6
+      //led_set();
+    }
+
+    // Read Camera
+#if defined(TUNNEL4)
+    if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_10)) { // UART1
+#elif defined(TUNNEL1)
+    if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_3)) { // UART2
+#elif defined(TUNNEL6)
+    if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_11)) { // UART3
+#elif defined(TUNNEL3)
+    if (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_11)) { // UART4
+#elif defined(TUNNEL2)
+    if (GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_2)) { // UART5
+#elif defined(TUNNEL5)
+    if (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_7)) { // UART6
+#else
+    if (0) {
+#endif
+      led_clear();
+      GPIO_SetBits(GPIOB, GPIO_Pin_6);
+    } else {
+      led_set();
+      GPIO_ResetBits(GPIOB, GPIO_Pin_6);
+    }
+  }
+}

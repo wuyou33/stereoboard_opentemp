@@ -4,7 +4,10 @@ CAMERA	      = StereoBoard
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
 
-CROSS        ?= ~/sat/bin/arm-none-eabi-
+CROSS        ?= arm-none-eabi-
+
+# Tunnel from 1 to 6
+TUNNEL       ?= _NONE
 
 CC            = $(CROSS)gcc
 GDB           = $(CROSS)gdb
@@ -16,6 +19,7 @@ GDB           = $(CROSS)gdb
 CFLAGS        = -g -O3 -mlittle-endian -mthumb -DHSE_VALUE=12000000
 CFLAGS       += -mcpu=cortex-m4	-DARM_MATH_CM4
 CFLAGS       += -ffreestanding -nostdlib
+CFLAGS       += -DTUNNEL$(TUNNEL)
 
 # to run from FLASH
 CFLAGS       += -Wl,-T,stm32_flash.ld
@@ -110,6 +114,7 @@ $(EXECUTABLE): 	\
 		startup_stm32f4xx.s \
 		$(MAIN_OBJS) \
 		${STDP_LIB}
+	@echo "========= TUNNEL = $(TUNNEL) ========="
 	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
 
 clean:
@@ -128,10 +133,6 @@ $(SUBMODULE):
 com:
 	minicom -D /dev/ttyACM2 -o -w -t ansi
 
-#ifeq ($(BMP_PORT),)
-#upload:
-#	../stlink/st-flash write ${BIN_IMAGE} 0x08000000
-#else
 BMP_PORT ?= /dev/ttyACM0
 
 ${CAMERA}.elf:
@@ -149,8 +150,6 @@ upload2: ${EXECUTABLE}
 	$(GDB) --batch \
 		-ex 'target extended-remote $(BMP_PORT)' \
 		-x black_magic_probe_flash_multigazeonly.scr ${EXECUTABLE}
-
-#endif
 
 cleanspaces:
 	make -C style
