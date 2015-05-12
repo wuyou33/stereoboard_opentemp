@@ -55,7 +55,7 @@ int main(void)
 
 #ifdef TUNNEL_NONE
   // Initialize the serial communication (before the camera so we can print status)
-   usart_init();
+  usart_init();
 
 #else
   // Camera interface init
