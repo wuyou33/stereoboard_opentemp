@@ -145,6 +145,7 @@ usb_bsp.c \
 usbd_desc.c \
 usbd_usr.c \
 usb_core.c \
+eeprom.c \
 hmc5883.h \
 hmc5883.c \
 utils.h \
