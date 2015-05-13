@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #define WAIT_OP_US 15 // 48
-void mydelay(volatile uint32_t count);
+void Delay(volatile uint32_t count);
 void wait_us(uint32_t us);
 void wait_ms(uint32_t ms);
 

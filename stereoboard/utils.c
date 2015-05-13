@@ -8,7 +8,7 @@
 #include "utils.h"
 #include <string.h>
 
-void mydelay(volatile uint32_t count)
+void Delay(volatile uint32_t count)
 {
   while (count) {
     count--;
@@ -17,7 +17,7 @@ void mydelay(volatile uint32_t count)
 
 void wait_us(uint32_t us)
 {
-  mydelay(us * WAIT_OP_US);
+  Delay(us * WAIT_OP_US);
 }
 
 void wait_ms(uint32_t ms)

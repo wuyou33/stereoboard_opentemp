@@ -21,14 +21,10 @@
 #include "stereo_vision.h"
 #include "window_detection.h"
 #include "filter_color.h"
-#include "usbd_cdc_core.h"
-#include "usbd_usr.h"
-#include "usbd_desc.h"
-#include "usbd_cdc_vcp.h"
+#include "utils.h"
+#include "usb.h"
 
 #include "main_parameters.h"
-
-__ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
@@ -41,8 +37,6 @@ uint16_t offset_crop = 0;
   * @{
   */
 
-/* Private function prototypes -----------------------------------------------*/
-void Delay(volatile uint32_t nCount);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -545,17 +539,6 @@ int main(void)
 
     }
 
-  }
-}
-
-/**
-  * @brief  Delay Function.
-  * @param  nCount:specifies the Delay time length.
-  * @retval None
-  */
-void Delay(volatile uint32_t nCount)
-{
-  while (nCount--) {
   }
 }
 
