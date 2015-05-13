@@ -26,9 +26,9 @@ uint16_t filter_red_color(uint8_t *in, uint8_t *out, uint32_t image_width, uint3
       //ill = in[n_channels * (y*image_width+x) + 1];
       u = in[n_channels * (y * image_width + x)];
       v = in[n_channels * (y * image_width + x) + 2];
-      out[y * image_width + x / 2] = 128;
+      out[y * image_width + x / 2] = 0;
       if (u <= max_U) {
-        out[y * image_width + x / 2] = (v >= min_V) * 0;
+        out[y * image_width + x / 2] = (v >= min_V);
       }
       //out[y*image_width+x/2] = u;
 
@@ -42,8 +42,8 @@ uint16_t filter_red_color(uint8_t *in, uint8_t *out, uint32_t image_width, uint3
     for (y = 0; y < image_height; y++) {
       u = in[n_channels * (y * image_width + x)];
       v = in[n_channels * (y * image_width + x) + 2];
-      out[y * image_width + x / 2] = 10 * ((u <= max_U) && (v >= min_V));
-      if (out[y * image_width + x / 2]) { count++; }
+      //out[y*image_width+x/2] = 10 * ((u <= max_U) && (v >= min_V));
+      //if(out[y*image_width+x/2]) count++;
       out[y * image_width + x / 2] = (u <= max_U) && (u >= min_U);
       out[y * image_width + x / 2] = out[y * image_width + x] && (v <= max_V) && (v >= min_V);
       if (out[y * image_width + x / 2]) { count++; }

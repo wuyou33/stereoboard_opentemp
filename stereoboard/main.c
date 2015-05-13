@@ -182,7 +182,7 @@ void SendCommand(uint8_t b)
     ;
 }
 
-void SendCommandHeight(uint8_t b)
+void SendCommandNumber(uint8_t b)
 {
   uint8_t code[1];
   code[0] = b;
@@ -276,11 +276,13 @@ int main(void)
   for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
     disparity_image_buffer_8bit[ind] = 0;
   }
+#if USE_COLOR
   // slight waste of memory, if color is not used:
   uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
   for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
     filtered_image[ind] = 0;
   }
+#endif
   uint8_t min_y, max_y;
   uint32_t image_width = IMAGE_WIDTH;
   uint32_t image_height = IMAGE_HEIGHT;
@@ -292,6 +294,7 @@ int main(void)
    *******************/
 
   // Avoidance parameters;
+#ifdef DELFLY
   uint16_t obst_thr1 = 2000; // number of pixels with high disparity [1700] [3000]
   uint8_t obst_thr2 = 5; // number of obstacle detections in row
   uint16_t obst_wait = 2779; // time to wait before avoidance manoeuver [ms]
@@ -300,6 +303,16 @@ int main(void)
   uint16_t obst_entr = 70; // entropy threshold
   uint8_t obst_thr5 = 3; // number of obstacle detections in row (phase 4)
   uint16_t obst_wait2 = 500; // time to wait before going from phase 4 to 1 [ms]
+#else
+  uint16_t obst_thr1 = 1700; // number of pixels with high disparity
+  uint8_t obst_thr2 = 5; // number of obstacle detections in row
+  uint16_t obst_wait = 800; // time to wait before avoidance manoeuver [ms]
+  uint16_t obst_thr3 = 1500; // number of pixels with low disparity (phase 3)
+  uint8_t obst_thr4 = 2; // number of NO obstacle detections in row (phase 3)
+  uint16_t obst_entr = 70; // entropy threshold
+  uint8_t obst_thr5 = 3; // number of obstacle detections in row (phase 4)
+  uint16_t obst_wait2 = 500; // time to wait before going from phase 4 to 1 [ms]
+#endif
 
   uint8_t phase = 1;
   uint8_t obst_dect = 0;
@@ -308,15 +321,31 @@ int main(void)
   uint8_t obst_dect2 = 0;
   uint32_t obst_time2 = 0;
 
+#ifdef DELFLY
   uint8_t disparity_threshold = 4; // [5] [4]
   uint32_t disparities_high = 0;
   uint32_t entropy;
 
   // Stereo parameters:
   uint32_t disparity_range = 15; // at a distance of 1m, disparity is 7-8
+  uint32_t disparity_min = 0;
+  uint32_t disparity_step = 1;
   uint8_t thr1 = 4;
   uint8_t thr2 = 4;
   uint8_t diff_threshold = 4; // for filtering
+#else
+  uint8_t disparity_threshold = 5;
+  uint32_t disparities_high = 0;
+  uint32_t entropy;
+
+  // Stereo parameters:
+  uint32_t disparity_range = 30; // at a distance of 1m, disparity is 7-8
+  uint32_t disparity_min = 0;
+  uint32_t disparity_step = 3;
+  uint8_t thr1 = 4;
+  uint8_t thr2 = 4;
+  uint8_t diff_threshold = 4; // for filtering
+#endif
 
   // Color filtering:
   uint8_t min_U = 0;
@@ -326,10 +355,19 @@ int main(void)
   uint16_t n_red_pixels = 0;
 
   // Avoidance parameters;
-  /*uint8_t disp_threshold = 5; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  uint8_t n_disp_bins = 2;
+  uint8_t disp_threshold = 5;
+  if (STEREO_CAM_NUMBER == 1) {
+    disp_threshold = 3;
+  }
+  uint8_t n_disp_bins = 6;
   uint32_t disparities[n_disp_bins];
-  uint32_t avg_disparities[n_disp_bins];
+  uint8_t RESOLUTION = 100;
+
+  uint8_t bin;
+  for (bin = 0; bin < n_disp_bins; bin++) {
+    disparities[bin] = (uint8_t)48 + bin;
+  }
+  /*uint32_t avg_disparities[n_disp_bins];
   uint8_t bin;
   for(bin = 0; bin < n_disp_bins; bin++)
   {
@@ -365,7 +403,7 @@ int main(void)
    ***********/
   //DCMI_CaptureCmd(ENABLE);
 
-  int processed = 0;
+  volatile int processed = 0;
   while (1) {
 
 #ifdef LARGE_IMAGE
@@ -379,113 +417,57 @@ int main(void)
     // wait for new frame
     while (frame_counter == processed)
       ;
+
+
+
+
     if (SEND_IMAGE) {
       Send(current_image_buffer);
     }
-
-    if (!USE_COLOR || toggled != frame_counter - 1) {
-
-      processed = frame_counter;
-
-      if (toggle_image_type == STEREO_PIXMUX) {
-        // Determine disparities:
-        min_y = 0;
-        max_y = 95;
-        //stereo_vision(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1, thr2, min_y, max_y);
-        stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, thr1,
-                           thr2, min_y, max_y);
-        //stereo_vision_cigla(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_range, 12, thr2, diff_threshold, min_y, max_y);
+    processed = frame_counter;
+    //led_toggle();
 
 
 
-        if (SEND_DISPARITY_MAP) {
-          SendDisparityMap(disparity_image_buffer_8bit);
-        }
 
-        disparities_high = evaluate_disparities(disparity_image_buffer_8bit, image_width, image_height, disparity_threshold,
-                                                disparities_high);
 
-        // entropy of patches:
-        entropy = get_entropy_patches(0, current_image_buffer, image_width, image_height, 0, 40, 0, 96, 5, 10, 10);
+    if (SEND_COMMANDS) {
+      // Determine disparities:
+      min_y = 0;
+      max_y = 95;
+      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
+                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
 
-        // min_response = detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate, integral_image, MODE_DISPARITY);
 
-        // left / right control in obstacle zone
-        // min_y = 24;
-        // max_y = 72;
-        // filter_disparity_map(disparity_image_buffer_8bit, diff_threshold, image_width, image_height, min_y, max_y);
-        // evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y, max_y, disp_threshold);
+      uint8_t border = 0; // 10 was the standard value
+      // GUIDO
+      evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y,
+                                    max_y, disp_threshold, border);
+      //    express the outputs as percentages:
+      //    number of pixels relative to the evaluated part of the image with high disparities:
+      disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width - 2 * border));
+      //    x-coordinate as coordinate of the entire image:
+      disparities[1] = (disparities[1] * RESOLUTION) / image_width;
 
-        // Detect window with illuminance:
-        // transform_illuminance_image(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, n_bits, BRIGHT_WINDOW);
-        // min_response = detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate, integral_image, MODE_ILLUMINANCE);
-        //min_disp = detect_escape(disparity_image_buffer_8bit, image_width, image_height, escape_coordinate, integral_image, n_cells);
+      // Send commands
+      // send 0xff
+      SendStartComm();
+      // percentage of close pixels
+      SendCommandNumber((uint8_t) disparities[0]);
+      // percentage of x-location
+      SendCommandNumber((uint8_t) disparities[1]);
+    }
 
-      } else {
-        led_switch();
+    if (SEND_DISPARITY_MAP) {
+      // Determine disparities:
+      min_y = 0;
+      max_y = 95;
+      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
+                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
 
-        n_red_pixels = filter_red_color(current_image_buffer, filtered_image, image_width, image_height, min_U, max_U, min_V,
-                                        max_V);
-        /*
-                // Detect window with filtered color:
-                min_response = detect_window_sizes(filtered_image, image_width, image_height, coordinate, integral_image, MODE_FILTER);
-                //min_disp = detect_escape(filtered_image, image_width, image_height, escape_coordinate, integral_image, n_cells);
-                 *
-                 */
-      }
+      SendDisparityMap(disparity_image_buffer_8bit);
 
-      /*if(min_response < window_threshold)
-      {
-        led_set();
-        // rely on window detection:
-        window_coordinate[0] = (weight_old * window_coordinate[0] + weight_new * coordinate[0]) / weight_total;
-        window_coordinate[1] = (weight_old * window_coordinate[1] + weight_new * coordinate[1]) / weight_total;
-        //window_coordinate[0] = (weight_old * window_coordinate[0] + weight_new * 64) / weight_total;
-        //window_coordinate[1] = (weight_old * window_coordinate[1] + weight_new * 48) / weight_total;
-        //window_coordinate[0] = (weight_old * window_coordinate[0] + weight_new * escape_coordinate[0]) / weight_total;
-        //window_coordinate[1] = (weight_old * window_coordinate[1] + weight_new * escape_coordinate[1]) / weight_total;
-      }
-      else
-      {
-        led_clear();
-        // rely on escape route flying:
-        //window_coordinate[0] = (weight_old * window_coordinate[0] + weight_new * escape_coordinate[0]) / weight_total;
-        //window_coordinate[1] = (weight_old * window_coordinate[1] + weight_new * escape_coordinate[1]) / weight_total;
-        window_coordinate[0] = (weight_old * window_coordinate[0] + weight_new * 64) / weight_total;
-        window_coordinate[1] = (weight_old * window_coordinate[1] + weight_new * 48) / weight_total;
-        //window_coordinate[0] = (weight_old * window_coordinate[0] + weight_new * coordinate[0]) / weight_total;
-        //window_coordinate[1] = (weight_old * window_coordinate[1] + weight_new * coordinate[1]) / weight_total;
-      }*/
-
-      if (SEND_ILLUMINANCE) {
-        uint16_t xx, yy;
-        /*if(min_response < window_threshold)
-        {
-          for(xx=window_coordinate[0]-2;xx<window_coordinate[0]+2;xx++)
-          {
-            for(yy = window_coordinate[1]-2; yy<window_coordinate[1]+2;yy++)
-            {
-              disparity_image_buffer_8bit[window_coordinate[0]+window_coordinate[1]*image_width] = 255;
-            }
-          }
-        }*/
-        SendDisparityMap(disparity_image_buffer_8bit);
-      }
-      if (SEND_FILTER) {
-        uint16_t xx, yy;
-        /*if(min_response < window_threshold)
-        {
-          for(xx=window_coordinate[0]-2;xx<window_coordinate[0]+2;xx++)
-          {
-            for(yy = window_coordinate[1]-2; yy<window_coordinate[1]+2;yy++)
-            {
-              filtered_image[window_coordinate[0]+window_coordinate[1]*image_width] = 2;
-            }
-          }
-        }*/
-        SendDisparityMap(filtered_image);
-      }
-
+#ifdef DELFLY
       if (SEND_COMMANDS) {
         // Control logic
         if (phase == 1) { // unobstructed flight
@@ -559,32 +541,10 @@ int main(void)
         }
 
       }
+#endif
 
-      if (USE_COLOR) {
-        if (toggle_image_type != YUV_COLOR) {
-          camera_cpld_stereo_right();
-          toggle_image_type = YUV_COLOR;
-        }
-
-//        counter++;
-//        if(counter >= MAX_RATIO)
-//        {
-//          counter = 0;
-//        }
-//        if(counter < COLOR_RATIO && toggle_image_type != YUV_COLOR)
-//        {
-//          camera_cpld_stereo_left();
-//          toggled = processed; // skip the next frame
-//          toggle_image_type = YUV_COLOR;
-//        }
-//        else if(toggle_image_type != STEREO_PIXMUX)
-//        {
-//          camera_cpld_stereo_pixmux();
-//          toggled = processed; // skip the next frame
-//          toggle_image_type = STEREO_PIXMUX;
-//        }
-      }
     }
+
   }
 }
 
