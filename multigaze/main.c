@@ -69,41 +69,39 @@ int main(void)
   while (1) {
 #ifdef TUNNEL_NONE
     uint8_t c = ' ';
-    if (Usart1Ch())
+    if (Cam1Ch())
     {
-      c = Usart1Rx();
-      //c++;
+      c = Cam1Rx();
       led_toggle();
       Usart1Tx(&c,1);
-      Usart2Tx(&c,1);
-      Usart3Tx(&c,1);
-      Usart4Tx(&c,1);
-      Usart5Tx(&c,1);
-      Usart6Tx(&c,1);
     }
-    if (Usart2Ch())
+    if (Cam2Ch())
     {
-      c = Usart2Rx();
+      c = Cam2Rx();
       Usart1Tx(&c,1);
     }
-    if (Usart3Ch())
+    if (Cam3Ch())
     {
-      c = Usart3Rx();
+      c = Cam3Rx();
       Usart1Tx(&c,1);
     }
-    if (Usart4Ch())
+    if (Cam4Ch())
     {
-      c = Usart4Rx();
+      c = Cam4Rx();
       Usart1Tx(&c,1);
     }
-    if (Usart5Ch())
+    if (Cam5Ch())
     {
-      c = Usart5Rx();
+      c = Cam5Rx();
       Usart1Tx(&c,1);
     }
-    if (Usart6Ch())
+    if (Cam6Ch())
     {
-      c = Usart6Rx();
+      c = Cam6Rx();
+      Usart1Tx(&c,1);
+      c = 10;
+      Usart1Tx(&c,1);
+      c = 13;
       Usart1Tx(&c,1);
     }
 #else

@@ -31,9 +31,12 @@ struct UartDataStruct {
   uint8_t usart_rx_buffer[RXBUFFERSIZE];
 };
 
-#define USE_USART1B
+//#define USE_USART1
+//#define USE_USART1B
+#define USE_USART1MUX
 #define USE_USART2
 #define USE_USART3
+//#define USE_USART4  // StereoBoard normal
 #define USE_USART4B
 #define USE_USART5
 #define USE_USART6
@@ -47,7 +50,7 @@ uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev);
 uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16_t len);
 
 // Convenience functions
-#if defined(USE_USART1) || defined(USE_USART1B)
+#if (defined(USE_USART1) || defined(USE_USART1B) || defined(USE_USART1MUX))
 extern struct UartDataStruct USART1_Data;
 static inline uint8_t Usart1Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART1_Data, ch, len);}
 static inline uint8_t Usart1Ch(void) { return usart_char_available(&USART1_Data);}

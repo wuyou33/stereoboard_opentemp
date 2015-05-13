@@ -242,6 +242,42 @@ void usart_init()
   uart_init_hw(&USART1_Data, 9600);
 #endif
 
+#ifdef USE_USART1MUX
+  // USART1:
+  // Tx1 = PA9
+  // Tx1b = PB6
+  // Rx1b = PB7
+
+  // RX from cam, TX to PC
+  // Tx1b = PB6
+  // Rx1 = PA10
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+  /* Connect UART pins to PB6, PA10 */
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  uart_init_hw(&USART1_Data, 9600);
+#endif
+
 #ifdef USE_USART2
   // USART2:
   // Tx2 = PA2

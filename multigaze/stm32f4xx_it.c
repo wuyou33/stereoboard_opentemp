@@ -161,7 +161,7 @@ void SysTick_Handler(void)
 
 void USART1_IRQHandler(void)
 {
-#if defined(USE_USART1) || defined(USE_USART1B)
+#if defined(USE_USART1) || defined(USE_USART1B) || defined(USE_USART1MUX)
   usart_isr(&USART1_Data);
 #endif
 }
