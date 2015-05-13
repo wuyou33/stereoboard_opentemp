@@ -27,6 +27,8 @@
 #include BOARD_FILE
 #include "main_parameters.h"
 
+#include "commands.h"
+
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -184,32 +186,6 @@ void SendDisparityMap(uint8_t *b)
     ;
 }
 
-void SendStartComm()
-{
-  uint8_t code[1];
-  code[0] = 0xff;
-
-  while (UsartTx(code, 1) == 0)
-    ;
-}
-
-void SendCommand(uint8_t b)
-{
-  uint8_t code[1];
-  code[0] = 'a' + b;
-
-  while (UsartTx(code, 1) == 0)
-    ;
-}
-
-void SendCommandNumber(uint8_t b)
-{
-  uint8_t code[1];
-  code[0] = b;
-
-  while (UsartTx(code, 1) == 0)
-    ;
-}
 
 
 void init_timer2()
@@ -269,8 +245,6 @@ int main(void)
   camera_reset();
   // Make a 21MHz clock signal to the camera's
   camera_clock_init();
-  // Wait for at least 100 clock cycles
-  Delay(0x07FFFF);
   // Stop resetting the camera (pin high)
   camera_unreset();
   // Initialize all camera GPIO and I2C pins
@@ -281,8 +255,6 @@ int main(void)
   // Start DCMI interrupts (interrupts on frame ready)
   camera_dcmi_it_init();
   camera_dcmi_dma_enable();
-  // Wait for at least 2000 clock cycles after reset
-  Delay(0x07FFFF);
   // Communicate with camera, setup image type and start streaming
   camera_tcm8230_config();
   // Start DMA image transfer interrupts (interrupts on buffer full)

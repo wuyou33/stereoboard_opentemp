@@ -3,7 +3,7 @@
 
 
 #include "dcmi.h"
-
+#include "utils.h"
 
 void camera_reset_init()
 {
@@ -32,7 +32,13 @@ void camera_reset(void)
 // Set Camera Reset pin High
 void camera_unreset(void)
 {
+  // Wait for at least 100 clock cycles
+  Delay(0x07FFFF);
+
   GPIO_SetBits(GPIOD, GPIO_Pin_2);
+
+  // Wait for at least 2000 clock cycles after reset
+  Delay(0x07FFFF);
 }
 
 
