@@ -420,7 +420,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-  uart_init_hw(&USART3_Data, 9600);
+  uart_init_hw(&USART6_Data, 9600);
 #endif
 }
 
