@@ -24,6 +24,7 @@
 #include "utils.h"
 #include "usb.h"
 
+#include BOARD_FILE
 #include "main_parameters.h"
 
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
@@ -289,6 +290,7 @@ int main(void)
 
   // Avoidance parameters;
 #ifdef DELFLY
+#warning COMPILING_FOR_DELFLY
   uint16_t obst_thr1 = 2000; // number of pixels with high disparity [1700] [3000]
   uint8_t obst_thr2 = 5; // number of obstacle detections in row
   uint16_t obst_wait = 2779; // time to wait before avoidance manoeuver [ms]
@@ -424,43 +426,6 @@ int main(void)
 
 
 
-
-    if (SEND_COMMANDS) {
-      // Determine disparities:
-      min_y = 0;
-      max_y = 95;
-      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
-                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
-
-
-      uint8_t border = 0; // 10 was the standard value
-      // GUIDO
-      evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y,
-                                    max_y, disp_threshold, border);
-      //    express the outputs as percentages:
-      //    number of pixels relative to the evaluated part of the image with high disparities:
-      disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width - 2 * border));
-      //    x-coordinate as coordinate of the entire image:
-      disparities[1] = (disparities[1] * RESOLUTION) / image_width;
-
-      // Send commands
-      // send 0xff
-      SendStartComm();
-      // percentage of close pixels
-      SendCommandNumber((uint8_t) disparities[0]);
-      // percentage of x-location
-      SendCommandNumber((uint8_t) disparities[1]);
-    }
-
-    if (SEND_DISPARITY_MAP) {
-      // Determine disparities:
-      min_y = 0;
-      max_y = 95;
-      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
-                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
-
-      SendDisparityMap(disparity_image_buffer_8bit);
-
 #ifdef DELFLY
       if (SEND_COMMANDS) {
         // Control logic
@@ -535,7 +500,44 @@ int main(void)
         }
 
       }
+#else
+    if (SEND_COMMANDS) {
+      // Determine disparities:
+      min_y = 0;
+      max_y = 95;
+      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
+                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
+
+
+      uint8_t border = 0; // 10 was the standard value
+      // GUIDO
+      evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y,
+                                    max_y, disp_threshold, border);
+      //    express the outputs as percentages:
+      //    number of pixels relative to the evaluated part of the image with high disparities:
+      disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width - 2 * border));
+      //    x-coordinate as coordinate of the entire image:
+      disparities[1] = (disparities[1] * RESOLUTION) / image_width;
+
+      // Send commands
+      // send 0xff
+      SendStartComm();
+      // percentage of close pixels
+      SendCommandNumber((uint8_t) disparities[0]);
+      // percentage of x-location
+      SendCommandNumber((uint8_t) disparities[1]);
+    }
 #endif
+
+    if (SEND_DISPARITY_MAP) {
+      // Determine disparities:
+      min_y = 0;
+      max_y = 95;
+      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
+                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
+
+      SendDisparityMap(disparity_image_buffer_8bit);
+
 
     }
 
