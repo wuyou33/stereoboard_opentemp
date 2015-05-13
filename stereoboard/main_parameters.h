@@ -22,6 +22,7 @@
 #define SEND_FILTER 0 // 0
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
+#define SEND_MATRIX 0
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
 #define SMALL_IMAGE
