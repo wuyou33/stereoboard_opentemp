@@ -119,7 +119,7 @@ $(EXECUTABLE): 	\
 
 clean:
 	rm -rf $(EXECUTABLE)
-	rm -rf $(CAMERA).elf
+	rm -rf *.elf
 	rm -rf $(BIN_IMAGE)
 	rm -rf *.lst *.o
 
@@ -135,11 +135,31 @@ com:
 
 BMP_PORT ?= /dev/ttyACM0
 
-${CAMERA}.elf:
-	make -C ../stereoboard
-	cp ../stereoboard/${CAMERA}.elf ./
+${CAMERA}1.elf:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg1
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}1.elf
 
-upload: ${EXECUTABLE} ${CAMERA}.elf
+${CAMERA}2.elf:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg2
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}2.elf
+
+${CAMERA}3.elf:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg3
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}3.elf
+
+${CAMERA}4.elf:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg4
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}4.elf
+
+${CAMERA}5.elf:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg5
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}5.elf
+
+${CAMERA}6.elf:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg6
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}6.elf
+
+upload: ${EXECUTABLE} ${CAMERA}1.elf ${CAMERA}2.elf ${CAMERA}3.elf ${CAMERA}4.elf ${CAMERA}5.elf ${CAMERA}6.elf
 	@echo "Using Black Magic Probe"
 	@echo "Using GDB = $(GDB)"
 	$(GDB) --batch \

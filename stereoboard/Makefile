@@ -1,4 +1,5 @@
 TARGET        = StereoBoard
+BOARD        ?= default
 
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
@@ -15,6 +16,7 @@ GDB           = $(CROSS)gdb
 CFLAGS        = -g -O3 -mlittle-endian -mthumb -DHSE_VALUE=12000000
 CFLAGS       += -mcpu=cortex-m4	-DARM_MATH_CM4
 CFLAGS       += -ffreestanding -nostdlib
+CFLAGS       += -DBOARD_FILE=\"./boards/board_$(BOARD).h\"
 
 # to run from FLASH
 CFLAGS       += -Wl,-T,stm32_flash.ld
