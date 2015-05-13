@@ -68,7 +68,49 @@ int main(void)
 
 
   while (1) {
+
+#ifdef TUNNEL_NONE
+    uint8_t c = ' ';
+    if (Usart1Ch())
+    {
+      c = Usart1Rx();
+      c++;
+      Usart1Tx(&c,1);
+      Usart2Tx(&c,1);
+      Usart3Tx(&c,1);
+      Usart4Tx(&c,1);
+      Usart5Tx(&c,1);
+      Usart6Tx(&c,1);
+    }
+    if (Usart2Ch())
+    {
+      c = Usart2Rx();
+      Usart1Tx(&c,1);
+    }
+    if (Usart3Ch())
+    {
+      c = Usart3Rx();
+      Usart1Tx(&c,1);
+    }
+    if (Usart4Ch())
+    {
+      c = Usart4Rx();
+      Usart1Tx(&c,1);
+    }
+    if (Usart5Ch())
+    {
+      c = Usart5Rx();
+      Usart1Tx(&c,1);
+    }
+    if (Usart6Ch())
+    {
+      c = Usart6Rx();
+      Usart1Tx(&c,1);
+    }
+#else
     tunnel_run();
+#endif
+
   }
 }
 

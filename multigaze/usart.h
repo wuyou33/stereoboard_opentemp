@@ -13,6 +13,11 @@
 #define TXBUFFERSIZE    (64*64) // 4 KByte
 #define RXBUFFERSIZE    (64*64)
 
+
+#define USART_SUCCESS   1
+#define USART_FAIL      0
+
+
 #define UsartTx  Usart1Tx
 
 
@@ -26,48 +31,62 @@ struct UartDataStruct {
   uint8_t usart_rx_buffer[RXBUFFERSIZE];
 };
 
-#define USE_USART1
+#define USE_USART1B
 #define USE_USART2
 #define USE_USART3
-#define USE_USART4
+#define USE_USART4B
 #define USE_USART5
 #define USE_USART6
 
 
-uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16_t len);
-
-#ifdef USE_USART1
-extern struct UartDataStruct USART1_Data;
-static inline uint8_t Usart1Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART1_Data, ch, len);}
-#endif
-#ifdef USE_USART2
-extern struct UartDataStruct USART2_Data;
-#endif
-#ifdef USE_USART3
-extern struct UartDataStruct USART3_Data;
-#endif
-#ifdef USE_USART4
-extern struct UartDataStruct USART4_Data;
-static inline uint8_t Usart4Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART4_Data, ch, len);}
-#endif
-#ifdef USE_USART5
-extern struct UartDataStruct USART5_Data;
-#endif
-#ifdef USE_USART6
-extern struct UartDataStruct USART6_Data;
-#endif
-
-uint8_t usart_rx_ringbuffer_push(struct UartDataStruct *dev);
-uint8_t usart_tx_ringbuffer_pop_to_usart(struct UartDataStruct *dev);
-
-uint8_t uart_tx_finished(struct UartDataStruct *dev);
-
+// Low-level interaction
+void usart_init();
 
 int usart_char_available(struct UartDataStruct *dev);
 uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev);
+uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16_t len);
 
-void usart_init();
+// Convenience functions
+#if defined(USE_USART1) || defined(USE_USART1B)
+extern struct UartDataStruct USART1_Data;
+static inline uint8_t Usart1Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART1_Data, ch, len);}
+static inline uint8_t Usart1Ch(void) { return usart_char_available(&USART1_Data);}
+static inline uint8_t Usart1Rx(void) { return usart_rx_ringbuffer_pop(&USART1_Data);}
+#endif
+#ifdef USE_USART2
+extern struct UartDataStruct USART2_Data;
+static inline uint8_t Usart2Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART2_Data, ch, len);}
+static inline uint8_t Usart2Ch(void) { return usart_char_available(&USART2_Data);}
+static inline uint8_t Usart2Rx(void) { return usart_rx_ringbuffer_pop(&USART2_Data);}
+#endif
+#ifdef USE_USART3
+extern struct UartDataStruct USART3_Data;
+static inline uint8_t Usart3Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART3_Data, ch, len);}
+static inline uint8_t Usart3Ch(void) { return usart_char_available(&USART3_Data);}
+static inline uint8_t Usart3Rx(void) { return usart_rx_ringbuffer_pop(&USART3_Data);}
+#endif
+#if defined(USE_USART4) || defined(USE_USART4B)
+extern struct UartDataStruct USART4_Data;
+static inline uint8_t Usart4Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART4_Data, ch, len);}
+static inline uint8_t Usart4Ch(void) { return usart_char_available(&USART4_Data);}
+static inline uint8_t Usart4Rx(void) { return usart_rx_ringbuffer_pop(&USART4_Data);}
+#endif
+#ifdef USE_USART5
+extern struct UartDataStruct USART5_Data;
+static inline uint8_t Usart5Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART5_Data, ch, len);}
+static inline uint8_t Usart5Ch(void) { return usart_char_available(&USART5_Data);}
+static inline uint8_t Usart5Rx(void) { return usart_rx_ringbuffer_pop(&USART5_Data);}
+#endif
+#ifdef USE_USART6
+extern struct UartDataStruct USART6_Data;
+static inline uint8_t Usart6Tx(uint8_t *ch, uint16_t len) { return usart_tx_ringbuffer_push(&USART6_Data, ch, len);}
+static inline uint8_t Usart6Ch(void) { return usart_char_available(&USART6_Data);}
+static inline uint8_t Usart6Rx(void) { return usart_rx_ringbuffer_pop(&USART6_Data);}
+#endif
 
+
+
+// ISR callback
 void usart_isr(struct UartDataStruct *dev);
 
 

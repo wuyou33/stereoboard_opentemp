@@ -21,16 +21,8 @@ struct UartDataStruct USART5_Data = {UART5, 0, 0, 0, 0};
 struct UartDataStruct USART6_Data = {USART6, 0, 0, 0, 0};
 
 
-#define USE_UART4
-//#define USE_USART1
 
-#ifdef USE_USART1
-#define MY_USART_NR  USART1
-#else
-#define MY_USART_NR  UART4
-#endif
-
-uint8_t uart_tx_finished(struct UartDataStruct *dev)
+static inline uint8_t uart_tx_finished(struct UartDataStruct *dev)
 {
   if (dev->usart_tx_counter_read != dev->usart_tx_counter_write) {
     return 0;
@@ -54,11 +46,11 @@ uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16
     }
 
     USART_ITConfig(dev->device, USART_IT_TXE, ENABLE);
-    return 1;
+    return USART_SUCCESS;
   }
 
   USART_ITConfig(dev->device, USART_IT_TXE, ENABLE);
-  return 0;
+  return USART_FAIL;
 }
 
 int usart_char_available(struct UartDataStruct *dev)
@@ -70,19 +62,21 @@ uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev)
 {
 
   USART_ITConfig(dev->device, USART_IT_RXNE, DISABLE);
-//  if ((RxCounterRead != RxCounterWrite)) {
+  if ((dev->usart_rx_counter_read != dev->usart_rx_counter_write)) {
 
-  uint8_t value = dev->usart_rx_buffer[dev->usart_rx_counter_read];
-  dev->usart_rx_counter_read = (dev->usart_rx_counter_read + 1) % TXBUFFERSIZE;
+    uint8_t value = dev->usart_rx_buffer[dev->usart_rx_counter_read];
+    dev->usart_rx_counter_read = (dev->usart_rx_counter_read + 1) % TXBUFFERSIZE;
 
+    USART_ITConfig(dev->device, USART_IT_RXNE, ENABLE);
+    return value;
+  }
+
+  // Pop-ing from empty buffer
   USART_ITConfig(dev->device, USART_IT_RXNE, ENABLE);
-  return value;
-//  }
-//  USART_ITConfig(dev->device, USART_IT_RXNE, ENABLE);
-//  return 0;
+  return 0;
 }
 
-uint8_t usart_rx_ringbuffer_push_from_usart(struct UartDataStruct *dev)
+static inline uint8_t usart_rx_ringbuffer_push_from_usart(struct UartDataStruct *dev)
 {
   //USART_ITConfig(dev->device, USART_IT_TXE, DISABLE);
   dev->usart_rx_buffer[dev->usart_rx_counter_write] = USART_ReceiveData(dev->device);
@@ -96,7 +90,7 @@ uint8_t usart_rx_ringbuffer_push_from_usart(struct UartDataStruct *dev)
   return 1;
 }
 
-uint8_t usart_tx_ringbuffer_pop_to_usart(struct UartDataStruct *dev)
+static inline uint8_t usart_tx_ringbuffer_pop_to_usart(struct UartDataStruct *dev)
 {
 
 
@@ -218,7 +212,70 @@ void usart_init()
   uart_init_hw(&USART1_Data, 9600);
 #endif
 
+#ifdef USE_USART2
+  // USART2:
+  // Tx2 = PA2
+  // Rx2 = PA3
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+  /* Connect UART pins to PA2, PA3 */
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  uart_init_hw(&USART2_Data, 9600);
+#endif
+
+#ifdef USE_USART3
+  // USART3:
+  // Tx3 = PB10
+  // Rx3 = PB11
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+  /* Connect UART pins to PB10, PB11 */
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource10, GPIO_AF_USART3);
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource11, GPIO_AF_USART3);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  uart_init_hw(&USART3_Data, 9600);
+#endif
+
 #ifdef USE_USART4
+  // USART4:
+  // Tx4 = PA0
+  // Rx4 = PA1
 
   // Enable the USARTx Interrupt
   NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
@@ -243,7 +300,97 @@ void usart_init()
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
   uart_init_hw(&USART4_Data, 9600);
+
+#elif defined(USE_USART4B)
+  // USART4:
+  // Tx4 = PC10
+  // Rx4 = PC11
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+
+  /* Connect UART pins to PC10, PC11 */
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_UART4);
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_UART4);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  uart_init_hw(&USART4_Data, 9600);
+
 #endif
 
+#ifdef USE_USART5
+  // USART5:
+  // Tx5 = PC12
+  // Rx5 = PD2
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = UART5_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+
+  /* Connect UART pins to PC12, PD2 */
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource12, GPIO_AF_UART5);
+  GPIO_PinAFConfig(GPIOD, GPIO_PinSource2, GPIO_AF_UART5);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+  GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+  uart_init_hw(&USART5_Data, 9600);
+#endif
+
+#ifdef USE_USART6
+  // USART6:
+  // Tx6 = PC6
+  // Rx6 = PC7
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = USART6_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART6, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+
+  /* Connect UART pins to PC6, PC7 */
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource6, GPIO_AF_USART6);
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource7, GPIO_AF_USART6);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  uart_init_hw(&USART3_Data, 9600);
+#endif
 }
 
