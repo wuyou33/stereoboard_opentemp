@@ -161,32 +161,44 @@ void SysTick_Handler(void)
 
 void USART1_IRQHandler(void)
 {
+#if defined(USE_USART1) || defined(USE_USART1B)
   usart_isr(&USART1_Data);
+#endif
 }
 
 void USART2_IRQHandler(void)
 {
+#if defined(USE_USART2) || defined(USE_USART2B)
   usart_isr(&USART2_Data);
+#endif
 }
 
 void USART3_IRQHandler(void)
 {
+#if defined(USE_USART3) || defined(USE_USART3B)
   usart_isr(&USART3_Data);
+#endif
 }
 
 void UART4_IRQHandler(void)
 {
+#if defined(USE_USART4) || defined(USE_USART4B)
   usart_isr(&USART4_Data);
+#endif
 }
 
 void UART5_IRQHandler(void)
 {
+#if defined(USE_USART5) || defined(USE_USART5B)
   usart_isr(&USART5_Data);
+#endif
 }
 
 void USART6_IRQHandler(void)
 {
+#if defined(USE_USART6) || defined(USE_USART6B)
   usart_isr(&USART6_Data);
+#endif
 }
 
 void DCMI_IRQHandler(void)

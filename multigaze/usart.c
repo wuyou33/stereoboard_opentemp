@@ -212,6 +212,36 @@ void usart_init()
   uart_init_hw(&USART1_Data, 9600);
 #endif
 
+#ifdef USE_USART1B
+  // USART1B:
+  // Tx1 = PB6
+  // Rx1 = PB7
+
+  // Enable the USARTx Interrupt
+  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable the USART clocks */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+  /* Connect UART pins to PA9, PA10 */
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
+
+  /* usart TX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  /* usart RX pin configuration */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  uart_init_hw(&USART1_Data, 9600);
+#endif
+
 #ifdef USE_USART2
   // USART2:
   // Tx2 = PA2

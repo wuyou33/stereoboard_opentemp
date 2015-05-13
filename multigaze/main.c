@@ -12,12 +12,11 @@
 #include "led.h"
 #include "tunnel.h"
 #include "usart.h"
+#include "utils.h"
 #include "stm32f4xx_conf.h"
 
 
 
-/* Private function prototypes -----------------------------------------------*/
-void Delay(__IO uint32_t nCount);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -68,13 +67,13 @@ int main(void)
 
 
   while (1) {
-
 #ifdef TUNNEL_NONE
     uint8_t c = ' ';
     if (Usart1Ch())
     {
       c = Usart1Rx();
-      c++;
+      //c++;
+      led_toggle();
       Usart1Tx(&c,1);
       Usart2Tx(&c,1);
       Usart3Tx(&c,1);
