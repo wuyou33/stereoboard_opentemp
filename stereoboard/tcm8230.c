@@ -115,14 +115,21 @@ uint8_t tcm8230_ReadReg(uint8_t Addr, uint8_t *reply);
 
 void camera_tcm8230_config(void)
 {
+#ifdef USE_RGB
+#warning USING_RGB
+#define IMG_FORMAT IMG_FORMAT_RGB565
+#else
+#define IMG_FORMAT IMG_FORMAT_YUV422
+#endif
+
   tcm8230_WriteReg(TCM_FPS, TCM_FPS_FAST);
 #ifdef SMALL_IMAGE
-  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_subQCIF);
+  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT | IMG_SIZE_subQCIF);
 #else
 #ifdef LARGE_IMAGE
-  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_VGA);
+  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT | IMG_SIZE_VGA);
 #else
-  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT_YUV422 | IMG_SIZE_QCIF);
+  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT | IMG_SIZE_QCIF);
 #endif
 #endif
   tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
