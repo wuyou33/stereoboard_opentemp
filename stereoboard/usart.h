@@ -19,8 +19,11 @@
 #define USART_FAIL      0
 
 
+#ifndef UsartTx
+#warning NO Standard Usart defined: Using USART1
+#define USE_USART1
 #define UsartTx  Usart1Tx
-
+#endif
 
 struct UartDataStruct {
   void *device;
