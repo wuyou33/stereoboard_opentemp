@@ -43,42 +43,6 @@ uint16_t offset_crop = 0;
 /* Private functions ---------------------------------------------------------*/
 
 
-uint16_t map_value_to_range(uint16_t value, uint16_t range, uint16_t min_val, uint16_t max_val)
-{
-  value = (value < min_val) ? min_val : value;
-  value = (value > max_val) ? max_val : value;
-  value -= min_val;
-  value = (range * value) / (max_val - min_val);
-  value = (value >= range) ? range - 1 : value;
-  return value;
-}
-
-
-void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,int* matrixBuffer,uint8_t horizontalBins,uint8_t verticalBins,uint8_t blackBorderSize,uint8_t pixelsPerLine,uint8_t widthPerBin,uint8_t heightPerBin)
-{
-
-	int indexBuffer;
-
-	uint8_t y;
-	uint8_t x;
-	for(x=0; x < horizontalBins; x++)
-	{
-		for(y=0;y<verticalBins;y++)
-		{
-			int line;
-			for (line=0; line < heightPerBin;line++)
-			{
-				int bufferIndex=0;
-				for(bufferIndex=0; bufferIndex < widthPerBin; bufferIndex++)
-				{
-					matrixBuffer[y*horizontalBins+x]+=disparity_image_buffer_8bit[pixelsPerLine*(y*heightPerBin)+line*pixelsPerLine+widthPerBin*x+blackBorderSize+bufferIndex];
-				}
-			}
-		}
-	}
-
-}
-
 void Send(uint8_t *b)
 {
   uint8_t code[4];
@@ -120,60 +84,6 @@ void Send(uint8_t *b)
     while (UsartTx(code, 4) == 0)
       ;
     while (UsartTx(b + width * j * 2, width * 2 + 1) == 0)
-      ;
-
-    code[3] = 0xDA;
-    while (UsartTx(code, 4) == 0)
-      ;
-  }
-
-  code[3] = 0xAB;
-  while (UsartTx(code, 4) == 0)
-    ;
-}
-
-void SendJpeg(uint8_t *b, uint32_t size)
-{
-  uint8_t *p = (uint8_t *) & size;
-
-  uint8_t code[10];
-  code[0] = '#';
-  code[1] = '#';
-  code[2] = 'I';
-  code[3] = 'M';
-  code[4] = 'J';
-  code[5] = '2';
-  code[6] = p[0];
-  code[7] = p[1];
-  code[8] = p[2];
-  code[9] = 0x00;
-
-  while (UsartTx(code, 10) == 0)
-    ;
-
-  int j = 0;
-  for (j = 0; j < size; j++) {
-    while (UsartTx(b + j, 1) == 0)
-      ;
-  }
-}
-
-void SendDisparityMap(uint8_t *b)
-{
-  uint8_t code[4];
-  code[0] = 0xff;
-  code[1] = 0x00;
-  code[2] = 0x00;
-
-  uint16_t height = IMAGE_HEIGHT;
-  int16_t width = IMAGE_WIDTH;
-
-  int j = 0;
-  for (j = 0; j < height; j++) {
-    code[3] = 0x80;
-    while (UsartTx(code, 4) == 0)
-      ;
-    while (UsartTx(b + width * j, width) == 0)
       ;
 
     code[3] = 0xDA;
@@ -237,8 +147,8 @@ int main(void)
   camera_cpld_stereo_init();
   //camera_cpld_stereo_left();
   //camera_cpld_stereo_right();
-  camera_cpld_stereo_pixmux();
-  //camera_cpld_stereo_linemux();
+  //camera_cpld_stereo_pixmux();
+  camera_cpld_stereo_linemux();
   //camera_cpld_stereo_framemux();
   // Reset the camera's
   camera_reset_init();
@@ -281,133 +191,6 @@ int main(void)
   uint32_t start, stop;
   init_timer2();
 
-  /*******************
-   * MINOR PARAMETERS:
-   *******************/
-
-  // Avoidance parameters;
-#ifdef DELFLY
-#warning COMPILING_FOR_DELFLY
-  uint16_t obst_thr1 = 2000; // number of pixels with high disparity [1700] [3000]
-  uint8_t obst_thr2 = 5; // number of obstacle detections in row
-  uint16_t obst_wait = 2779; // time to wait before avoidance manoeuver [ms]
-  uint16_t obst_thr3 = 2000; // number of pixels with low disparity (phase 3) [1500]
-  uint8_t obst_thr4 = 2; // number of NO obstacle detections in row (phase 3)
-  uint16_t obst_entr = 70; // entropy threshold
-  uint8_t obst_thr5 = 3; // number of obstacle detections in row (phase 4)
-  uint16_t obst_wait2 = 500; // time to wait before going from phase 4 to 1 [ms]
-#else
-  uint16_t obst_thr1 = 1700; // number of pixels with high disparity
-  uint8_t obst_thr2 = 5; // number of obstacle detections in row
-  uint16_t obst_wait = 800; // time to wait before avoidance manoeuver [ms]
-  uint16_t obst_thr3 = 1500; // number of pixels with low disparity (phase 3)
-  uint8_t obst_thr4 = 2; // number of NO obstacle detections in row (phase 3)
-  uint16_t obst_entr = 70; // entropy threshold
-  uint8_t obst_thr5 = 3; // number of obstacle detections in row (phase 4)
-  uint16_t obst_wait2 = 500; // time to wait before going from phase 4 to 1 [ms]
-#endif
-
-  uint8_t phase = 1;
-  uint8_t obst_dect = 0;
-  uint32_t obst_time = 0;
-  uint8_t obst_free = 0;
-  uint8_t obst_dect2 = 0;
-  uint32_t obst_time2 = 0;
-
-#ifdef DELFLY
-  uint8_t disparity_threshold = 4; // [5] [4]
-  uint32_t disparities_high = 0;
-  uint32_t entropy;
-
-  // Stereo parameters:
-  uint32_t disparity_range = 15; // at a distance of 1m, disparity is 7-8
-  uint32_t disparity_min = 0;
-  uint32_t disparity_step = 1;
-  uint8_t thr1 = 4;
-  uint8_t thr2 = 4;
-  uint8_t diff_threshold = 4; // for filtering
-#else
-  uint8_t disparity_threshold = 5;
-  uint32_t disparities_high = 0;
-  uint32_t entropy;
-
-  // Stereo parameters:
-  uint32_t disparity_range = 30; // at a distance of 1m, disparity is 7-8
-  uint32_t disparity_min = 0;
-  uint32_t disparity_step = 3;
-  uint8_t thr1 = 4;
-  uint8_t thr2 = 4;
-  uint8_t diff_threshold = 4; // for filtering
-#endif
-
-  // Color filtering:
-  uint8_t min_U = 0;
-  uint8_t min_V = 128;
-  uint8_t max_U = 128;
-  uint8_t max_V = 255;
-  uint16_t n_red_pixels = 0;
-
-  // Avoidance parameters;
-  uint8_t disp_threshold = 5;
-  if (STEREO_CAM_NUMBER == 1) {
-    disp_threshold = 3;
-  }
-  uint8_t n_disp_bins = 6;
-  uint32_t disparities[n_disp_bins];
-  uint8_t RESOLUTION = 100;
-
-  uint8_t bin;
-  for (bin = 0; bin < n_disp_bins; bin++) {
-    disparities[bin] = (uint8_t)48 + bin;
-  }
-  /*uint32_t avg_disparities[n_disp_bins];
-  uint8_t bin;
-  for(bin = 0; bin < n_disp_bins; bin++)
-  {
-    avg_disparities[bin] = 0;
-  }*/
-
-  // window coordinate:
-  /*uint16_t coordinate[2]; // instantaneous
-  uint16_t window_coordinate[2]; // low-pass filtered
-  window_coordinate[0] = image_width / 2;
-  window_coordinate[1] = image_height / 2;
-  uint16_t avg_response = 100;
-  uint16_t window_threshold = 90;
-  uint16_t escape_coordinate[2];
-  uint16_t min_disp = 0;
-  uint8_t n_cells = 5;
-  uint16_t min_response = 100;
-  uint8_t n_bits = 2;
-  uint32_t weight_new = 1;
-  uint32_t weight_old = 3;
-  uint32_t weight_total = weight_old + weight_new;*/
-
-  // counter for toggling image type: ONLY necessary if we USE_COLOR
-  uint16_t counter = 0;
-  uint8_t toggled = 0;
-  uint8_t toggle_image_type = STEREO_PIXMUX;
-
-
-	// Settings for the matrix
-	uint8_t horizontalBins=4;
-	uint8_t verticalBins=4;
-
-	// Settings of the camera... used by the distance matrix algorithm
-	uint8_t blackBorderSize=22;
-	uint8_t pixelsPerLine = 128;
-	uint8_t pixelsPerColumn = 96;
-
-	// Settings for the depth matrix algorithm, calculated based on other settings
-	uint8_t widthPerBin =(pixelsPerLine-2*blackBorderSize)/horizontalBins;
-	uint8_t heightPerBin = pixelsPerColumn/verticalBins;
-
-	// Initialise matrixbuffer
-	int matrixBuffer[verticalBins*horizontalBins];
-	uint8_t toSendBuffer[verticalBins*horizontalBins];
-
-
-
   // timer:
   // start = TIM_GetCounter ( TIM2 );
 
@@ -437,153 +220,10 @@ int main(void)
     if (SEND_IMAGE) {
       Send(current_image_buffer);
     }
+
     processed = frame_counter;
     //led_toggle();
 
-        if(SEND_MATRIX)
-		{
-			// Determine disparities:
-			min_y = 0;
-			max_y = 95;
-			stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min, disparity_range, disparity_step, thr1, thr2, min_y, max_y);
-
-			// Initialise matrixbuffer by setting all values back to zero.
-			int bufferIndex = 0;
-			for(bufferIndex=0; bufferIndex < verticalBins*horizontalBins; bufferIndex+=1)
-			{
-				matrixBuffer[bufferIndex] = 0;
-				toSendBuffer[bufferIndex]=0;
-			}
-
-			// Create the distance matrix by summing pixels per bin
-			calculateDistanceMatrix(disparity_image_buffer_8bit,matrixBuffer,horizontalBins,verticalBins,blackBorderSize,pixelsPerLine,widthPerBin,heightPerBin);
-
-			// Average by dividing by the amount of pixels per bin
-			for(bufferIndex=0;bufferIndex < horizontalBins*verticalBins; bufferIndex++)
-			{
-				toSendBuffer[bufferIndex]=matrixBuffer[bufferIndex]/128;
-			}
-
-			// Send the matrix
-			SendMatrix(toSendBuffer);
-		}
-
-
-
-#ifdef DELFLY
-      if (SEND_COMMANDS) {
-        // Control logic
-        if (phase == 1) { // unobstructed flight
-          if (disparities_high > obst_thr1) { //|| entropy < obst_entr) // if true, obstacle in sight
-            obst_dect++;
-          } else {
-            obst_dect = 0;
-          }
-
-          if (obst_dect > obst_thr2) { // if true, obstacle is consistent
-            phase = 2;
-            obst_dect = 0; // set zero for later
-          }
-        } else if (phase == 2) { // obstacle detected, wait for action
-          if (obst_time == 0) { // when entering phase, set start time
-            obst_time = TIM_GetCounter(TIM2);
-          }
-
-          if ((TIM_GetCounter(TIM2) - obst_time) > obst_wait * 2) {  // wait (2 clocks per ms)
-            phase = 3;
-            obst_time = 0; // set zero for later
-          }
-        } else if (phase == 3) { // avoid
-          // Turn command signal for AutoPilot ???
-          if (disparities_high < obst_thr3) { // if true, flight direction is safe
-            obst_free++;
-          } else {
-            obst_free = 0;
-          }
-
-          if (obst_free > obst_thr4) { // if true, consistently no obstacles
-            if (entropy > obst_entr) { // do the entropy check
-              phase = 4;
-              obst_free = 0; // set zero for later
-            }
-          }
-        } else if (phase == 4) { // fly straight, but be aware of undetected obstacles
-          if (obst_time2 == 0) { // when entering phase, set start time
-            obst_time2 =  TIM_GetCounter(TIM2);
-          }
-
-          if (disparities_high > obst_thr1) { // if true, obstacle in sight
-            obst_dect2++;
-          } else {
-            obst_dect2 = 0;
-          }
-
-          if (obst_dect2 > obst_thr5) { // if true, obstacle is consistent
-            phase = 3; // go back to phase 3
-            obst_time2 = 0; // set zero for later
-            obst_dect2 = 0; // set zero for later
-
-          } else if ((TIM_GetCounter(TIM2) - obst_time2) > obst_wait2 * 2) {  // wait (2 clocks per ms)
-            phase = 1;
-            obst_time2 = 0; // set zero for later
-            obst_dect2 = 0;
-          }
-        }
-
-        // turn command:
-        if (phase == 3) {
-          SendCommand(1);
-        } else {
-          SendCommand(0);
-        }
-
-        if (phase == 2 || phase == 3) {
-          led_set();
-        } else {
-          led_clear();
-        }
-
-      }
-#else
-    if (SEND_COMMANDS) {
-      // Determine disparities:
-      min_y = 0;
-      max_y = 95;
-      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
-                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
-
-
-      uint8_t border = 0; // 10 was the standard value
-      // GUIDO
-      evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y,
-                                    max_y, disp_threshold, border);
-      //    express the outputs as percentages:
-      //    number of pixels relative to the evaluated part of the image with high disparities:
-      disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width - 2 * border));
-      //    x-coordinate as coordinate of the entire image:
-      disparities[1] = (disparities[1] * RESOLUTION) / image_width;
-
-      // Send commands
-      // send 0xff
-      SendStartComm();
-      // percentage of close pixels
-      SendCommandNumber((uint8_t) disparities[0]);
-      // percentage of x-location
-      SendCommandNumber((uint8_t) disparities[1]);
-    }
-#endif
-
-    if (SEND_DISPARITY_MAP) {
-      // Determine disparities:
-      min_y = 0;
-      max_y = 95;
-      stereo_vision_Kirk(current_image_buffer, disparity_image_buffer_8bit, image_width, image_height, disparity_min,
-                         disparity_range, disparity_step, thr1, thr2, min_y, max_y);
-
-      SendDisparityMap(disparity_image_buffer_8bit);
-
-
-    }
 
   }
 }
