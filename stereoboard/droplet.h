@@ -66,35 +66,6 @@ uint16_t map_value_to_range(uint16_t value, uint16_t range, uint16_t min_val, ui
 
 
 
-void SendDisparityMap(uint8_t *b)
-{
-  uint8_t code[4];
-  code[0] = 0xff;
-  code[1] = 0x00;
-  code[2] = 0x00;
-
-  uint16_t height = IMAGE_HEIGHT;
-  int16_t width = IMAGE_WIDTH;
-
-  int j = 0;
-  for (j = 0; j < height; j++) {
-    code[3] = 0x80;
-    while (UsartTx(code, 4) == 0)
-      ;
-    while (UsartTx(b + width * j, width) == 0)
-      ;
-
-    code[3] = 0xDA;
-    while (UsartTx(code, 4) == 0)
-      ;
-  }
-
-  code[3] = 0xAB;
-  while (UsartTx(code, 4) == 0)
-    ;
-}
-
-
 
 
 /**************

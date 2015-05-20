@@ -23,6 +23,8 @@
 #include "filter_color.h"
 #include "utils.h"
 #include "usb.h"
+#include "sys_time.h"
+#include "raw_digital_video_stream.h"
 
 #include BOARD_FILE
 #include "main_parameters.h"
@@ -42,80 +44,6 @@ uint16_t offset_crop = 0;
 
 /* Private functions ---------------------------------------------------------*/
 
-
-void Send(uint8_t *b)
-{
-  uint8_t code[4];
-  code[0] = 0xff;
-  code[1] = 0x00;
-  code[2] = 0x00;
-
-  code[3] = 0xAF;
-  while (UsartTx(code, 4) == 0)
-    ;
-
-  uint8_t msg = 0x07;
-  while (UsartTx(&msg, 1) == 0)
-    ;
-
-#ifdef LARGE_IMAGE
-
-  if (offset_crop == 0) {
-    code[3] = 0xAC;
-    while (UsartTx(code, 4) == 0)
-      ;
-  }
-
-#endif
-  uint16_t width = IMAGE_WIDTH;
-  uint16_t height = IMAGE_HEIGHT;
-
-#ifdef SHOW_HMC
-  {
-    draw_mag_as_line(0);
-    draw_mag_as_line(1);
-    draw_mag_as_line(2);
-  }
-#endif
-
-  int j = 0;
-  for (j = 0; j < height; j++) {
-    code[3] = 0x80;
-    while (UsartTx(code, 4) == 0)
-      ;
-    while (UsartTx(b + width * j * 2, width * 2 + 1) == 0)
-      ;
-
-    code[3] = 0xDA;
-    while (UsartTx(code, 4) == 0)
-      ;
-  }
-
-  code[3] = 0xAB;
-  while (UsartTx(code, 4) == 0)
-    ;
-}
-
-
-
-void init_timer2()
-{
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-  TIM_TimeBaseInitTypeDef TIM_InitStruct;
-  TIM_InitStruct.TIM_Prescaler = 42000 - 1;                // This will configure the clock to 2 kHz
-  TIM_InitStruct.TIM_CounterMode = TIM_CounterMode_Up;     // Count-up timer mode
-  TIM_InitStruct.TIM_Period = 20000 - 1;                    // 10 seconds
-  TIM_InitStruct.TIM_ClockDivision = TIM_CKD_DIV1;        // Divide clock by 1
-  TIM_InitStruct.TIM_RepetitionCounter = 0;                // Set to 0, not used
-  TIM_TimeBaseInit(TIM2, &TIM_InitStruct);
-  TIM_Cmd(TIM2, ENABLE);
-}
-
-/**************
- * MAIN DEFINES
- **************/
-#define STEREO_PIXMUX 0
-#define YUV_COLOR 1
 
 
 /**
@@ -189,10 +117,6 @@ int main(void)
   uint32_t image_width = IMAGE_WIDTH;
   uint32_t image_height = IMAGE_HEIGHT;
   uint32_t start, stop;
-  init_timer2();
-
-  // timer:
-  // start = TIM_GetCounter ( TIM2 );
 
   /***********
    * MAIN LOOP
@@ -213,16 +137,16 @@ int main(void)
     // wait for new frame
     while (frame_counter == processed)
       ;
-
-
-
-
-    if (SEND_IMAGE) {
-      Send(current_image_buffer);
-    }
-
     processed = frame_counter;
     //led_toggle();
+
+
+
+
+#if SEND_IMAGE
+    Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+#endif
+
 
 
   }
