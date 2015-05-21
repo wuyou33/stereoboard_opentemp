@@ -23,14 +23,14 @@
 #define SEND_COMMANDS 0 // 1
 #define SEND_IMAGE 0 //0
 #define SEND_DISPARITY_MAP 1 // 0
-#define SMOOTH_DISPARITY_MAP 1 // 0
+#define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
 #define SEND_FILTER 0 // 0
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
 #define SEND_MATRIX 0
 #define BRIGHT_WINDOW 0 // 0
-#define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
+#define STEREO_CAM_NUMBER 1 //  0 = DelFly Explorer cam   1 = spare camera
 #define SMALL_IMAGE
 //#define LARGE_IMAGE
 

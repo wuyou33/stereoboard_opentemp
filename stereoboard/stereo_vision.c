@@ -63,9 +63,13 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
     } else if ((l < image_height - 5) && (STEREO_CAM_NUMBER == 3)) {
       // separate the image line into a left and right one (line1, lin2 respectively):
       separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, -2);
+    } else if ((l < image_height - 5) && (STEREO_CAM_NUMBER == 5)) {
+	  // separate the image line into a left and right one (line1, lin2 respectively):
+	  separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, -2);
     } else if ((l < image_height - 5) && (STEREO_CAM_NUMBER == 7)) {
       // separate the image line into a left and right one (line1, lin2 respectively):
       separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, 4);
+
     } else {
       // separate the image line into a left and right one with offset (line1, lin2 respectively):
       separate_image_line(&in[cnt0], line1, line2, image_width_bytes);
@@ -159,11 +163,10 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
 		}
 		else
 		{
-			cleaner_image_buffer[bufferIndex] = 90;//out[bufferIndex];
-			out[bufferIndex]=90;
+			cleaner_image_buffer[bufferIndex] = out[bufferIndex];
 		}
 
-		// Time to write it to the out buffer as we surely do not access it anymore
+		// Write it to the out buffer when we surely do not access the outbuffer anymore
 		if (bufferIndex > 2*image_width)
 		{
 			out[bufferIndex-2*image_width] = cleaner_image_buffer[bufferIndex-2*image_width];
@@ -620,7 +623,7 @@ void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_
 {
   uint32_t i, j;
 
-  if (offset > 0) {
+  if (offset >= 0) {
     for (i = 0; i < image_width_bytes; i += 2) {
       j = i >> 1;
       //line1[j] = (q15_t) in[i];
