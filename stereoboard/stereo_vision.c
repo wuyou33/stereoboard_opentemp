@@ -2,6 +2,8 @@
 
 #include "stereo_vision.h"
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
 /* stereo_vision:
  * takes input image in, which contains both the left and the right image
  * generates disparity image out
@@ -140,6 +142,35 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
     cnt0 += image_width_bytes;
   } // for all image lines
 
+
+#ifdef SMOOTH_DISPARITY_MAP
+
+	int bufferIndex=0;
+	uint8_t cleaner_image_buffer[image_width*image_height];
+	for(bufferIndex=0; bufferIndex < image_width*image_height; bufferIndex++)
+	{
+		//out[bufferIndex]=10;
+		if (bufferIndex > 2*image_width && bufferIndex < (image_width*image_height)-2*image_width_bytes){
+			uint8_t pixel = out[bufferIndex];
+			uint8_t above = out[bufferIndex-image_width];
+
+			uint8_t underPixel = out[bufferIndex+image_width];
+			cleaner_image_buffer[bufferIndex] = MIN(MIN(above,underPixel),pixel);
+		}
+		else
+		{
+			cleaner_image_buffer[bufferIndex] = 90;//out[bufferIndex];
+			out[bufferIndex]=90;
+		}
+
+		// Time to write it to the out buffer as we surely do not access it anymore
+		if (bufferIndex > 2*image_width)
+		{
+			out[bufferIndex-2*image_width] = cleaner_image_buffer[bufferIndex-2*image_width];
+		}
+	}
+
+#endif
 }
 
 void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
