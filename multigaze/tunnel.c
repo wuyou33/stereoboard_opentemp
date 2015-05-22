@@ -189,7 +189,7 @@ void tunnel_init(void)
 void tunnel_run()
 {
   while (1) {
-    // Read PC input
+/*    // Read PC input
     if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_7)) {
       //GPIO_SetBits(GPIOB, GPIO_Pin_6);
       GPIO_SetBits(GPIOA, GPIO_Pin_9);     // UART1
@@ -209,7 +209,7 @@ void tunnel_run()
       GPIO_ResetBits(GPIOC, GPIO_Pin_6);      // UART6
       //led_set();
     }
-
+*/
     // Read Camera
 #if defined(TUNNEL4)
     if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_10)) { // UART1
@@ -226,10 +226,10 @@ void tunnel_run()
 #else
     if (0) {
 #endif
-      led_clear();
+      //led_clear();
       GPIO_SetBits(GPIOB, GPIO_Pin_6);
     } else {
-      led_set();
+      //led_set();
       GPIO_ResetBits(GPIOB, GPIO_Pin_6);
     }
   }
