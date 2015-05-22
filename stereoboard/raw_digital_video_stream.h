@@ -45,10 +45,6 @@ void Send(uint8_t *b, uint16_t width, uint16_t height)
   while (UsartTx(code, 4) == 0)
     ;
 
-  uint8_t msg = 0x07;
-  while (UsartTx(&msg, 1) == 0)
-    ;
-
 #ifdef LARGE_IMAGE
 
   if (offset_crop == 0) {
@@ -75,7 +71,7 @@ void Send(uint8_t *b, uint16_t width, uint16_t height)
       ;
 
     // Line data
-    while (UsartTx(b + width * j * 2, width * 2 + 1) == 0)
+    while (UsartTx(b + j * width * 2, width * 2 + 1) == 0)
       ;
 
     // EAV: End of Line

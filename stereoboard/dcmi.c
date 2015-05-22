@@ -37,8 +37,6 @@ void camera_unreset(void)
 
   GPIO_SetBits(GPIOD, GPIO_Pin_2);
 
-  // Wait for at least 2000 clock cycles after reset
-  Delay(0x07FFFF);
 }
 
 
@@ -163,8 +161,8 @@ void camera_dcmi_init(void)
   camera_crop(0);
 
   // DCMI configuration
-  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
-  //DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
+  //DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
+  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
   DCMI_InitStructure.DCMI_SynchroMode = DCMI_SynchroMode_Hardware;
   DCMI_InitStructure.DCMI_PCKPolarity = DCMI_PCKPolarity_Falling;
   DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_Low;
@@ -300,7 +298,7 @@ void dma2_stream1_isr(void)
 
     frame_counter++;  /////////////////
 
-    led_toggle();
+    //led_toggle();
 
   }
 
@@ -309,7 +307,7 @@ void dma2_stream1_isr(void)
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_HTIF1);
 
     // Count the frames
-    //frame_counter++;
+    frame_counter++;
   }
 
   // Get the currently used buffer

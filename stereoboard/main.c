@@ -79,6 +79,7 @@ int main(void)
   // Make a 21MHz clock signal to the camera's
   camera_clock_init();
   // Stop resetting the camera (pin high)
+
   camera_unreset();
   // Initialize all camera GPIO and I2C pins
   camera_dcmi_bus_init();
@@ -88,6 +89,10 @@ int main(void)
   // Start DCMI interrupts (interrupts on frame ready)
   camera_dcmi_it_init();
   camera_dcmi_dma_enable();
+
+
+  // Wait for at least 2000 clock cycles after reset
+  Delay(0x07FFFF);
   // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
   // Communicate with camera, setup image type and start streaming
@@ -108,10 +113,11 @@ int main(void)
   /***********
    * MAIN LOOP
    ***********/
+  //camera_snapshot();
 
   volatile int processed = 0;
   while (1) {
-
+    camera_snapshot();
 #ifdef LARGE_IMAGE
     offset_crop += 80;
     if (offset_crop == 480) {
@@ -123,7 +129,7 @@ int main(void)
     while (frame_counter == processed)
       ;
     processed = frame_counter;
-    //led_toggle();
+    led_toggle();
 
 
     current_image_buffer[0] = 0;

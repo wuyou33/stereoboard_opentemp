@@ -10,8 +10,7 @@
 
 void Delay(volatile uint32_t count)
 {
-  while (count) {
-    count--;
+  while (count--) {
   }
 }
 
