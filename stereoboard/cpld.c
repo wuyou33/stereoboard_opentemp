@@ -5,6 +5,7 @@
 #include "cpld.h"
 
 #include "stm32f4xx_conf.h"
+#include "main_parameters.h"
 
 /**
  *    DCMI8 = PC10  = Manual
@@ -32,6 +33,9 @@ void camera_cpld_stereo_init(void)
 
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_12;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  // Select Desired Default Camera
+  CAMERA_CPLD_STEREO();
 }
 
 // Set Stereo Mode

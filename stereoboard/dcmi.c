@@ -37,8 +37,7 @@ void camera_unreset(void)
 
   GPIO_SetBits(GPIOD, GPIO_Pin_2);
 
-  // Wait for at least 2000 clock cycles after reset
-  Delay(0x07FFFF);
+
 }
 
 
@@ -222,6 +221,9 @@ void camera_dcmi_dma_enable()
   DCMI_Cmd(ENABLE);
   DCMI_CaptureCmd(ENABLE);
   // dma_it_init();
+
+  // Wait for at least 2000 clock cycles after reset
+  Delay(0x07FFFF);
 }
 
 void camera_dcmi_dma_disable()

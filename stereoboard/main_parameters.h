@@ -34,5 +34,8 @@
 #define SMALL_IMAGE
 //#define LARGE_IMAGE
 
+#ifndef CAMERA_CPLD_STEREO
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux();
+#endif
 
 #endif /* MAIN_PARAMETERS_H_ */
