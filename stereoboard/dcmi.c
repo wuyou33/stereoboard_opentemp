@@ -143,6 +143,11 @@ uint8_t dcmi_image_buffer_8bit_2[FULL_IMAGE_SIZE];
 #endif
 
 
+void camera_snapshot(void)
+{
+  DCMI_CaptureCmd(ENABLE);
+}
+
 void camera_dcmi_init(void)
 {
   // TODO: DCMI: NOT YET TESTED
@@ -158,8 +163,8 @@ void camera_dcmi_init(void)
   camera_crop(0);
 
   // DCMI configuration
-  //DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
-  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
+  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
+  //DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
   DCMI_InitStructure.DCMI_SynchroMode = DCMI_SynchroMode_Hardware;
   DCMI_InitStructure.DCMI_PCKPolarity = DCMI_PCKPolarity_Falling;
   DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_Low;

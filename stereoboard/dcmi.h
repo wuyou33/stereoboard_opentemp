@@ -19,6 +19,9 @@ void camera_dcmi_dma_enable(void);
 void camera_dcmi_it_init(void);
 void camera_dma_it_init(void);
 
+// When the camera is started in snapshot mode it will take 1 image
+void camera_snapshot(void);
+
 void camera_crop(uint16_t offset);
 
 // To change image size, change the following define:

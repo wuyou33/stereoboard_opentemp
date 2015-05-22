@@ -73,11 +73,6 @@ int main(void)
   usart_init();
   // Initialize the CPLD
   camera_cpld_stereo_init();
-  //camera_cpld_stereo_left();
-  //camera_cpld_stereo_right();
-  //camera_cpld_stereo_pixmux();
-  camera_cpld_stereo_linemux();
-  //camera_cpld_stereo_framemux();
   // Reset the camera's
   camera_reset_init();
   camera_reset();
