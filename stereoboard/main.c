@@ -88,20 +88,12 @@ int main(void)
   // Start DCMI interrupts (interrupts on frame ready)
   camera_dcmi_it_init();
   camera_dcmi_dma_enable();
-  // Communicate with camera, setup image type and start streaming
-  camera_tcm8230_config();
   // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
-  // Print welcome message
-  char comm_buff[128] = " --- Stereo Camera --- \n\r";
-  UsartTx((uint8_t *)&comm_buff, strlen(comm_buff));
-  // Disparity image buffer:
-  uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-  uint16_t ind;
-  for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
-    disparity_image_buffer_8bit[ind] = 0;
-  }
-#if USE_COLOR
+  // Communicate with camera, setup image type and start streaming
+  camera_tcm8230_config();
+
+  #if USE_COLOR
   // slight waste of memory, if color is not used:
   uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
   for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
@@ -116,7 +108,6 @@ int main(void)
   /***********
    * MAIN LOOP
    ***********/
-  //DCMI_CaptureCmd(ENABLE);
 
   volatile int processed = 0;
   while (1) {
@@ -128,7 +119,6 @@ int main(void)
     }
     camera_crop(offset_crop);
 #endif
-    DCMI_CaptureCmd(ENABLE); // while no new frame, ask DCMI to capture a new frame
     // wait for new frame
     while (frame_counter == processed)
       ;
@@ -136,7 +126,8 @@ int main(void)
     //led_toggle();
 
 
-
+    current_image_buffer[0] = 0;
+    current_image_buffer[1] = 0;
 
 #if SEND_IMAGE
     Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);

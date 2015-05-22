@@ -146,7 +146,7 @@ int hmc5883_config(void)
   return 0;
 }
 
-int16_t magneticfield[3] = {0, 0, 0};
+int16_t magneticfield[3] = {64, 128, 270};
 
 void hmc5883_read(void)
 {

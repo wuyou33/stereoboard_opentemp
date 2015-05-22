@@ -88,6 +88,12 @@ int droplet(void)
   for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
     disparity_image_buffer_8bit[ind] = 0;
   }
+  // Disparity image buffer:
+  uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
+  uint16_t ind;
+  for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
+    disparity_image_buffer_8bit[ind] = 0;
+  }
 #if USE_COLOR
   // slight waste of memory, if color is not used:
   uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
