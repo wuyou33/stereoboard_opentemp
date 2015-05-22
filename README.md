@@ -1,6 +1,11 @@
-# stereoboard
-MavLab Stereo Board
+StereoBoard
+###########
 
- - libs = libSTM and CMSIS
- - stereoboard = MAIN
- - multigaze = 6x stereo system merging
+'MavLab Stereo Board'
+
+
+Folder | Content
+-------|---------
+Lib         | stm32 library and CMSIS
+StereoBoard | Source Code
+MultiGaze   | Omnidirectonal Stereo
