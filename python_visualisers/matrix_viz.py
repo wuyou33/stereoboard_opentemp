@@ -89,7 +89,7 @@ while True:
     size_of_one_matrix=MATRIX_HEIGHT*MATRIX_WIDTH+4*MATRIX_HEIGHT+4*MATRIX_HEIGHT+4
 
     fill_matrix_array(sync1)
-
+    print imgMatrix
     imgMatrix /= 45
     imgMatrix =imgMatrix[:,::-1]
     print imgMatrix

@@ -4,13 +4,15 @@ import serial
 import array
 import sys
 
-ser = serial.Serial('/dev/ttyUSB0',3000000)
+ser = serial.Serial('/dev/ttyUSB0',1000000)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 W = 128
 H=96
 frameNumber = 0
 saveImages=False
-DISPARITY_OFFSET=-2
+DISPARITY_OFFSET_LEFT=0
+DISPARITY_OFFSET_RIGHT=0
+DISPARITY_BORDER=W/2
 while True:
     try:
         # Read two times the image size... this way we surely have an image
@@ -18,7 +20,7 @@ while True:
         raw = bytearray(raw)
 
         # Initialise images
-        img = np.zeros((H+abs(DISPARITY_OFFSET*3),W*2))
+        img = np.zeros((H+max(abs(DISPARITY_OFFSET_LEFT),abs(DISPARITY_OFFSET_RIGHT))*3,W*2))
         leftImage=np.zeros((H,W))
         rightImage=np.zeros((H,W))
 
@@ -51,8 +53,16 @@ while True:
                     rightLine = lineBuffer[::2]
                     leftLine = lineBuffer[1:][::2]
                     #img[line,:]=lineBuffer
-                    img[line+DISPARITY_OFFSET+abs(DISPARITY_OFFSET),::2]=leftLine
-                    img[line+abs(DISPARITY_OFFSET),1::2]=rightLine
+
+                    #img[line+DISPARITY_OFFSET+abs(DISPARITY_OFFSET),::2]=leftLine
+                    halfWay = DISPARITY_BORDER
+
+                 #   img[line,halfWay::2]=leftLine[10::]
+                 #   img[line+abs(DISPARITY_OFFSET),halfWay::2]=rightLine[10::]
+                    img[line,1:2*halfWay:2]=leftLine[0:halfWay]
+                    img[line+abs(DISPARITY_OFFSET_LEFT),0:2*halfWay:2]=rightLine[0:halfWay]
+                    img[line,2*halfWay+1::2]=leftLine[halfWay::]
+                    img[line+abs(DISPARITY_OFFSET_RIGHT),2*halfWay+0::2]=rightLine[halfWay::]
                     leftImage[line,:]=leftLine
                     rightImage[line,:]=rightLine
                     line+=1
@@ -72,14 +82,25 @@ while True:
 
 
         cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-        cv2.namedWindow('leftimg',cv2.WINDOW_NORMAL)
-        cv2.namedWindow('rightimg',cv2.WINDOW_NORMAL)
         cv2.imshow('img',img)
-        cv2.imshow('leftimg',leftImage)
-        cv2.imshow('rightimg',rightImage)
 
         key=cv2.waitKey(1)
+        print 'key: ', key
+        if key==65364: # up
+            DISPARITY_OFFSET_LEFT+=1
+        if key==65362: # down
+            DISPARITY_OFFSET_LEFT-=1
 
+        if key==65431 or key==119: # numup
+            DISPARITY_OFFSET_RIGHT-=1
+        if key==65433 or key==115: # numdown
+            DISPARITY_OFFSET_RIGHT+=1
+
+
+        if key==65361: # left
+            DISPARITY_BORDER-=1
+        if key==65363: # right
+            DISPARITY_BORDER+=1
         if saveImages:
             import scipy
             fileNameLeft = 'imageLeft'+str(frameNumber)+'.png'
@@ -89,5 +110,5 @@ while True:
             scipy.misc.imsave(fileNameLeft, leftImage)
             scipy.misc.imsave(fileNameRight, rightImage)
             frameNumber+=1
-    except:
-        print 'error!'
+    except Exception as excep:
+        print 'error! ' , excep

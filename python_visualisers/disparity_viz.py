@@ -3,7 +3,7 @@ import cv2
 import serial
 import matplotlib.pyplot as plt
 
-ser = serial.Serial('/dev/ttyUSB0',3000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 size_of_one_image=25348
 W = 128
 H=96
@@ -125,19 +125,19 @@ while True:
         matrixSync = sync1
 
     fill_disparity_array(imageSync)
-
-    line=0
-    MATRIX_WIDTH=4
-    MATRIX_HEIGHT=4
-    imgMatrix = np.zeros((4, MATRIX_WIDTH))
-    size_of_one_matrix=MATRIX_HEIGHT*MATRIX_WIDTH+4*MATRIX_HEIGHT+4*MATRIX_HEIGHT+4
-
-    fill_matrix_array(matrixSync)
-
-    imgMatrix /= 45
-    imgMatrix =imgMatrix[:,::-1]
-    cv2.namedWindow('imgmatrixboard',cv2.WINDOW_NORMAL)
-    cv2.imshow('imgmatrixboard',imgMatrix)
+    #
+    # line=0
+    # MATRIX_WIDTH=4
+    # MATRIX_HEIGHT=4
+    # imgMatrix = np.zeros((4, MATRIX_WIDTH))
+    # size_of_one_matrix=MATRIX_HEIGHT*MATRIX_WIDTH+4*MATRIX_HEIGHT+4*MATRIX_HEIGHT+4
+    #
+    # fill_matrix_array(matrixSync)
+    #
+    # imgMatrix /= 45
+    # imgMatrix =imgMatrix[:,::-1]
+    # cv2.namedWindow('imgmatrixboard',cv2.WINDOW_NORMAL)
+    # cv2.imshow('imgmatrixboard',imgMatrix)
 
 
     img =img[:,::-1]
@@ -147,6 +147,12 @@ while True:
 
 
 
-    draw_sonar_visualisation(imgMatrix)
+#    draw_sonar_visualisation(imgMatrix)
     key=cv2.waitKey(1)
+
+    if saveImages:
+        import scipy
+        fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
+        scipy.misc.imsave(fileNameBoth, img)
+        frameNumber+=1
 
