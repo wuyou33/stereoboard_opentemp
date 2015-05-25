@@ -103,8 +103,8 @@ for imageToLoad in range(0,88):
         place=[i for i, j in enumerate(scores) if j == maxValue][0]
 
         DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT, DISPARITY_BORDER = locations[place]
-        print 'scores: ', scores
-        print 'place: ',place, 'values: ', DISPARITY_OFFSET_LEFT , '  ', DISPARITY_OFFSET_RIGHT
+       # print 'scores: ', scores
+      #  print 'place: ',place, 'values: ', DISPARITY_OFFSET_LEFT , '  ', DISPARITY_OFFSET_RIGHT
         cv2.setTrackbarPos('offsetLeft', 'imgCanny',DISPARITY_OFFSET_LEFT)
         cv2.setTrackbarPos('offsetRight', 'imgCanny',DISPARITY_OFFSET_RIGHT)
         img = np.zeros((leftImage.shape[0]+maxOffset,leftImage.shape[1]*2,3),np.uint8)
@@ -139,7 +139,13 @@ for imageToLoad in range(0,88):
         sameimg*=255
         locations.append((DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT))
         scores.append(int(np.sum(sameimg)/10000))
-        print 'sum: ', np.sum(sameimg)
+        #print 'sum: ', np.sum(sameimg)
+
+
+        print '#define DISPARITY_OFFSET_LEFT ', DISPARITY_OFFSET_LEFT
+        print '#define DISPARITY_OFFSET_RIGHT ', DISPARITY_OFFSET_RIGHT
+        print '#define DISPARITY_BORDER ', DISPARITY_BORDER
+
         cv2.imshow('img',img)
         cv2.imshow('imgCanny',sameimg)
         key=cv2.waitKey(5000)
