@@ -622,26 +622,19 @@ void separate_image_line(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image
 void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes,  int8_t offset)
 {
   uint32_t i, j;
+  for (i = 0; i < image_width_bytes; i += 2) {
+	  j = i >> 1;
+	  if (offset >= 0) {
+		  //line1[j] = (q15_t) in[i];
+		  //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
 
-  if (offset >= 0) {
-    for (i = 0; i < image_width_bytes; i += 2) {
-      j = i >> 1;
-      //line1[j] = (q15_t) in[i];
-      //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
-
-      line1[j] = (q15_t) in[i];
-      line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)]; // corresponds to camera:7
-    }
-  }
-
-  if (offset < 0) {
-    for (i = 0; i < image_width_bytes; i += 2) {
-      j = i >> 1;
-      //line1[j] = (q15_t) in[i];
-      //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
-
-      line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
-      line2[j] = (q15_t) in[i + 1]; // corresponds to camera:7
+		  line1[j] = (q15_t) in[i];
+		  line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)]; // corresponds to camera:7
+      if (offset < 0) {
+		  //line1[j] = (q15_t) in[i];
+		  //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
+		  line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
+		  line2[j] = (q15_t) in[i + 1]; // corresponds to camera:7
     }
   }
 }
