@@ -117,6 +117,32 @@ void SendDisparityMap(uint8_t *b)
     ;
 }
 
+void SendMatrix(uint8_t* b) {
+	uint8_t code[4];
+	code[0] = 0xff;
+	code[1] = 0x00;
+	code[2] = 0x00;
+
+	uint16_t height = 4;
+	int16_t width = 4;
+
+	int j = 0;
+	for (j = 0; j < height; j++) {
+		code[3] = 0x80;
+		while (UsartTx(code, 4) == 0)
+			;
+		while (UsartTx(b + width * j, width) == 0)
+			;
+
+		code[3] = 0xDA;
+		while (UsartTx(code, 4) == 0)
+			;
+	}
+
+	code[3] = 0xAB;
+	while (UsartTx(code, 4) == 0)
+		;
+}
 
 
 

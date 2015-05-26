@@ -3,8 +3,9 @@ import cv2
 import serial
 import matplotlib.pyplot as plt
 import stereoboard_tools
-ser = serial.Serial('/dev/ttyUSB0',3000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',9600,timeout=None)
 size_of_one_image=50
+size_of_one_matrix=size_of_one_image
 frameNumber = 0
 BINS=4
 MATRIX_WIDTH=4

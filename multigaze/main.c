@@ -75,6 +75,7 @@ int main(void)
       led_toggle();
       Usart1Tx(&c,1);
     }
+    /*
     if (Cam2Ch())
     {
       c = Cam2Rx();
@@ -103,7 +104,7 @@ int main(void)
       Usart1Tx(&c,1);
       c = 13;
       Usart1Tx(&c,1);
-    }
+    }*/
 #else
     tunnel_run();
 #endif

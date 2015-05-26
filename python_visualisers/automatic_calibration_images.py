@@ -28,7 +28,7 @@ DISPARITY_OFFSET=-2
 firstCannyArgument=100
 secondCannyArgument=200
 
-timeoutTime = 1
+timeoutTime = 100
 maxOffset=16
 cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 cv2.namedWindow('imgCanny',cv2.WINDOW_NORMAL)
@@ -89,7 +89,7 @@ for imageToLoad in range(0,88):
             scores.append(int(np.sum(sameimg)/10000))
           #  print 'sum: ', np.sum(sameimg)
            # cv2.imshow('img',img)
-          #  cv2.imshow('imgCanny',sameimg)
+           # cv2.imshow('imgCanny',sameimg)
 
 
             #key=cv2.waitKey(timeoutTime)
