@@ -68,11 +68,6 @@ for imageToLoad in range(0,88):
             for line in range(0,leftImage.shape[1]):
                 if line == DISPARITY_BORDER:
                     offset = DISPARITY_OFFSET_RIGHT
-                # img[line,1:2*DISPARITY_BORDER:2]=leftLine[0:DISPARITY_BORDER]
-                # img[line+abs(DISPARITY_OFFSET_LEFT),0:2*halfWay:2]=rightLine[0:DISPARITY_BORDER]
-                # img[line,2*DISPARITY_BORDER+1::2]=leftLine[DISPARITY_BORDER::]
-                # img[line+abs(DISPARITY_OFFSET_RIGHT),2*DISPARITY_BORDER+0::2]=rightLine[DISPARITY_BORDER::]
-                # #print 'now doing line: ', leftImage[:,line,:]
 
                 if offset >=0:
                     img[offset:96+offset,line*2,:] = leftImage[:,line,:]
@@ -80,11 +75,10 @@ for imageToLoad in range(0,88):
                 else:
                     img[0:96,line*2,:] = leftImage[:,line,:]
                     img[abs(offset):96+abs(offset),line*2+1,:] = rightImage[:,line,:]
-            #img/=255
 
             highCut = max(DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT)
             lowCut = H-highCut
-            # # lowCut = H+maxOffset-highCut
+
             newImg = img[0:lowCut,:,:]
             img = newImg.copy()
             sameimg = np.zeros(img.shape,np.uint8)

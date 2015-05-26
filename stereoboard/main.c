@@ -116,6 +116,22 @@ int main(void)
   //camera_snapshot();
 
   volatile int processed = 0;
+
+
+  // Disparity image buffer:
+  	uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
+  	uint16_t ind;
+  	for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
+  		disparity_image_buffer_8bit[ind] = 0;
+  	}
+	// Stereo parameters:
+	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
+	uint32_t disparity_min = 3;
+	uint32_t disparity_step = 1;
+	uint8_t thr1 = 4;
+	uint8_t thr2 = 4;
+	uint8_t diff_threshold = 4; // for filtering
+
   while (1) {
     camera_snapshot();
 #ifdef LARGE_IMAGE
@@ -139,6 +155,16 @@ int main(void)
     Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 
+#if SEND_DISPARITY_MAP
+	// Determine disparities:
+	min_y = 0;
+	max_y = 95;
+	stereo_vision_Kirk(current_image_buffer,
+			disparity_image_buffer_8bit, image_width, image_height,
+			disparity_min, disparity_range, disparity_step, thr1, thr2,
+			min_y, max_y);
+	SendDisparityMap(disparity_image_buffer_8bit);
+#endif
 
 
   }

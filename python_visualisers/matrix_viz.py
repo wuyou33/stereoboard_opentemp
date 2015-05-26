@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import serial
 import matplotlib.pyplot as plt
-
+import stereoboard_tools
 ser = serial.Serial('/dev/ttyUSB0',3000000,timeout=None)
 size_of_one_image=50
 frameNumber = 0
@@ -27,17 +27,6 @@ def draw_sonar_visualisation(matrix):
     ax.set_rmax(15.0)
     ax.grid(True)
     plt.draw()
-
-def search_start_position(startPosition):
-    sync=0
-    # Search for the startposition
-    for i in range(startPosition, size_of_one_image):
-        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-            if (raw[i + 3] == 171):
-                # End of Image
-                sync = i
-                break
-    return sync
 
 
 def fill_matrix_array(startSync):
@@ -78,7 +67,9 @@ while True:
     line =0
 
     # Search the startbyte
-    sync1 = search_start_position(0)
+    sync1 = stereoboard_tools.search_start_position(raw,0,size_of_one_matrix)
+
+
     print 'sync 1 ' , sync1
     if sync1==0:    # We did not find the startbit... try again
         continue
