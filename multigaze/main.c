@@ -15,7 +15,9 @@
 #include "utils.h"
 #include "stm32f4xx_conf.h"
 
-
+#define SIZE_OF_ONE_IMAGE 50
+#define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
+#define MATRIX_WIDTH 4
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -31,6 +33,55 @@ void init_timer2()
   TIM_InitStruct.TIM_RepetitionCounter = 0;                // Set to 0, not used
   TIM_TimeBaseInit(TIM2, &TIM_InitStruct);
   TIM_Cmd(TIM2, ENABLE);
+}
+
+int search_start_position(int startPosition, int size_of_one_image, uint8_t* raw){
+    int sync=0;
+    // Search for the startposition
+    int i;
+    for (i=startPosition; i < size_of_one_image-1; i++){
+//    	Usart1Tx(&raw[i],1);
+        if ((raw[i] == 255) && (raw[i + 1] == 0) && (raw[i + 2] == 0)){
+            if (raw[i + 3] == 171){
+                sync = i;
+//                Usart1Tx(&raw[i+1],1);
+//                Usart1Tx(&raw[i+2],1);
+//                Usart1Tx(&raw[i+3],1);
+                break;
+            }
+        }
+    }
+    return sync;
+}
+void send_matrix_part(uint8_t *response, uint8_t boardnumber)
+{
+//	 uint8_t c = 11;
+//	Usart1Tx(&c,1);
+//	c=12;
+//	Usart1Tx(&c,1);
+//	c=13;
+//	Usart1Tx(&c,1);
+
+	int startPos = search_start_position(0,SIZE_OF_ONE_IMAGE,response);
+//	c=startPos;
+//	Usart1Tx(&c,1);
+
+	int arrayIndex = 0;
+	int i;
+	for (i = startPos; i < SIZE_OF_ONE_IMAGE + startPos;i++){
+		if ((response[i] == 255) && (response[i + 1] == 0) && (response[i + 2] == 0)){
+			if (response[i + 3] == 128){ // Start Of Line
+				int startOfBuf = i+4;
+				int endOfBuf = (i +4+ MATRIX_WIDTH);
+				int indexInBuffer;
+				for(indexInBuffer = startOfBuf; indexInBuffer < endOfBuf; indexInBuffer++){
+					Usart1Tx(&response[indexInBuffer],1);
+					//Usart1Tx(&boardnumber,1);
+				}
+			}
+		}
+	}
+
 }
 
 /**
@@ -66,45 +117,115 @@ int main(void)
   //usart_tx_ringbuffer_push((uint8_t *)&comm_buff, strlen(comm_buff));
 
 
+  int spot1=0;
+  int spot2=0;
+  int spot3=0;
+  int spot4=0;
+  int spot5=0;
+  int spot6=0;
+
+  uint8_t response1[DOUBLE_IMAGE];
+  uint8_t response2[DOUBLE_IMAGE];
+  uint8_t response3[DOUBLE_IMAGE];
+  uint8_t response4[DOUBLE_IMAGE];
+  uint8_t response5[DOUBLE_IMAGE];
+  uint8_t response6[DOUBLE_IMAGE];
+
   while (1) {
 #ifdef TUNNEL_NONE
     uint8_t c = ' ';
-    if (Cam1Ch())
+    if (Cam1Ch() && spot1 < DOUBLE_IMAGE)
     {
       c = Cam1Rx();
-      led_toggle();
-      Usart1Tx(&c,1);
+    //  led_toggle();
+   //   Usart1Tx(&c,1);
+   //   c=11;
+	  response1[spot1]=c;
+	 // Usart1Tx(&response1[spot1],1);
+      spot1++;
+
     }
-    /*
-    if (Cam2Ch())
+
+    if (Cam2Ch() && spot2 <DOUBLE_IMAGE)
     {
       c = Cam2Rx();
-      Usart1Tx(&c,1);
+     // Usart1Tx(&c,1);
+     // c=12;
+	  response2[spot2++]=c;
     }
-    if (Cam3Ch())
+    if (Cam3Ch() && spot3 < DOUBLE_IMAGE)
     {
       c = Cam3Rx();
-      Usart1Tx(&c,1);
+      // Usart1Tx(&c,1);
+      //c=13;
+      	  response3[spot3++]=c;
     }
-    if (Cam4Ch())
+    if (Cam4Ch() && spot4 < DOUBLE_IMAGE)
     {
       c = Cam4Rx();
-      Usart1Tx(&c,1);
+      //c=14;
+      response4[spot4++]=c;
     }
-    if (Cam5Ch())
+    if (Cam5Ch() && spot5 < DOUBLE_IMAGE)
     {
       c = Cam5Rx();
-      Usart1Tx(&c,1);
+      //c=15;
+      response5[spot5++]=c;
     }
-    if (Cam6Ch())
+    if (Cam6Ch() && spot6 < DOUBLE_IMAGE)
     {
       c = Cam6Rx();
-      Usart1Tx(&c,1);
-      c = 10;
-      Usart1Tx(&c,1);
-      c = 13;
-      Usart1Tx(&c,1);
-    }*/
+   //   c=16;
+      response6[spot6++]=c;
+    }
+
+    int offset_buffer_safety=4;
+   if(spot1 >= DOUBLE_IMAGE-offset_buffer_safety && spot2 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot3 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot4 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot5 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot6 >= DOUBLE_IMAGE-offset_buffer_safety )
+   {
+	   uint8_t c = 1;
+		Usart1Tx(&c,1);
+		c=2;
+		Usart1Tx(&c,1);
+		c=3;
+		Usart1Tx(&c,1);
+		c=4;
+		Usart1Tx(&c,1);
+//		c=5;
+//		Usart1Tx(&c,1);
+
+
+		led_toggle();
+		spot1=0;
+		spot2=0;
+		spot3=0;
+		spot4=0;
+		spot5=0;
+		spot6=0;
+		//send_matrix_part(response6);
+		int cameraboard;
+		for (cameraboard=1;cameraboard <=6; cameraboard++)
+		{
+			if (cameraboard==1){
+				   send_matrix_part(response1,cameraboard);
+			}
+			else if(cameraboard==2){
+				send_matrix_part(response2,cameraboard);
+			}
+			else if(cameraboard==3){
+				send_matrix_part(response3,cameraboard);
+			}
+			else if(cameraboard==4){
+				send_matrix_part(response4,cameraboard);
+			}
+			else if(cameraboard==5){
+				send_matrix_part(response5,cameraboard);
+			}
+			else if(cameraboard==6){
+				send_matrix_part(response6,cameraboard);
+			}
+
+		}
+   }
 #else
     tunnel_run();
 #endif

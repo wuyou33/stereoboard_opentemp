@@ -16,9 +16,9 @@
 
 
 // uncomment for communication with the microcrontroller, this is for sending images:
-#define USE_USART4
-#define UsartTx Usart4Tx
-#define USART4_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
+#define USE_USART1
+#define UsartTx Usart1Tx
+#define USART1_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
 #define USE_COLOR 0 // 0
 #define SEND_COMMANDS 0 // 1
 #define SEND_IMAGE 0 //0

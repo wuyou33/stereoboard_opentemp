@@ -1,12 +1,26 @@
 import numpy as np
 def search_start_position(raw, startPosition, size_of_one_image):
     # Search for the startposition
+    print 'searcyhing start positoin '
     for i in range(startPosition, size_of_one_image):
+        print raw[i], ', '
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171):
                 # End of Image
                 return i
     return 0
+
+def search_start_position_matrix_array(raw, startPosition, size_of_one_image):
+    # Search for the startposition
+    print 'searcyhing start positoin '
+    for i in range(startPosition, size_of_one_image):
+        print raw[i], ', '
+        if (raw[i] == 1) and (raw[i + 1] == 2) and (raw[i + 2] == 3):
+            if (raw[i + 3] == 4):
+                # End of Image
+                return i
+    return 0
+
 
  # Fill the image arrays
 def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disparity_offset_left,disparity_offset_right,disparity_border):
