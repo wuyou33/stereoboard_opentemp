@@ -3,7 +3,7 @@ import cv2
 import serial
 import matplotlib.pyplot as plt
 import stereoboard_tools
-ser = serial.Serial('/dev/ttyUSB0',3000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 size_of_one_image=25348
 W = 128
 H=96

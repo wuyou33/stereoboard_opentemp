@@ -4,8 +4,8 @@ import serial
 import array
 import sys
 import stereoboard_tools
-
-ser = serial.Serial('/dev/ttyUSB0',3000000)
+BAUDRATE=1000000
+ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 W = 128
 H=96
@@ -59,7 +59,11 @@ def createEverythingUsingData():
 
     cv2.imshow('img',img)
 
-    key=cv2.waitKey(1)
+    key=cv2.waitKey(1000)
+    if key > 0:
+        print '#define DISPARITY_OFFSET_LEFT ', DISPARITY_OFFSET_LEFT
+        print '#define DISPARITY_OFFSET_RIGHT ', DISPARITY_OFFSET_RIGHT
+        print '#define DISPARITY_BORDER ', DISPARITY_BORDER
 
     if saveImages:
         stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')

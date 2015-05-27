@@ -3,23 +3,13 @@ def search_start_position(raw, startPosition, size_of_one_image):
     # Search for the startposition
     print 'searcyhing start positoin '
     for i in range(startPosition, size_of_one_image):
-        print raw[i], ', '
+       # print raw[i]
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171):
                 # End of Image
                 return i
     return 0
 
-def search_start_position_matrix_array(raw, startPosition, size_of_one_image):
-    # Search for the startposition
-    print 'searcyhing start positoin '
-    for i in range(startPosition, size_of_one_image):
-        print raw[i], ', '
-        if (raw[i] == 1) and (raw[i + 1] == 2) and (raw[i + 2] == 3):
-            if (raw[i + 3] == 4):
-                # End of Image
-                return i
-    return 0
 
 
  # Fill the image arrays
@@ -40,21 +30,13 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
                 rightLine = lineBuffer[::2]
                 leftLine = lineBuffer[1:][::2]
 
-                #
-                # img[line+disparity_offset+abs(disparity_offset),::2]=leftLine
-                # img[line+abs(disparity_offset),1::2]=rightLine
-                # leftImage[line,:]=leftLine
-                # rightImage[line,:]=rightLine
-                # line+=1
-
-
                 halfWay = disparity_border
-                #   img[line,halfWay::2]=leftLine[10::]
-                #   img[line+abs(DISPARITY_OFFSET),halfWay::2]=rightLine[10::]
+
+                # Line indicates the horizontal line
                 img[line,1:2*halfWay:2]=leftLine[0:halfWay]
-                img[line+abs(disparity_offset_left),0:2*halfWay:2]=rightLine[0:halfWay]
+                img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
                 img[line,2*halfWay+1::2]=leftLine[halfWay::]
-                img[line+abs(disparity_offset_right),2*halfWay+0::2]=rightLine[halfWay::]
+                img[line+disparity_offset_right,2*halfWay+0::2]=rightLine[halfWay::]
                 leftImage[line,:]=leftLine
                 rightImage[line,:]=rightLine
                 line+=1
@@ -62,6 +44,7 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
                 if (raw[i+3] == 171):
                     # End of Image
                     print 'END OF IMAGE'
+
     return img, leftImage, rightImage
 
 

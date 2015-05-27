@@ -5,10 +5,10 @@ import stereoboard_tools
 import array
 import sys
 
-BAUDRATE=3000000
+BAUDRATE=1000000
 W = 128
 H=96
-saveImages=False
+saveImages=True
 DISPARITY_OFFSET_LEFT=10
 DISPARITY_OFFSET_RIGHT=-3
 DISPARITY_BORDER=W/2

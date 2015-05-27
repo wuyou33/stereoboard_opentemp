@@ -53,31 +53,28 @@ int search_start_position(int startPosition, int size_of_one_image, uint8_t* raw
     }
     return sync;
 }
-void send_matrix_part(uint8_t *response, uint8_t boardnumber)
+void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine, int pixelsPerLine)
 {
-//	 uint8_t c = 11;
-//	Usart1Tx(&c,1);
-//	c=12;
-//	Usart1Tx(&c,1);
-//	c=13;
-//	Usart1Tx(&c,1);
 
 	int startPos = search_start_position(0,SIZE_OF_ONE_IMAGE,response);
-//	c=startPos;
-//	Usart1Tx(&c,1);
-
 	int arrayIndex = 0;
+
 	int i;
+	int lineReading =0;
 	for (i = startPos; i < SIZE_OF_ONE_IMAGE + startPos;i++){
 		if ((response[i] == 255) && (response[i + 1] == 0) && (response[i + 2] == 0)){
 			if (response[i + 3] == 128){ // Start Of Line
-				int startOfBuf = i+4;
-				int endOfBuf = (i +4+ MATRIX_WIDTH);
-				int indexInBuffer;
-				for(indexInBuffer = startOfBuf; indexInBuffer < endOfBuf; indexInBuffer++){
-					Usart1Tx(&response[indexInBuffer],1);
-					//Usart1Tx(&boardnumber,1);
+				if(lineReading==matrixLine){
+
+					int startOfBuf = i+4;
+					int endOfBuf = (i +4+ MATRIX_WIDTH);
+					int indexInBuffer;
+					for(indexInBuffer = startOfBuf; indexInBuffer < endOfBuf; indexInBuffer++){
+						Usart1Tx(&response[indexInBuffer],1);
+					}
+
 				}
+				lineReading++;
 			}
 		}
 	}
@@ -115,8 +112,8 @@ int main(void)
   // Print welcome message
   //char comm_buff[128] = " --- Stereo Camera --- \n\r";
   //usart_tx_ringbuffer_push((uint8_t *)&comm_buff, strlen(comm_buff));
-
-
+  int verticalLines = 4;
+  int pixelsPerLinePerMatrix = 4;
   int spot1=0;
   int spot2=0;
   int spot3=0;
@@ -182,13 +179,13 @@ int main(void)
     int offset_buffer_safety=4;
    if(spot1 >= DOUBLE_IMAGE-offset_buffer_safety && spot2 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot3 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot4 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot5 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot6 >= DOUBLE_IMAGE-offset_buffer_safety )
    {
-	   uint8_t c = 1;
+	   uint8_t c = 255;
 		Usart1Tx(&c,1);
-		c=2;
+		c=0;
 		Usart1Tx(&c,1);
-		c=3;
+		c=0;
 		Usart1Tx(&c,1);
-		c=4;
+		c=171;
 		Usart1Tx(&c,1);
 //		c=5;
 //		Usart1Tx(&c,1);
@@ -203,27 +200,48 @@ int main(void)
 		spot6=0;
 		//send_matrix_part(response6);
 		int cameraboard;
-		for (cameraboard=1;cameraboard <=6; cameraboard++)
-		{
-			if (cameraboard==1){
-				   send_matrix_part(response1,cameraboard);
-			}
-			else if(cameraboard==2){
-				send_matrix_part(response2,cameraboard);
-			}
-			else if(cameraboard==3){
-				send_matrix_part(response3,cameraboard);
-			}
-			else if(cameraboard==4){
-				send_matrix_part(response4,cameraboard);
-			}
-			else if(cameraboard==5){
-				send_matrix_part(response5,cameraboard);
-			}
-			else if(cameraboard==6){
-				send_matrix_part(response6,cameraboard);
-			}
+		int matrixLine;
 
+		for(matrixLine=0; matrixLine < verticalLines; matrixLine++){
+			uint8_t c= 255;
+											Usart1Tx(&c,1);
+											c= 0;
+											Usart1Tx(&c,1);
+											c= 0;
+											Usart1Tx(&c,1);
+											c= 128;
+											Usart1Tx(&c,1);
+
+			for (cameraboard=1;cameraboard <=6; cameraboard++)
+			{
+				if (cameraboard==1){
+					   send_matrix_part(response1,cameraboard,matrixLine,pixelsPerLinePerMatrix);
+				}
+				else if(cameraboard==2){
+					send_matrix_part(response2,cameraboard,matrixLine,pixelsPerLinePerMatrix);
+				}
+				else if(cameraboard==3){
+					send_matrix_part(response3,cameraboard,matrixLine,pixelsPerLinePerMatrix);
+				}
+				else if(cameraboard==4){
+					send_matrix_part(response4,cameraboard,matrixLine,pixelsPerLinePerMatrix);
+				}
+				else if(cameraboard==5){
+					send_matrix_part(response5,cameraboard,matrixLine,pixelsPerLinePerMatrix);
+				}
+				else if(cameraboard==6){
+					send_matrix_part(response6,cameraboard,matrixLine,pixelsPerLinePerMatrix);
+				}
+
+			}
+			c= 255;
+									Usart1Tx(&c,1);
+									c= 0;
+									Usart1Tx(&c,1);
+									c= 0;
+									Usart1Tx(&c,1);
+									c= 218;
+									Usart1Tx(&c,1);
 		}
    }
 #else
