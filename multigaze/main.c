@@ -37,46 +37,50 @@ void init_timer2()
   TIM_Cmd(TIM2, ENABLE);
 }
 
+/**
+ * Function searches in an array for the 255-0-0-171 bits and returns the location of the 255 bit.
+ * When it does not find this it returns -1
+ */
 int search_start_position(int startPosition, int size_of_one_image, uint8_t* raw){
-    int sync=0;
-    // Search for the startposition
+	// Search for the startposition which is indicated by the 255-0-0-171 bytes
+
     int i;
     for (i=startPosition; i < size_of_one_image-1; i++){
         if ((raw[i] == 255) && (raw[i + 1] == 0) && (raw[i + 2] == 0)){
             if (raw[i + 3] == 171){
-                sync = i;
-                break;
+                return i;
             }
         }
     }
-    return sync;
+    return -1;
 }
 void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine, int pixelsPerLine)
 {
 
 	int startPos = search_start_position(0,SIZE_OF_ONE_IMAGE,response);
-	int arrayIndex = 0;
+	if (startPos >=0){
+		int arrayIndex = 0;
 
-	int i;
-	int lineReading =0;
-	for (i = startPos; i < SIZE_OF_ONE_IMAGE + startPos;i++){
-		if ((response[i] == 255) && (response[i + 1] == 0) && (response[i + 2] == 0)){
-			if (response[i + 3] == 128){ // Start Of Line
-				if(lineReading==matrixLine){
+		int i;
+		int lineReading =0;
+		for (i = startPos; i < SIZE_OF_ONE_IMAGE + startPos;i++){
+			if ((response[i] == 255) && (response[i + 1] == 0) && (response[i + 2] == 0)){
+				if (response[i + 3] == 128){ // Start Of Line
+					if(lineReading==matrixLine){
 
-					int startOfBuf = i+4;
-					int endOfBuf = (i +4+ SINGLE_MATRIX_WIDTH);
-					int indexInBuffer;
-					for(indexInBuffer = startOfBuf; indexInBuffer < endOfBuf; indexInBuffer++){
-						Usart1Tx(&response[indexInBuffer],1);
+						int startOfBuf = i+4;
+						int endOfBuf = (i +4+ SINGLE_MATRIX_WIDTH);
+						int indexInBuffer;
+						for(indexInBuffer = startOfBuf; indexInBuffer < endOfBuf; indexInBuffer++){
+							Usart1Tx(&response[indexInBuffer],1);
+						}
+
 					}
-
+					lineReading++;
 				}
-				lineReading++;
 			}
 		}
 	}
-
 }
 
 
@@ -116,50 +120,56 @@ int main(void)
   // For each camera we need to remember what pixels we received.
   uint8_t receivedMatrixBuffer[STEREO_CAMERAS_COUNT][DOUBLE_IMAGE];
 
+  int offset_buffer_safety=4; // We do not want to overflow the buffer
+
+  int counter=0;
   while (1) {
 #ifdef TUNNEL_NONE
-    uint8_t c = ' ';
+	  uint8_t c =  ' ';
     // TODO can we create an even more generic system that says what inputs
     // have characters and read from those inputs?
-    if (Cam1Ch() && locationsBufferedMatrixes[1] < DOUBLE_IMAGE)
+    if (Cam1Ch() && locationsBufferedMatrixes[0] < DOUBLE_IMAGE)
     {
       c = Cam1Rx();
-      receivedMatrixBuffer[1][locationsBufferedMatrixes[1]++]=c;
+      receivedMatrixBuffer[0][locationsBufferedMatrixes[0]++]=c;
 
     }
-    if (Cam2Ch() && locationsBufferedMatrixes[2] <DOUBLE_IMAGE)
+    if (Cam2Ch() && locationsBufferedMatrixes[1] <DOUBLE_IMAGE)
     {
       c = Cam2Rx();
-      receivedMatrixBuffer[2][locationsBufferedMatrixes[2]++]=c;
+      receivedMatrixBuffer[1][locationsBufferedMatrixes[1]++]=c;
     }
-    if (Cam3Ch() && locationsBufferedMatrixes[3] < DOUBLE_IMAGE)
+    if (Cam3Ch() && locationsBufferedMatrixes[2] < DOUBLE_IMAGE)
     {
       c = Cam3Rx();
-      receivedMatrixBuffer[3][locationsBufferedMatrixes[3]++]=c;
+      receivedMatrixBuffer[2][locationsBufferedMatrixes[2]++]=c;
     }
-    if (Cam4Ch() && locationsBufferedMatrixes[4] < DOUBLE_IMAGE)
+    if (Cam4Ch() && locationsBufferedMatrixes[3] < DOUBLE_IMAGE)
     {
       c = Cam4Rx();
-      receivedMatrixBuffer[4][locationsBufferedMatrixes[4]++]=c;
+      receivedMatrixBuffer[3][locationsBufferedMatrixes[3]++]=c;
     }
-    if (Cam5Ch() && locationsBufferedMatrixes[5] < DOUBLE_IMAGE)
+    if (Cam5Ch() && locationsBufferedMatrixes[4] < DOUBLE_IMAGE)
     {
       c = Cam5Rx();
-      receivedMatrixBuffer[5][locationsBufferedMatrixes[5]++]=c;
+      receivedMatrixBuffer[4][locationsBufferedMatrixes[4]++]=c;
     }
-    if (Cam6Ch() && locationsBufferedMatrixes[6] < DOUBLE_IMAGE)
+    if (Cam6Ch() && locationsBufferedMatrixes[5] < DOUBLE_IMAGE)
     {
       c = Cam6Rx();
-      receivedMatrixBuffer[6][locationsBufferedMatrixes[6]++]=c;
+      receivedMatrixBuffer[5][locationsBufferedMatrixes[5]++]=c;
     }
 
     // Check how many of the buffers are not full yet
-    int offset_buffer_safety=4; // We do not want to overflow the buffer
+
     int camerasToComplete=0;
     int locationInVector;
+
     for(locationInVector=0; locationInVector < STEREO_CAMERAS_COUNT; locationInVector++)
     {
-    	if(locationsBufferedMatrixes[locationInVector] < DOUBLE_IMAGE-offset_buffer_safety)
+    	c = locationInVector;
+
+    	if(locationsBufferedMatrixes[locationInVector] < (DOUBLE_IMAGE-offset_buffer_safety))
     	{
     		camerasToComplete++;
     	}
@@ -169,6 +179,11 @@ int main(void)
     // ... send this data through the serial port
     if(camerasToComplete==0)
     {
+    	led_toggle();
+    	// Reset the index in each of the cameras buffer by setting it to zero, now they can all start again
+		memset(locationsBufferedMatrixes,0,sizeof locationsBufferedMatrixes);
+
+
 	   uint8_t c = 255;
 		Usart1Tx(&c,1);
 		c=0;
@@ -178,10 +193,8 @@ int main(void)
 		c=171;
 		Usart1Tx(&c,1);
 
-		led_toggle();
 
-		// Reset the index in each of the cameras buffer by setting it to zero, now they can all start again
-		memset(locationsBufferedMatrixes,0,sizeof(locationsBufferedMatrixes));
+
 
 
 		int cameraboard;

@@ -30,7 +30,7 @@
 #include "main_parameters.h"
 
 #include "commands.h"
-
+#define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -47,8 +47,8 @@ uint16_t offset_crop = 0;
 void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 		int* matrixBuffer, uint8_t horizontalBins, uint8_t verticalBins,
 		uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
-		uint8_t heightPerBin) {
-	int totalImageLength = 12288;
+		uint8_t heightPerBin,uint8_t *toSendBuffer) {
+
 	int indexBuffer;
 
 	uint8_t y;
@@ -68,6 +68,14 @@ void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 				}
 			}
 		}
+	}
+
+
+	// Average by dividing by the amount of pixels per bin
+	int bufferIndex;
+	for (bufferIndex = 0; bufferIndex < horizontalBins * verticalBins;
+			bufferIndex++) {
+		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / 128;
 	}
 
 }
@@ -200,7 +208,8 @@ int main(void)
     Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 
-#if SEND_DISPARITY_MAP
+// Calculate the disparity map, only when we need it
+#if SEND_DISPARITY_MAP || SEND_MATRIX
 	// Determine disparities:
 	min_y = 0;
 	max_y = 95;
@@ -208,43 +217,33 @@ int main(void)
 			disparity_image_buffer_8bit, image_width, image_height,
 			disparity_min, disparity_range, disparity_step, thr1, thr2,
 			min_y, max_y);
+#endif
+
+
+#if SEND_MATRIX
+	// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
+	memset(matrixBuffer,0,sizeof matrixBuffer);
+	memset(toSendBuffer,0,sizeof toSendBuffer);
+
+
+	// Create the distance matrix by summing pixels per bin
+	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer,
+			horizontalBins, verticalBins, blackBorderSize,
+			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
+#endif
+
+
+// Now send the data that we want to send
+
+#if SEND_DISPARITY_MAP
 	SendDisparityMap(disparity_image_buffer_8bit);
 #endif
 
 #if SEND_MATRIX
-			// Determine disparities:
-			min_y = 0;
-			max_y = 95;
-			stereo_vision_Kirk(current_image_buffer,
-					disparity_image_buffer_8bit, image_width, image_height,
-					disparity_min, disparity_range, disparity_step, thr1, thr2,
-					min_y, max_y);
-
-			// Initialise matrixbuffer by setting all values back to zero.
-			int bufferIndex = 0;
-
-			uint8_t x = 0;
-			for (x = 0; x < verticalBins * horizontalBins; x += 1) {
-				matrixBuffer[x] = 0;
-				toSendBuffer[x] = 0;
-			}
-
-			// Create the distance matrix by summing pixels per bin
-			calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer,
-					horizontalBins, verticalBins, blackBorderSize,
-					pixelsPerLine, widthPerBin, heightPerBin);
-
-			// Average by dividing by the amount of pixels per bin
-			for (bufferIndex = 0; bufferIndex < horizontalBins * verticalBins;
-					bufferIndex++) {
-				toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / 128;
-			}
-
-			// Send the matrix
-			SendMatrix(toSendBuffer);
+	SendMatrix(toSendBuffer);
 #endif
-  }
 
+  }
 }
 
 #ifdef  USE_FULL_ASSERT

@@ -3,7 +3,6 @@ def search_start_position(raw, startPosition, size_of_one_image):
     # Search for the startposition
     print 'searcyhing start positoin '
     for i in range(startPosition, size_of_one_image):
-       # print raw[i]
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171):
                 # End of Image
