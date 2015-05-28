@@ -18,7 +18,7 @@
 #define SIZE_OF_ONE_IMAGE 50
 #define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
 #define MATRIX_WIDTH 4
-
+#define STEREO_CAMERAS_COUNT 6
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -114,6 +114,14 @@ int main(void)
   //usart_tx_ringbuffer_push((uint8_t *)&comm_buff, strlen(comm_buff));
   int verticalLines = 4;
   int pixelsPerLinePerMatrix = 4;
+  uint8_t locationsBufferedMatrixes[STEREO_CAMERAS_COUNT];
+  uint8_t locationToSet;
+  for(locationToSet=0; locationToSet < STEREO_CAMERAS_COUNT; locationToSet++)
+  {
+	  locationsBufferedMatrixes[locationToSet]=0;
+  }
+#define OLD
+#ifdef OLD
   int spot1=0;
   int spot2=0;
   int spot3=0;
@@ -127,6 +135,10 @@ int main(void)
   uint8_t response4[DOUBLE_IMAGE];
   uint8_t response5[DOUBLE_IMAGE];
   uint8_t response6[DOUBLE_IMAGE];
+#endif
+  uint8_t receivedMatrixBuffer[STEREO_CAMERAS_COUNT][DOUBLE_IMAGE];
+
+
 
   while (1) {
 #ifdef TUNNEL_NONE
@@ -134,51 +146,38 @@ int main(void)
     if (Cam1Ch() && spot1 < DOUBLE_IMAGE)
     {
       c = Cam1Rx();
-    //  led_toggle();
-   //   Usart1Tx(&c,1);
-   //   c=11;
-	  response1[spot1]=c;
-	 // Usart1Tx(&response1[spot1],1);
-      spot1++;
-
+      //receivedMatrixBuffer[1][spot1++]=c;
+	  response1[spot1++]=c;
     }
-
     if (Cam2Ch() && spot2 <DOUBLE_IMAGE)
     {
       c = Cam2Rx();
-     // Usart1Tx(&c,1);
-     // c=12;
 	  response2[spot2++]=c;
     }
     if (Cam3Ch() && spot3 < DOUBLE_IMAGE)
     {
       c = Cam3Rx();
-      // Usart1Tx(&c,1);
-      //c=13;
-      	  response3[spot3++]=c;
+      response3[spot3++]=c;
     }
     if (Cam4Ch() && spot4 < DOUBLE_IMAGE)
     {
       c = Cam4Rx();
-      //c=14;
       response4[spot4++]=c;
     }
     if (Cam5Ch() && spot5 < DOUBLE_IMAGE)
     {
       c = Cam5Rx();
-      //c=15;
       response5[spot5++]=c;
     }
     if (Cam6Ch() && spot6 < DOUBLE_IMAGE)
     {
       c = Cam6Rx();
-   //   c=16;
       response6[spot6++]=c;
     }
 
     int offset_buffer_safety=4;
-   if(spot1 >= DOUBLE_IMAGE-offset_buffer_safety && spot2 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot3 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot4 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot5 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot6 >= DOUBLE_IMAGE-offset_buffer_safety )
-   {
+    if(spot1 >= DOUBLE_IMAGE-offset_buffer_safety && spot2 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot3 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot4 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot5 >= DOUBLE_IMAGE-offset_buffer_safety &&  spot6 >= DOUBLE_IMAGE-offset_buffer_safety )
+    {
 	   uint8_t c = 255;
 		Usart1Tx(&c,1);
 		c=0;
@@ -187,9 +186,6 @@ int main(void)
 		Usart1Tx(&c,1);
 		c=171;
 		Usart1Tx(&c,1);
-//		c=5;
-//		Usart1Tx(&c,1);
-
 
 		led_toggle();
 		spot1=0;
@@ -198,19 +194,20 @@ int main(void)
 		spot4=0;
 		spot5=0;
 		spot6=0;
-		//send_matrix_part(response6);
+
+
 		int cameraboard;
 		int matrixLine;
 
 		for(matrixLine=0; matrixLine < verticalLines; matrixLine++){
 			uint8_t c= 255;
-											Usart1Tx(&c,1);
-											c= 0;
-											Usart1Tx(&c,1);
-											c= 0;
-											Usart1Tx(&c,1);
-											c= 128;
-											Usart1Tx(&c,1);
+			Usart1Tx(&c,1);
+			c= 0;
+			Usart1Tx(&c,1);
+			c= 0;
+			Usart1Tx(&c,1);
+			c= 128;
+			Usart1Tx(&c,1);
 
 			for (cameraboard=1;cameraboard <=6; cameraboard++)
 			{
@@ -235,13 +232,13 @@ int main(void)
 
 			}
 			c= 255;
-									Usart1Tx(&c,1);
-									c= 0;
-									Usart1Tx(&c,1);
-									c= 0;
-									Usart1Tx(&c,1);
-									c= 218;
-									Usart1Tx(&c,1);
+			Usart1Tx(&c,1);
+			c= 0;
+			Usart1Tx(&c,1);
+			c= 0;
+			Usart1Tx(&c,1);
+			c= 218;
+			Usart1Tx(&c,1);
 		}
    }
 #else
