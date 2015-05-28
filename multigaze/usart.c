@@ -20,7 +20,7 @@ struct UartDataStruct USART4_Data = {UART4, 0, 0, 0, 0};
 struct UartDataStruct USART5_Data = {UART5, 0, 0, 0, 0};
 struct UartDataStruct USART6_Data = {USART6, 0, 0, 0, 0};
 
-
+#define BAUDRATE 1000000
 
 static inline uint8_t uart_tx_finished(struct UartDataStruct *dev)
 {
@@ -209,7 +209,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-  uart_init_hw(&USART1_Data, 9600);
+  uart_init_hw(&USART1_Data, BAUDRATE);
 #endif
 
 #ifdef USE_USART1B
@@ -239,7 +239,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-  uart_init_hw(&USART1_Data, 9600);
+  uart_init_hw(&USART1_Data, BAUDRATE);
 #endif
 
 #ifdef USE_USART1MUX
@@ -275,7 +275,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-  uart_init_hw(&USART1_Data, 9600);
+  uart_init_hw(&USART1_Data, BAUDRATE);
 #endif
 
 #ifdef USE_USART2
@@ -305,7 +305,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-  uart_init_hw(&USART2_Data, 9600);
+  uart_init_hw(&USART2_Data, BAUDRATE);
 #endif
 
 #ifdef USE_USART3
@@ -335,7 +335,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-  uart_init_hw(&USART3_Data, 9600);
+  uart_init_hw(&USART3_Data, BAUDRATE);
 #endif
 
 #ifdef USE_USART4
@@ -365,7 +365,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-  uart_init_hw(&USART4_Data, 9600);
+  uart_init_hw(&USART4_Data, BAUDRATE);
 
 #elif defined(USE_USART4B)
   // USART4:
@@ -394,7 +394,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-  uart_init_hw(&USART4_Data, 9600);
+  uart_init_hw(&USART4_Data, BAUDRATE);
 
 #endif
 
@@ -426,7 +426,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
   GPIO_Init(GPIOD, &GPIO_InitStructure);
 
-  uart_init_hw(&USART5_Data, 9600);
+  uart_init_hw(&USART5_Data, BAUDRATE);
 #endif
 
 #ifdef USE_USART6
@@ -456,7 +456,7 @@ void usart_init()
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-  uart_init_hw(&USART6_Data, 9600);
+  uart_init_hw(&USART6_Data, BAUDRATE);
 #endif
 }
 

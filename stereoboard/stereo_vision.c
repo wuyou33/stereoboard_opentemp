@@ -57,22 +57,11 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
   cnt0 = min_y * image_width_bytes;
   for (l = min_y; l < max_y; l++) {
 
-    if ((l < image_height - 2) && (STEREO_CAM_NUMBER == 1)) {
+	  // TODO what does image_height -5 do? Expected: something with not being able to go to the next line when there is an offset.
+	  // TODO on the same note, only start when the line is bigger than the start offset?
+    if (l < image_height - 5) {
       // separate the image line into a left and right one (line1, lin2 respectively):
-      separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, 2);
-    } else if ((l < image_height - 5) && (STEREO_CAM_NUMBER == 3)) {
-      // separate the image line into a left and right one (line1, lin2 respectively):
-      separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, -2);
-    } else if ((l < image_height - 5) && (STEREO_CAM_NUMBER == 5)) {
-	  // separate the image line into a left and right one (line1, lin2 respectively):
-	  separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, -2);
-    } else if ((l < image_height - 5) && (STEREO_CAM_NUMBER == 7)) {
-      // separate the image line into a left and right one (line1, lin2 respectively):
-      separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, 4);
-
-    } else {
-      // separate the image line into a left and right one with offset (line1, lin2 respectively):
-      separate_image_line(&in[cnt0], line1, line2, image_width_bytes);
+      separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes);
     }
 
     // the disparities will be put in upd_disps1:
@@ -176,6 +165,8 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
 #endif
 }
 
+
+// TODO is this algorithm still used? what do we want to do with it?
 void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
                    uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
@@ -229,12 +220,10 @@ void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_
   cnt0 = min_y * image_width_bytes;
   for (l = min_y; l < max_y; l++) {
 
-    if ((l < image_height - 2) && (STEREO_CAM_NUMBER == 1)) {
+	 // TODO same as above... why is this -5?
+    if (l < image_height - 5) {
       // separate the image line into a left and right one (line1, lin2 respectively):
-      separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes, 2);
-    } else {
-      // separate the image line into a left and right one with offset (line1, lin2 respectively):
-      separate_image_line(&in[cnt0], line1, line2, image_width_bytes);
+      separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes);
     }
 
     // the disparities will be put in upd_disps1:
@@ -362,6 +351,7 @@ void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_
 
 }
 
+// TODO do we still want to use this stereo vision algorithm???
 void stereo_vision_cigla(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
                          uint8_t sadWS, uint8_t sigma, uint32_t diff_threshold, uint8_t min_y, uint8_t max_y)
 {
@@ -407,7 +397,7 @@ void stereo_vision_cigla(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t 
 
   for (l = min_y; l < max_y + 1; l++) {
     // separate the image line into a left and right one (line1, line2 respectively)
-    separate_image_line(&in[l * image_width_bytes], line1, line2, image_width_bytes);
+    separate_image_line_offset(&in[l * image_width_bytes], line1, line2, image_width_bytes);
 
     for (d = 0; d < disparity_range; d++) {
       arm_sub_q15(&line1[disparity_max], &line2[disparity_max - d], absdiff,
@@ -609,39 +599,29 @@ uint32_t evaluate_disparities_control2(uint8_t *in, uint32_t image_width, uint32
 }
 
 
-void separate_image_line(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes)
+
+void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes)
 {
   uint32_t i, j;
+  int8_t offset = DISPARITY_OFFSET_LEFT;
   for (i = 0; i < image_width_bytes; i += 2) {
-    j = i >> 1;
-    line1[j] = (q15_t) in[i];
-    line2[j] = (q15_t) in[i + 1];
-  }
-}
+	  j = i >> 1;
+	  if (i >= DISPARITY_BORDER)
+	  {
+		  offset = DISPARITY_OFFSET_RIGHT;
+	  }
+	  if (offset >= 0) {
+		  //line1[j] = (q15_t) in[i];
+		  //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
 
-void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes,  int8_t offset)
-{
-  uint32_t i, j;
-
-  if (offset >= 0) {
-    for (i = 0; i < image_width_bytes; i += 2) {
-      j = i >> 1;
-      //line1[j] = (q15_t) in[i];
-      //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
-
-      line1[j] = (q15_t) in[i];
-      line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)]; // corresponds to camera:7
-    }
-  }
-
-  if (offset < 0) {
-    for (i = 0; i < image_width_bytes; i += 2) {
-      j = i >> 1;
-      //line1[j] = (q15_t) in[i];
-      //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
-
-      line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
-      line2[j] = (q15_t) in[i + 1]; // corresponds to camera:7
+		  line1[j] = (q15_t) in[i];
+		  line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)]; // corresponds to camera:7
+	  }
+	  else if (offset < 0) {
+		  //line1[j] = (q15_t) in[i];
+		  //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
+		  line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
+		  line2[j] = (q15_t) in[i + 1]; // corresponds to camera:7
     }
   }
 }

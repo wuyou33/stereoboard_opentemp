@@ -30,7 +30,7 @@
 #include "main_parameters.h"
 
 #include "commands.h"
-
+#define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -43,6 +43,42 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
+
+void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
+		int* matrixBuffer, uint8_t horizontalBins, uint8_t verticalBins,
+		uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
+		uint8_t heightPerBin,uint8_t *toSendBuffer) {
+
+	int indexBuffer;
+
+	uint8_t y;
+	uint8_t x;
+	for (x = 0; x < horizontalBins; x++) {
+		for (y = 0; y < verticalBins; y++) {
+			int line;
+			for (line = 0; line < heightPerBin; line++) {
+				int bufferIndex = 0;
+				for (bufferIndex = 0; bufferIndex < widthPerBin;
+						bufferIndex++) {
+					matrixBuffer[y * horizontalBins + x] +=
+							disparity_image_buffer_8bit[pixelsPerLine
+									* (y * heightPerBin) + line * pixelsPerLine
+									+ widthPerBin * x + blackBorderSize
+									+ bufferIndex];
+				}
+			}
+		}
+	}
+
+
+	// Average by dividing by the amount of pixels per bin
+	int bufferIndex;
+	for (bufferIndex = 0; bufferIndex < horizontalBins * verticalBins;
+			bufferIndex++) {
+		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / 128;
+	}
+
+}
 
 
 
@@ -116,6 +152,39 @@ int main(void)
   //camera_snapshot();
 
   volatile int processed = 0;
+
+
+  // Disparity image buffer:
+  	uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
+  	uint16_t ind;
+  	for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
+  		disparity_image_buffer_8bit[ind] = 0;
+  	}
+	// Stereo parameters:
+	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
+	uint32_t disparity_min = 3;
+	uint32_t disparity_step = 1;
+	uint8_t thr1 = 4;
+	uint8_t thr2 = 4;
+	uint8_t diff_threshold = 4; // for filtering
+
+	// Settings for the matrix
+	uint8_t horizontalBins = 4;
+	uint8_t verticalBins = 4;
+
+	// Settings for the depth matrix algorithm, calculated based on other settings
+	// Settings of the camera... used by the distance matrix algorithm
+	uint8_t blackBorderSize = 22;
+	uint8_t pixelsPerLine = 128;
+	uint8_t pixelsPerColumn = 96;
+
+	uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
+			/ horizontalBins;
+	uint8_t heightPerBin = pixelsPerColumn / verticalBins;
+
+	// Initialise matrixbuffer
+	int matrixBuffer[verticalBins * horizontalBins];
+	uint8_t toSendBuffer[verticalBins * horizontalBins];
   while (1) {
     camera_snapshot();
 #ifdef LARGE_IMAGE
@@ -139,7 +208,40 @@ int main(void)
     Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 
+// Calculate the disparity map, only when we need it
+#if SEND_DISPARITY_MAP || SEND_MATRIX
+	// Determine disparities:
+	min_y = 0;
+	max_y = 95;
+	stereo_vision_Kirk(current_image_buffer,
+			disparity_image_buffer_8bit, image_width, image_height,
+			disparity_min, disparity_range, disparity_step, thr1, thr2,
+			min_y, max_y);
+#endif
 
+
+#if SEND_MATRIX
+	// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
+	memset(matrixBuffer,0,sizeof matrixBuffer);
+	memset(toSendBuffer,0,sizeof toSendBuffer);
+
+
+	// Create the distance matrix by summing pixels per bin
+	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer,
+			horizontalBins, verticalBins, blackBorderSize,
+			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
+#endif
+
+
+// Now send the data that we want to send
+
+#if SEND_DISPARITY_MAP
+	SendDisparityMap(disparity_image_buffer_8bit);
+#endif
+
+#if SEND_MATRIX
+	SendMatrix(toSendBuffer);
+#endif
 
   }
 }

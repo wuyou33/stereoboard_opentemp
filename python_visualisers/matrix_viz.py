@@ -2,9 +2,10 @@ import numpy as np
 import cv2
 import serial
 import matplotlib.pyplot as plt
-
-ser = serial.Serial('/dev/ttyUSB0',3000000,timeout=None)
-size_of_one_image=50
+import stereoboard_tools
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
+size_of_one_image=150
+size_of_one_matrix=size_of_one_image
 frameNumber = 0
 BINS=4
 MATRIX_WIDTH=4
@@ -27,17 +28,6 @@ def draw_sonar_visualisation(matrix):
     ax.set_rmax(15.0)
     ax.grid(True)
     plt.draw()
-
-def search_start_position(startPosition):
-    sync=0
-    # Search for the startposition
-    for i in range(startPosition, size_of_one_image):
-        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-            if (raw[i + 3] == 171):
-                # End of Image
-                sync = i
-                break
-    return sync
 
 
 def fill_matrix_array(startSync):
@@ -67,35 +57,40 @@ def fill_matrix_array(startSync):
                     #  print 'IMG matrix: ', imgMatrix
 
 while True:
-    # Read the image
-    raw = ser.read(size_of_one_image*2)    # Read two times the image size... this way we surely have an image
-    raw = bytearray(raw)
+    try:
+        # Read the image
+        raw = ser.read(size_of_one_image*2)    # Read two times the image size... this way we surely have an image
+        raw = bytearray(raw)
 
-    # Initialise image
-    img = np.zeros((BINS,BINS))
+        # Initialise image
+        img = np.zeros((BINS,BINS))
 
-    # Initialise the startposition in the buffer and the linenumber
-    line =0
+        # Initialise the startposition in the buffer and the linenumber
+        line =0
 
-    # Search the startbyte
-    sync1 = search_start_position(0)
-    print 'sync 1 ' , sync1
-    if sync1==0:    # We did not find the startbit... try again
-        continue
+        # Search the startbyte
+        sync1 = stereoboard_tools.search_start_position(raw,0,size_of_one_matrix)
 
 
-    line=0
-    imgMatrix = np.zeros((4, MATRIX_WIDTH))
-    size_of_one_matrix=MATRIX_HEIGHT*MATRIX_WIDTH+4*MATRIX_HEIGHT+4*MATRIX_HEIGHT+4
-
-    fill_matrix_array(sync1)
-    print imgMatrix
-    imgMatrix /= 45
-    imgMatrix =imgMatrix[:,::-1]
-    print imgMatrix
-    cv2.namedWindow('imgmatrixboard',cv2.WINDOW_NORMAL)
-    cv2.imshow('imgmatrixboard',imgMatrix)
+        print 'sync 1 ' , sync1
+        if sync1==0:    # We did not find the startbit... try again
+            continue
 
 
-    draw_sonar_visualisation(imgMatrix)
-    cv2.waitKey(1)
+        line=0
+        imgMatrix = np.zeros((4, MATRIX_WIDTH))
+        size_of_one_matrix=MATRIX_HEIGHT*MATRIX_WIDTH+4*MATRIX_HEIGHT+4*MATRIX_HEIGHT+4
+
+        fill_matrix_array(sync1)
+        print imgMatrix
+        imgMatrix /= 45
+        imgMatrix =imgMatrix[:,::-1]
+        print imgMatrix
+        cv2.namedWindow('imgmatrixboard',cv2.WINDOW_NORMAL)
+        cv2.imshow('imgmatrixboard',imgMatrix)
+
+
+        draw_sonar_visualisation(imgMatrix)
+        cv2.waitKey(1)
+    except:
+        print 'error'

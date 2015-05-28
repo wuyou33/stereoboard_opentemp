@@ -18,8 +18,7 @@ void evaluate_disparities_control(uint8_t *in, uint32_t image_width, uint32_t im
 uint32_t evaluate_disparities_control2(uint8_t *in, uint32_t image_width, uint32_t image_height,
                                        uint32_t disparity_range, uint8_t sadWS, uint8_t crop, uint32_t thr3);
 
-void separate_image_line(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width);
-void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes, int8_t offset);
+void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes);
 uint32_t evaluate_disparities(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t disparity_threshold,
                               uint32_t disparities_high);
 void evaluate_disparities_altitude(uint8_t *in, uint32_t image_width, uint32_t image_height,
