@@ -1,0 +1,13 @@
+
+#ifndef STEREOBOARD_PARAMETERS_H_
+#define STEREOBOARD_PARAMETERS_H_
+
+/*****************
+ * PARAMETERS FOR EACH STEREO BOARD THAT ARE ALSO USED IN THE MULTIGAZE CODE
+ *****************/
+
+// Settings for the matrix
+#define MATRIX_WIDTH_BINS 5
+#define MATRIX_HEIGHT_BINS 5
+
+#endif /* STEREOBOARD_PARAMETERS_H_ */

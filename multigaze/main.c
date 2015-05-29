@@ -15,10 +15,10 @@
 #include "utils.h"
 #include "stm32f4xx_conf.h"
 
-#define SIZE_OF_ONE_IMAGE 50
+#define SIZE_OF_ONE_IMAGE 80
 #define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
-#define SINGLE_MATRIX_WIDTH 4
-#define SINGLE_MATRIX_HEIGHT 4
+#define SINGLE_MATRIX_WIDTH 5
+#define SINGLE_MATRIX_HEIGHT 5
 #define STEREO_CAMERAS_COUNT 6
 
 /* Private functions ---------------------------------------------------------*/
@@ -122,7 +122,12 @@ int main(void)
 
   int offset_buffer_safety=4; // We do not want to overflow the buffer
 
-  int counter=0;
+	uint8_t code[4];
+	code[0] = 0xff;
+	code[1] = 0x00;
+	code[2] = 0x00;
+
+
   while (1) {
 #ifdef TUNNEL_NONE
 	  uint8_t c =  ' ';
@@ -184,44 +189,28 @@ int main(void)
 		memset(locationsBufferedMatrixes,0,sizeof locationsBufferedMatrixes);
 
 
-	   uint8_t c = 255;
-		Usart1Tx(&c,1);
-		c=0;
-		Usart1Tx(&c,1);
-		c=0;
-		Usart1Tx(&c,1);
-		c=171;
-		Usart1Tx(&c,1);
+		code[3] = 0xAB; // 171
+		while (Usart1Tx(code, 4) == 0){
 
-
-
-
+		}
 
 		int cameraboard;
 		int matrixLine;
 
 		for(matrixLine=0; matrixLine < SINGLE_MATRIX_HEIGHT; matrixLine++){
-			uint8_t c= 255;
-			Usart1Tx(&c,1);
-			c= 0;
-			Usart1Tx(&c,1);
-			c= 0;
-			Usart1Tx(&c,1);
-			c= 128;
-			Usart1Tx(&c,1);
+			code[3] = 128;
+			while (Usart1Tx(code, 4) == 0){
+
+			}
 
 			for (cameraboard=0;cameraboard <STEREO_CAMERAS_COUNT; cameraboard++)
 			{
 				send_matrix_part(receivedMatrixBuffer[cameraboard],cameraboard,matrixLine,SINGLE_MATRIX_WIDTH);
 			}
-			c= 255;
-			Usart1Tx(&c,1);
-			c= 0;
-			Usart1Tx(&c,1);
-			c= 0;
-			Usart1Tx(&c,1);
-			c= 218;
-			Usart1Tx(&c,1);
+			code[3] = 218; // 171
+			while (Usart1Tx(code, 4) == 0){
+
+			}
 		}
    }
 #else

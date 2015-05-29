@@ -3,24 +3,19 @@ import cv2
 import serial
 import matplotlib.pyplot as plt
 import stereoboard_tools
-ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
-size_of_one_image=100
+ser = serial.Serial('/dev/ttyUSB1',1000000,timeout=None)
+size_of_one_image=200
 size_of_one_matrix=size_of_one_image
 frameNumber = 0
-MATRIX_WIDTH=24
-MATRIX_HEIGHT=4
+AMOUNT_OF_BOARDS=6
+SINGLE_MATRIX_WIDTH=5
+MATRIX_HEIGHT=5
+MATRIX_WIDTH=AMOUNT_OF_BOARDS*SINGLE_MATRIX_WIDTH
 
 def draw_sonar_visualisation(matrix):
     plt.ion()
-    #matrix = np.rot90(matrix,3)
     r = matrix[1,:]
     r = (map(abs, map(int, r)))
-    print 'R is: ', r
-    # RADIANTS = 0.8
-    # START=0.55
-    # theta = np.arange(START, np.pi * RADIANTS, (RADIANTS * np.pi) / len(r))
-    #
-    toDivide=5
     theta = np.arange(0,2*np.pi,(2*np.pi)/len(r))
     ax = plt.subplot(111, polar=True)
     ax.clear()
@@ -137,7 +132,7 @@ while True:
         for i in range(sync1,sync1+(MATRIX_WIDTH*MATRIX_HEIGHT)):
             print raw[i], ' '
         line=0
-        imgMatrix = np.zeros((4, MATRIX_WIDTH))
+        imgMatrix = np.zeros((MATRIX_HEIGHT, MATRIX_WIDTH))
         size_of_one_matrix=MATRIX_HEIGHT*MATRIX_WIDTH
         # #
         imgMatrix = fill_matrix_multigaze_array(raw,sync1,size_of_one_image)

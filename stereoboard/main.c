@@ -25,7 +25,7 @@
 #include "usb.h"
 #include "sys_time.h"
 #include "raw_digital_video_stream.h"
-
+#include "../multigaze/stereoboard_parameters.h"
 #include BOARD_FILE
 #include "main_parameters.h"
 
@@ -45,7 +45,7 @@ uint16_t offset_crop = 0;
 /* Private functions ---------------------------------------------------------*/
 
 void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
-		int* matrixBuffer, uint8_t horizontalBins, uint8_t verticalBins,
+		int* matrixBuffer,
 		uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
 		uint8_t heightPerBin,uint8_t *toSendBuffer) {
 
@@ -53,14 +53,14 @@ void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 
 	uint8_t y;
 	uint8_t x;
-	for (x = 0; x < horizontalBins; x++) {
-		for (y = 0; y < verticalBins; y++) {
+	for (x = 0; x < MATRIX_WIDTH_BINS; x++) {
+		for (y = 0; y < MATRIX_HEIGHT_BINS; y++) {
 			int line;
 			for (line = 0; line < heightPerBin; line++) {
 				int bufferIndex = 0;
 				for (bufferIndex = 0; bufferIndex < widthPerBin;
 						bufferIndex++) {
-					matrixBuffer[y * horizontalBins + x] +=
+					matrixBuffer[y * MATRIX_WIDTH_BINS + x] +=
 							disparity_image_buffer_8bit[pixelsPerLine
 									* (y * heightPerBin) + line * pixelsPerLine
 									+ widthPerBin * x + blackBorderSize
@@ -73,7 +73,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 
 	// Average by dividing by the amount of pixels per bin
 	int bufferIndex;
-	for (bufferIndex = 0; bufferIndex < horizontalBins * verticalBins;
+	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
 		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / 128;
 	}
@@ -154,12 +154,12 @@ int main(void)
   volatile int processed = 0;
 
 
-  // Disparity image buffer:
+  	// Disparity image buffer, initialised with zeros
   	uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-  	uint16_t ind;
-  	for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
-  		disparity_image_buffer_8bit[ind] = 0;
-  	}
+  	memset(disparity_image_buffer_8bit,0,sizeof disparity_image_buffer_8bit);
+
+
+
 	// Stereo parameters:
 	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
 	uint32_t disparity_min = 3;
@@ -168,10 +168,6 @@ int main(void)
 	uint8_t thr2 = 4;
 	uint8_t diff_threshold = 4; // for filtering
 
-	// Settings for the matrix
-	uint8_t horizontalBins = 4;
-	uint8_t verticalBins = 4;
-
 	// Settings for the depth matrix algorithm, calculated based on other settings
 	// Settings of the camera... used by the distance matrix algorithm
 	uint8_t blackBorderSize = 22;
@@ -179,12 +175,12 @@ int main(void)
 	uint8_t pixelsPerColumn = 96;
 
 	uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
-			/ horizontalBins;
-	uint8_t heightPerBin = pixelsPerColumn / verticalBins;
+			/ MATRIX_WIDTH_BINS;
+	uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
 	// Initialise matrixbuffer
-	int matrixBuffer[verticalBins * horizontalBins];
-	uint8_t toSendBuffer[verticalBins * horizontalBins];
+	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   while (1) {
     camera_snapshot();
 #ifdef LARGE_IMAGE
@@ -204,9 +200,7 @@ int main(void)
     current_image_buffer[0] = 0;
     current_image_buffer[1] = 0;
 
-#if SEND_IMAGE
-    Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
-#endif
+
 
 // Calculate the disparity map, only when we need it
 #if SEND_DISPARITY_MAP || SEND_MATRIX
@@ -225,22 +219,21 @@ int main(void)
 	memset(matrixBuffer,0,sizeof matrixBuffer);
 	memset(toSendBuffer,0,sizeof toSendBuffer);
 
-
 	// Create the distance matrix by summing pixels per bin
-	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer,
-			horizontalBins, verticalBins, blackBorderSize,
+	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
 #endif
 
 
 // Now send the data that we want to send
-
+#if SEND_IMAGE
+    Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+#endif
 #if SEND_DISPARITY_MAP
 	SendDisparityMap(disparity_image_buffer_8bit);
 #endif
-
 #if SEND_MATRIX
-	SendMatrix(toSendBuffer);
+	SendMatrix(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 #endif
 
   }
