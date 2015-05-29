@@ -35,7 +35,7 @@ void camera_cpld_stereo_init(void)
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
   // Select Desired Default Camera
-  CAMERA_CPLD_STEREO;
+  CAMERA_CPLD_STEREO();
 }
 
 // Set Stereo Mode

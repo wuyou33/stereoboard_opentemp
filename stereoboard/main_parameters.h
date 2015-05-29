@@ -16,14 +16,17 @@
 
 
 // uncomment for communication with the microcrontroller, this is for sending images:
-#define USE_USART1
-#define UsartTx Usart1Tx
-#define USART1_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
+#ifndef UsartTx
+	#define USE_USART4
+	#define UsartTx Usart4Tx
+	#define USART4_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
+#endif
+
 #define USE_COLOR 0 // 0
 #define SEND_COMMANDS 0 // 1
-#define SEND_IMAGE 0 //0
+#define SEND_IMAGE 1 //0
 #define SEND_DISPARITY_MAP 0 // 0
-#define SEND_MATRIX 1
+#define SEND_MATRIX 0
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
 #define SEND_FILTER 0 // 0
@@ -35,7 +38,7 @@
 //#define LARGE_IMAGE
 
 #ifndef CAMERA_CPLD_STEREO
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux();
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #endif
 
 #endif /* MAIN_PARAMETERS_H_ */
