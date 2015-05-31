@@ -9,7 +9,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "led.h"
+#include "../common/led.h"
 #include "dcmi.h"
 #include "cpld.h"
 #include "usart.h"

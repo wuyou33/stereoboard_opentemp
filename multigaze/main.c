@@ -1,7 +1,8 @@
 /**
   ******************************************************************************
   * @file    main.c
-  * @author  C. De Wagter
+  * @author  C. De Wagter 
+  * @author  R. Meertens 
   * @version V1.0.0
   * @date    2013
   * @brief   Main program body
@@ -9,7 +10,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "led.h"
+#include "../common/led.h"
 #include "tunnel.h"
 #include "usart.h"
 #include "utils.h"

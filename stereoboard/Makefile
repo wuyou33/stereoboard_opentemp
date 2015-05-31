@@ -115,8 +115,8 @@ main.c \
 main_parameters.h \
 stm32f4xx_it.c \
 system_stm32f4xx.c \
-led.c \
-led.h \
+../common/led.c \
+../common/led.h \
 usart.c \
 usart.h \
 dcmi.c \

@@ -4,6 +4,7 @@
 
 #include "dcmi.h"
 #include "utils.h"
+#include "../common/led.h"
 
 void camera_reset_init()
 {
@@ -249,7 +250,6 @@ void camera_dcmi_it_init()
 }
 
 volatile int frame_counter = 0;
-#include "led.h"
 
 void dcmi_isr(void)
 {
