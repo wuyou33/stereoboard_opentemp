@@ -150,8 +150,8 @@ usb_core.c \
 eeprom.c \
 hmc5883.h \
 hmc5883.c \
-utils.h \
-utils.c
+../common/utils.h \
+../common/utils.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)

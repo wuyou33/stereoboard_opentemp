@@ -3,7 +3,7 @@
 
 
 #include "dcmi.h"
-#include "utils.h"
+#include "../common/utils.h"
 #include "../common/led.h"
 
 void camera_reset_init()

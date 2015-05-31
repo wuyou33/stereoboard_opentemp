@@ -107,7 +107,7 @@ system_stm32f4xx.c \
 ../common/led.c \
 tunnel.c \
 usart.c \
-utils.c
+../common/utils.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)

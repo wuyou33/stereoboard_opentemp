@@ -21,7 +21,7 @@
 #include "stereo_vision.h"
 #include "window_detection.h"
 #include "filter_color.h"
-#include "utils.h"
+#include "../common/utils.h"
 #include "usb.h"
 #include "sys_time.h"
 #include "raw_digital_video_stream.h"

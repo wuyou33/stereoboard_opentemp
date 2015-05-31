@@ -13,7 +13,7 @@
 #include "../common/led.h"
 #include "tunnel.h"
 #include "usart.h"
-#include "utils.h"
+#include "../common/utils.h"
 #include "stm32f4xx_conf.h"
 
 #define SIZE_OF_ONE_IMAGE 80
