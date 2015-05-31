@@ -1,0 +1,5 @@
+monitor version
+monitor jtag_scan
+attach 5
+load StereoBoard5.elf
+kill

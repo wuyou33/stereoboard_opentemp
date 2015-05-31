@@ -9,6 +9,9 @@ CROSS        ?= arm-none-eabi-
 # Tunnel from 1 to 6
 TUNNEL       ?= _NONE
 
+# When uploading a single camera, defaultly upload camera 1
+CAMNUMBER    ?=1
+
 CC            = $(CROSS)gcc
 GDB           = $(CROSS)gdb
 OBJCOPY       = $(CROSS)objcopy
@@ -134,6 +137,16 @@ com:
 	minicom -D /dev/ttyACM2 -o -w -t ansi
 
 BMP_PORT ?= /dev/ttyACM0
+
+singlecamera:
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg${CAMNUMBER}
+	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}${CAMNUMBER}.elf
+
+uploadsinglecamera: ${CAMERA}${CAMNUMBER}.elf
+	$(GDB) --batch \
+		-ex 'target extended-remote $(BMP_PORT)' \
+		-x black_magic_probe_flash_camera${CAMNUMBER}.scr ${CAMERA}${CAMNUMBER}.elf
+
 
 ${CAMERA}1.elf:
 	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg1
