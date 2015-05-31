@@ -34,7 +34,7 @@
 #define BT656_SAV   0x80
 #define BT656_EAV   0xDA
 
-void Send(uint8_t *b, uint16_t width, uint16_t height)
+void SendImage(uint8_t *b, uint16_t width, uint16_t height)
 {
   // New frame code: Vertical blanking = ON
   uint8_t code[4];
@@ -88,7 +88,7 @@ void Send(uint8_t *b, uint16_t width, uint16_t height)
 
 
 
-
+/*
 void SendDisparityMap(uint8_t *b)
 {
   uint8_t code[4];
@@ -115,9 +115,9 @@ void SendDisparityMap(uint8_t *b)
   code[3] = 0xAB;
   while (UsartTx(code, 4) == 0)
     ;
-}
+}*/
 
-void SendMatrix(uint8_t* b, uint8_t matrix_width, uint8_t matrix_height) {
+void SendArray(uint8_t* b, uint8_t array_width, uint8_t array_height) {
 	  uint8_t code[4];
 	  code[0] = 0xff;
 	  code[1] = 0x00;
@@ -127,14 +127,14 @@ void SendMatrix(uint8_t* b, uint8_t matrix_width, uint8_t matrix_height) {
 	    ;
 
 	int horizontalLine = 0;
-	for (horizontalLine = 0; horizontalLine < matrix_height; horizontalLine++) {
-		code[3] = 0x80;
+	for (horizontalLine = 0; horizontalLine < array_height; horizontalLine++) {
+		code[3] = 0x80;//128
 		while (UsartTx(code, 4) == 0)
 			;
-		while (UsartTx(b + matrix_width * horizontalLine, matrix_width) == 0)
+		while (UsartTx(b + array_width * horizontalLine, array_width) == 0)
 			;
 
-		code[3] = 0xDA;
+		code[3] = 0xDA;//218
 		while (UsartTx(code, 4) == 0)
 			;
 	}

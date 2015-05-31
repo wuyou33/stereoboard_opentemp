@@ -229,10 +229,10 @@ int main(void)
     Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 #if SEND_DISPARITY_MAP
-	SendDisparityMap(disparity_image_buffer_8bit);
+	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
-	SendMatrix(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 #endif
 
   }
