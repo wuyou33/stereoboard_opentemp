@@ -7,8 +7,33 @@ def search_start_position(raw, startPosition, size_of_one_image):
             if (raw[i + 3] == 171):
                 # End of Image
                 return i
+            if (raw[i + 3] == 175):
+                # Start of image
+                print 'find start of image'
     return 0
 
+## Determines the length of one image, and the length of one line and the width and height
+def determine_image_and_line_length(raw):
+    startPosition=None
+    lineLength=0
+    startLine=0
+    lineCount=0
+    startCounting=False
+    for i in range(0, len(raw)):
+        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
+            if (raw[i + 3] == 171 and startPosition != None):# End of Image
+                print 'found image length: ' , i -startPosition
+                return (i - startPosition),lineLength, lineCount
+            if raw[i + 3] == 175:# Start of image
+                startPosition = i
+                startLine = None
+                startCounting=True
+            if  raw[i + 3] == 128: # Start of line
+                startLine = i
+            if raw[i + 3] == 218 and startCounting: # End of line
+                lineLength = i-startLine
+                lineCount+=1
+    return 0,0,0
 
 
  # Fill the image arrays

@@ -3,7 +3,7 @@ import cv2
 import serial
 import matplotlib.pyplot as plt
 import stereoboard_tools
-ser = serial.Serial('/dev/ttyUSB1',1000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 size_of_one_image=200
 size_of_one_matrix=size_of_one_image
 frameNumber = 0
@@ -88,23 +88,6 @@ def fill_matrix_multigaze_array(raw,startSync,size_of_one_matrix):
                     print 'END OF IMAGE'
                     # Go from values between 0-255 to intensities between 0.0-1.0
                     #  print 'IMG matrix: ', imgMatrix
-
-#
-#     for i in range(startSync+4, MATRIX_WIDTH*MATRIX_HEIGHT + 4+startSync,16):
-#         singleMatrix = []
-#         for j in range(0,16):
-#             print  'appending: ', raw[i+j]
-#             singleMatrix.append(raw[i+j])
-#
-#
-#
-# #        singleMatrix = raw[i:i+16]
-#         print 'single matrix: ', singleMatrix
-#         for j in range(0,4):
-#             #print 'to replace: ' , place , '  ', newMatrix[place:place+4,j]
-#             #print 'with : ' , singleMatrix[j*4:(j+1)*4]
-#             newMatrix[place:place+4,j]=singleMatrix[j*4:(j+1)*4]
-#         place+=4
     print 'found img: ' , img
     return img
 

@@ -41,7 +41,7 @@ void Send(uint8_t *b, uint16_t width, uint16_t height)
   code[0] = 0xff;
   code[1] = 0x00;
   code[2] = 0x00;
-  code[3] = 0xAF;
+  code[3] = 0xAF; // 175
   while (UsartTx(code, 4) == 0)
     ;
 
@@ -66,7 +66,7 @@ void Send(uint8_t *b, uint16_t width, uint16_t height)
   int j = 0;
   for (j = 0; j < height; j++) {
     // SAV: Beginning of Line
-    code[3] = 0x80;
+    code[3] = 0x80; //128 ??
     while (UsartTx(code, 4) == 0)
       ;
 
@@ -75,13 +75,13 @@ void Send(uint8_t *b, uint16_t width, uint16_t height)
       ;
 
     // EAV: End of Line
-    code[3] = 0xDA;
+    code[3] = 0xDA; //218 ??
     while (UsartTx(code, 4) == 0)
       ;
   }
 
   // End of Frame
-  code[3] = 0xAB;
+  code[3] = 0xAB; // 171
   while (UsartTx(code, 4) == 0)
     ;
 }

@@ -201,7 +201,6 @@ int main(void)
     current_image_buffer[1] = 0;
 
 
-
 // Calculate the disparity map, only when we need it
 #if SEND_DISPARITY_MAP || SEND_MATRIX
 	// Determine disparities:
