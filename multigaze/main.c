@@ -15,11 +15,13 @@
 #include "usart.h"
 #include "../common/utils.h"
 #include "stm32f4xx_conf.h"
+#include "stereoboard_parameters.h"
+
 
 #define SIZE_OF_ONE_IMAGE 80
 #define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
-#define SINGLE_MATRIX_WIDTH 5
-#define SINGLE_MATRIX_HEIGHT 5
+//#define MATRIX_WIDTH_BINS 5
+//#define MATRIX_HEIGHT_BINS 5
 #define STEREO_CAMERAS_COUNT 6
 
 /* Private functions ---------------------------------------------------------*/
@@ -70,7 +72,7 @@ void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine, in
 					if(lineReading==matrixLine){
 
 						int startOfBuf = i+4;
-						int endOfBuf = (i +4+ SINGLE_MATRIX_WIDTH);
+						int endOfBuf = (i +4+ MATRIX_WIDTH_BINS);
 						int indexInBuffer;
 						for(indexInBuffer = startOfBuf; indexInBuffer < endOfBuf; indexInBuffer++){
 							Usart1Tx(&response[indexInBuffer],1);
@@ -198,7 +200,7 @@ int main(void)
 		int cameraboard;
 		int matrixLine;
 
-		for(matrixLine=0; matrixLine < SINGLE_MATRIX_HEIGHT; matrixLine++){
+		for(matrixLine=0; matrixLine < MATRIX_HEIGHT_BINS; matrixLine++){
 			code[3] = 128;
 			while (Usart1Tx(code, 4) == 0){
 
@@ -206,7 +208,7 @@ int main(void)
 
 			for (cameraboard=0;cameraboard <STEREO_CAMERAS_COUNT; cameraboard++)
 			{
-				send_matrix_part(receivedMatrixBuffer[cameraboard],cameraboard,matrixLine,SINGLE_MATRIX_WIDTH);
+				send_matrix_part(receivedMatrixBuffer[cameraboard],cameraboard,matrixLine,MATRIX_WIDTH_BINS);
 			}
 			code[3] = 218; // 171
 			while (Usart1Tx(code, 4) == 0){
