@@ -4,12 +4,14 @@ import serial
 import matplotlib.pyplot as plt
 import stereoboard_tools
 ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
-size_of_one_image=250
-size_of_one_matrix=size_of_one_image
+
+
 frameNumber = 0
 BINS=5
-MATRIX_WIDTH=5
-MATRIX_HEIGHT=5
+MATRIX_WIDTH=6
+MATRIX_HEIGHT=6
+size_of_one_image=(MATRIX_WIDTH+8)*MATRIX_HEIGHT+8
+size_of_one_matrix=size_of_one_image
 
 def draw_sonar_visualisation(matrix):
     plt.ion()
@@ -70,8 +72,8 @@ while True:
         line =0
 
         # Search the startbyte
-        sync1 = stereoboard_tools.search_start_position(raw,0,size_of_one_matrix)
-
+        sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(raw)
+        print 'sync ' , sync1, ' ', length, ' ', lineLength, ' ', lineCount
 
         print 'sync: ' , sync1
         if sync1==0:    # We did not find the startbit... try again

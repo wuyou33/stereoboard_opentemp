@@ -39,35 +39,38 @@ cv2.createTrackbar('offsetRight','img',maxOffset/2,maxOffset,changeOffsetRight)
 cv2.createTrackbar('disparityBorder','img',W/2,W,changeOffsetBorder)
 raw = []
 def createEverythingUsingData():
-    global raw, frameNumber
-    # Search for the startposition
-    sync = stereoboard_tools.search_start_position(raw,0,size_of_one_image)
+    try:
+        global raw, frameNumber
+        # Search for the startposition
+        sync, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(raw)
+        print 'sync ' , sync, ' ', length, ' ', lineLength, ' ', lineCount
 
-    print 'sync is now: ', sync, ' length buffer; ', len(raw)
-    if sync==0:
-        # We did not find the startbit... try again
-        return
+        if sync==0:
+            # We did not find the startbit... try again
+            return
 
-    img, leftImage, rightImage = stereoboard_tools.fill_image_arrays(
-        raw, sync,size_of_one_image, W, H, DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT,DISPARITY_BORDER)
+        img, leftImage, rightImage = stereoboard_tools.fill_image_arrays(raw, sync,size_of_one_image, W, H, DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT,DISPARITY_BORDER)
 
-    # Go from values between 0-255 to intensities between 0.0-1.0
-    img /= 255
-    leftImage /= 255
-    rightImage /=255
+        # Go from values between 0-255 to intensities between 0.0-1.0
+        img /= 255
+        leftImage /= 255
+        rightImage /=255
 
 
-    cv2.imshow('img',img)
+        cv2.imshow('img',img)
 
-    key=cv2.waitKey(1000)
-    if key > 0:
-        print '#define DISPARITY_OFFSET_LEFT ', DISPARITY_OFFSET_LEFT
-        print '#define DISPARITY_OFFSET_RIGHT ', DISPARITY_OFFSET_RIGHT
-        print '#define DISPARITY_BORDER ', DISPARITY_BORDER
+        key=cv2.waitKey(1000)
+        if key > 0:
+            print '#define DISPARITY_OFFSET_LEFT ', DISPARITY_OFFSET_LEFT
+            print '#define DISPARITY_OFFSET_RIGHT ', DISPARITY_OFFSET_RIGHT
+            print '#define DISPARITY_BORDER ', DISPARITY_BORDER
 
-    if saveImages:
-        stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')
-        frameNumber+=1
+        if saveImages:
+            stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')
+            frameNumber+=1
+    except Exception as lastExcept:
+        stereoboard_tools.PrintException()
+
 
 while True:
     try:
@@ -77,4 +80,5 @@ while True:
 
         createEverythingUsingData()
     except Exception as excep:
+        stereoboard_tools.PrintException()
         print 'error! ' , excep

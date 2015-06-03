@@ -7,7 +7,7 @@
  *****************/
 
 // Settings for the matrix
-#define MATRIX_WIDTH_BINS 5
-#define MATRIX_HEIGHT_BINS 5
+#define MATRIX_WIDTH_BINS 6
+#define MATRIX_HEIGHT_BINS 6
 
 #endif /* STEREOBOARD_PARAMETERS_H_ */

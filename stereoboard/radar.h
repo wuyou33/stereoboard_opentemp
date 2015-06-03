@@ -4,7 +4,7 @@
  *  Created on: May 13, 2015
  *      Author: mavlab
  */
-
+/*
 #ifndef RADAR_H_
 #define RADAR_H_
 
@@ -12,8 +12,8 @@
 #include "parameters.h"
 
 // Settings for the matrix
-uint8_t horizontalBins=4;
-uint8_t verticalBins=4;
+//uint8_t horizontalBins=4;
+//uint8_t verticalBins=4;
 
 // Settings of the camera... used by the distance matrix algorithm
 uint8_t blackBorderSize=22;
@@ -74,10 +74,13 @@ void radar_run(void)
   // Create the distance matrix by summing pixels per bin
   calculateDistanceMatrix(disparity_image_buffer_8bit,matrixBuffer,horizontalBins,verticalBins,blackBorderSize,pixelsPerLine,widthPerBin,heightPerBin);
 
+
   // Average by dividing by the amount of pixels per bin
+
   for(bufferIndex=0;bufferIndex < horizontalBins*verticalBins; bufferIndex++)
   {
-    toSendBuffer[bufferIndex]=matrixBuffer[bufferIndex]/128;
+    //toSendBuffer[bufferIndex]=matrixBuffer[bufferIndex]/(widthPerBin*heightPerBin);
+	  toSendBuffer[bufferIndex]=1;//matrixBuffer[bufferIndex]/265;
   }
 
   // Send the matrix

@@ -9,8 +9,8 @@ BAUDRATE=1000000
 W = 128
 H=96
 saveImages=True
-DISPARITY_OFFSET_LEFT=10
-DISPARITY_OFFSET_RIGHT=-3
+DISPARITY_OFFSET_LEFT=0
+DISPARITY_OFFSET_RIGHT=0
 DISPARITY_BORDER=W/2
 
 ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
@@ -32,7 +32,8 @@ while True:
 
 
         # Search for the startposition
-        sync = stereoboard_tools.search_start_position(raw,0,size_of_one_image)
+        sync, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(raw)
+        print 'sync ' , sync, ' ', length, ' ', lineLength, ' ', lineCount
 
         print 'sync is now: ', sync, ' length buffer; ', len(raw)
         if sync==0: # We did not find the startbit... try again

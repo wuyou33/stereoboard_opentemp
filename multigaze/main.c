@@ -18,10 +18,9 @@
 #include "stereoboard_parameters.h"
 
 
-#define SIZE_OF_ONE_IMAGE 80
-#define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
-//#define MATRIX_WIDTH_BINS 5
-//#define MATRIX_HEIGHT_BINS 5
+//#define SIZE_OF_ONE_IMAGE 80
+//#define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
+
 #define STEREO_CAMERAS_COUNT 6
 
 /* Private functions ---------------------------------------------------------*/
@@ -57,7 +56,7 @@ int search_start_position(int startPosition, int size_of_one_image, uint8_t* raw
     }
     return -1;
 }
-void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine, int pixelsPerLine)
+void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine, int pixelsPerLine, int SIZE_OF_ONE_IMAGE)
 {
 
 	int startPos = search_start_position(0,SIZE_OF_ONE_IMAGE,response);
@@ -119,6 +118,10 @@ int main(void)
   // Keep an index for each cameras buffer so we know where to append all pixels
   uint8_t locationsBufferedMatrixes[STEREO_CAMERAS_COUNT];
   memset(locationsBufferedMatrixes,0,sizeof(locationsBufferedMatrixes));
+
+	int SIZE_OF_ONE_IMAGE=(MATRIX_WIDTH_BINS+8)*MATRIX_HEIGHT_BINS+8;
+	int DOUBLE_IMAGE=2*SIZE_OF_ONE_IMAGE;
+
 
   // For each camera we need to remember what pixels we received.
   uint8_t receivedMatrixBuffer[STEREO_CAMERAS_COUNT][DOUBLE_IMAGE];
@@ -192,7 +195,7 @@ int main(void)
 		memset(locationsBufferedMatrixes,0,sizeof locationsBufferedMatrixes);
 
 
-		code[3] = 0xAB; // 171
+		code[3] = 175;
 		while (Usart1Tx(code, 4) == 0){
 
 		}
@@ -208,12 +211,16 @@ int main(void)
 
 			for (cameraboard=0;cameraboard <STEREO_CAMERAS_COUNT; cameraboard++)
 			{
-				send_matrix_part(receivedMatrixBuffer[cameraboard],cameraboard,matrixLine,MATRIX_WIDTH_BINS);
+				send_matrix_part(receivedMatrixBuffer[cameraboard],cameraboard,matrixLine,MATRIX_WIDTH_BINS,SIZE_OF_ONE_IMAGE);
 			}
-			code[3] = 218; // 171
+			code[3] = 218;
 			while (Usart1Tx(code, 4) == 0){
 
 			}
+		}
+		code[3] = 0xAB; // 171
+		while (Usart1Tx(code, 4) == 0){
+
 		}
    }
 #else

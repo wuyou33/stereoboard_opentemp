@@ -75,7 +75,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 	int bufferIndex;
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
-		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / 128;
+		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / (widthPerBin*heightPerBin);
 	}
 
 }
@@ -226,7 +226,7 @@ int main(void)
 
 // Now send the data that we want to send
 #if SEND_IMAGE
-    Send(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+    SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 #if SEND_DISPARITY_MAP
 	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
