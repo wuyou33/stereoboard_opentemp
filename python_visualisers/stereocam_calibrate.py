@@ -1,3 +1,4 @@
+from multiprocessing.reduction import send_handle
 import numpy as np
 import cv2
 import serial
@@ -56,7 +57,14 @@ def createEverythingUsingData():
         leftImage /= 255
         rightImage /=255
 
+        #print 'current blur: ', np.max(cv2.convertScaleAbs(cv2.Laplacian(img,1)))
+        #img = cv2.Laplacian(img,cv2.CV_64F)
+        #img = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
 
+        #print 'current blur: ', np.max(cv2.convertScaleAbs(cv2.Laplacian(img,cv2.CV_64F)))
+        #print 'img: ' , img
+    #    sharpness = np.sum(cv2.convertScaleAbs(img))
+      #  print 'sharpness: ', sharpness
         cv2.imshow('img',img)
 
         key=cv2.waitKey(1000)

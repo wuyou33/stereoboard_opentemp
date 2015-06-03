@@ -9,5 +9,5 @@
 // Settings for the matrix
 #define MATRIX_WIDTH_BINS 6
 #define MATRIX_HEIGHT_BINS 6
-
+#define CLOSE_BOUNDARY 10
 #endif /* STEREOBOARD_PARAMETERS_H_ */

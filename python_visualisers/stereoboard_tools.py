@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 import linecache
-
+import serial
 
 def PrintException():
     exc_type, exc_obj, tb = sys.exc_info()
@@ -11,6 +11,24 @@ def PrintException():
     linecache.checkcache(filename)
     line = linecache.getline(filename, lineno, f.f_globals)
     print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
+
+
+def readPartOfImage(ser, currentBuffer):
+
+    readSize= ser.inWaiting()
+    while readSize ==0:
+        readSize= ser.inWaiting()
+
+    raw = bytearray(ser.read(readSize))
+
+    for byte in raw:
+        currentBuffer.append(int(byte))
+    for i in xrange(len(currentBuffer)-2*readSize,len(currentBuffer)-5):
+       # print currentBuffer[i]
+        if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
+            if (currentBuffer[i + 3] == 171):# End of Image
+                return currentBuffer, i+4
+    return currentBuffer, -1
 
 ## Determines the start, length of one image, and the length of one line and the width and height
 def determine_image_and_line_length(raw):
@@ -22,7 +40,7 @@ def determine_image_and_line_length(raw):
     for i in range(0, len(raw)):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171 and startPosition != None):# End of Image
-                print 'found image length: ' , i -startPosition
+    #            print 'found image length: ' , i -startPosition
                 return startPosition, (i - startPosition),lineLength, lineCount
             if raw[i + 3] == 175:# Start of image
                 startPosition = i
@@ -33,7 +51,7 @@ def determine_image_and_line_length(raw):
             if raw[i + 3] == 218 and startCounting: # End of line
                 lineLength = i-startLine-4
                 lineCount+=1
-    return 0,0,0,0
+    return -1,-1,-1,-1
 
 
  # Fill the image arrays

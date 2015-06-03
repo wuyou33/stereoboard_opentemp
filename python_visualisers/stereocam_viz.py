@@ -12,7 +12,7 @@ saveImages=True
 DISPARITY_OFFSET_LEFT=0
 DISPARITY_OFFSET_RIGHT=0
 DISPARITY_BORDER=W/2
-
+previousLeftImage=None
 ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 
@@ -47,10 +47,16 @@ while True:
         img /= 255
         leftImage /= 255
         rightImage /= 255
-
+        if previousLeftImage!=None:
+            # print 'sumLeftImage: ', np.sum(leftImage)
+            # print 'sum previous Image: ', np.sum(previousLeftImage)
+            diffImage = previousLeftImage-rightImage
+            cv2.imshow('leftimg',diffImage)
+            print 'sum difference: ', np.sum(diffImage)
+        previousLeftImage = rightImage
         # Show the images
         cv2.imshow('img',img)
-        cv2.imshow('leftimg',leftImage)
+
         cv2.imshow('rightimg',rightImage)
         key=cv2.waitKey(1)
 

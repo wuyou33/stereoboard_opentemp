@@ -73,9 +73,22 @@ void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 
 	// Average by dividing by the amount of pixels per bin
 	int bufferIndex;
+	int anyOn=0;
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
 		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / (widthPerBin*heightPerBin);
+		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY)
+		{
+			anyOn=1;
+			//led_set();
+		}
+	}
+	if(anyOn==1){
+		led_set();
+	}
+	else
+	{
+		led_clear();
 	}
 
 }
@@ -194,7 +207,7 @@ int main(void)
     while (frame_counter == processed)
       ;
     processed = frame_counter;
-    led_toggle();
+    //led_toggle();
 
 
     current_image_buffer[0] = 0;
@@ -217,7 +230,7 @@ int main(void)
 	// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
 	memset(matrixBuffer,0,sizeof matrixBuffer);
 	memset(toSendBuffer,0,sizeof toSendBuffer);
-
+	//led_clear();
 	// Create the distance matrix by summing pixels per bin
 	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);

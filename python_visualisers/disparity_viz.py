@@ -28,7 +28,7 @@ def fill_disparity_array(startSync):
                 ## START MATRIX
                 # Search for the startposition
 
-
+previousLeftImage = None
 while True:
     # Read the image
     raw = ser.read(size_of_one_image*2)    # Read two times the image size... this way we surely have an image
@@ -44,15 +44,22 @@ while True:
     # Search the startbyte
     sync1, length, width, height = stereoboard_tools.determine_image_and_line_length(raw)
     print 'sync 1 ' , sync, ' length: ', length, ' width: ', width, ' height: ', height
-    if sync1==0:    # We did not find the startbit... try again
+    if sync1<0:    # We did not find the startbit... try again
         continue
 
     fill_disparity_array(sync1)
-
     img =img[:,::-1]
     img /= 100
+    if previousLeftImage!=None:
+            # print 'sumLeftImage: ', np.sum(leftImage)
+            # print 'sum previous Image: ', np.sum(previousLeftImage)
+            diffImage = previousLeftImage-img
+            cv2.imshow('img',diffImage)
+            print 'sum difference: ', np.sum(diffImage)
+    previousLeftImage = img
+
     cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-    cv2.imshow('img',img)
+    # cv2.imshow('img',img)
 
 
     key=cv2.waitKey(1)

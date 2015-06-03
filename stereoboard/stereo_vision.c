@@ -611,17 +611,14 @@ void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_
 		  offset = DISPARITY_OFFSET_RIGHT;
 	  }
 	  if (offset >= 0) {
-		  //line1[j] = (q15_t) in[i];
-		  //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
-
 		  line1[j] = (q15_t) in[i];
-		  line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)]; // corresponds to camera:7
+		  // We add one because images are interlaced
+		  line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
 	  }
 	  else if (offset < 0) {
-		  //line1[j] = (q15_t) in[i];
-		  //line2[j] = (q15_t) in[i+1+image_width_bytes+image_width_bytes]; // corresponds to camera:1
 		  line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
-		  line2[j] = (q15_t) in[i + 1]; // corresponds to camera:7
+		  // We add one because images are interlaced
+		  line2[j] = (q15_t) in[i + 1];
     }
   }
 }
