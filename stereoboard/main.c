@@ -175,7 +175,7 @@ int main(void)
 
 	// Stereo parameters:
 	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
-	uint32_t disparity_min = 3;
+	uint32_t disparity_min = 0;
 	uint32_t disparity_step = 1;
 	uint8_t thr1 = 4;
 	uint8_t thr2 = 4;
