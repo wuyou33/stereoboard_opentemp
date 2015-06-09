@@ -15,10 +15,21 @@
 #include BOARD_FILE
 
 #define USE_COLOR 0 // 0
-#define SEND_COMMANDS 0 // 1
-#define SEND_IMAGE 0//0
-#define SEND_DISPARITY_MAP 0 // 0
-#define SEND_MATRIX 1
+#ifndef SEND_COMMANDS
+	#define SEND_COMMANDS 0 // 1
+#endif
+
+#ifndef SEND_IMAGE
+	#define SEND_IMAGE 0 // 1
+#endif
+
+#ifndef SEND_DISPARITY_MAP
+	#define SEND_DISPARITY_MAP 1 // 0
+#endif
+#ifndef SEND_MATRIX
+	#define SEND_MATRIX 0
+#endif
+
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
 #define SEND_FILTER 0 // 0

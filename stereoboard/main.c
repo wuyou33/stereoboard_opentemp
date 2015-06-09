@@ -32,9 +32,9 @@
 #include "commands.h"
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
-uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
+//uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
-//uint8_t* disparity_image_buffer_8bit = ((uint8_t*) 0x10000000);
+uint8_t* disparity_image_buffer_8bit = ((uint8_t*) 0x10000000);
 
 uint16_t offset_crop = 0;
 
@@ -44,7 +44,7 @@ uint16_t offset_crop = 0;
 
 /* Private functions ---------------------------------------------------------*/
 
-void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
+void calculateDistanceMatrix(uint8_t* disparity_image,
 		int* matrixBuffer,
 		uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
 		uint8_t heightPerBin,uint8_t *toSendBuffer) {
@@ -61,7 +61,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image_buffer_8bit,
 				for (bufferIndex = 0; bufferIndex < widthPerBin;
 						bufferIndex++) {
 					matrixBuffer[y * MATRIX_WIDTH_BINS + x] +=
-							disparity_image_buffer_8bit[pixelsPerLine
+							disparity_image[pixelsPerLine
 									* (y * heightPerBin) + line * pixelsPerLine
 									+ widthPerBin * x + blackBorderSize
 									+ bufferIndex];
@@ -168,8 +168,8 @@ int main(void)
 
 
   	// Disparity image buffer, initialised with zeros
-  	uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-  	memset(disparity_image_buffer_8bit,0,sizeof disparity_image_buffer_8bit);
+  	//uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
+    //memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
 
 
@@ -177,7 +177,7 @@ int main(void)
 	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
 	uint32_t disparity_min = 0;
 	uint32_t disparity_step = 1;
-	uint8_t thr1 = 4;
+	uint8_t thr1 = 7;
 	uint8_t thr2 = 4;
 	uint8_t diff_threshold = 4; // for filtering
 
@@ -218,7 +218,7 @@ int main(void)
 #if SEND_DISPARITY_MAP || SEND_MATRIX
 	// Determine disparities:
 	min_y = 0;
-	max_y = 95;
+	max_y = 96;
 	stereo_vision_Kirk(current_image_buffer,
 			disparity_image_buffer_8bit, image_width, image_height,
 			disparity_min, disparity_range, disparity_step, thr1, thr2,

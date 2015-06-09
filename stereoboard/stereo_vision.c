@@ -54,18 +54,23 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
   q7_t check_temp[disparity_range];
   q7_t seqLength;
 
-  cnt0 = min_y * image_width_bytes;
+  // check that disparity search stays within the bounds of the input image
+  int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
+  max_y = max_y + offset < image_height ? max_y : image_height - offset;
+  
   for (l = min_y; l < max_y; l++) {
+    cnt0 = l * image_width_bytes;
 
 	  // TODO what does image_height -5 do? Expected: something with not being able to go to the next line when there is an offset.
 	  // TODO on the same note, only start when the line is bigger than the start offset?
-    if (l < image_height - 5) {
+	  // Kirk: don't need to check start location as offset always look to next line of either left or right image
+    //if (l < image_height - 5) {
       // separate the image line into a left and right one (line1, lin2 respectively):
       separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes);
-    }
+    //}
 
     // the disparities will be put in upd_disps1:
-    upd_disps1 = &out[cnt0 / 2];
+    upd_disps1 = &out[l * image_width];
 
     // for all 'l' image lines
     arm_fill_q7(0, check1, image_width * disparity_range); // set to zero
@@ -132,7 +137,6 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
         upd_disps1[i] = max_disps1[i];
       }
     }
-    cnt0 += image_width_bytes;
   } // for all image lines
 
 

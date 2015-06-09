@@ -12,8 +12,11 @@ saveImages= False
 
 
 
-def fill_disparity_array(startSync):
-    global i, startOfBuf, endOfBuf, line
+def fill_disparity_array(startSync, raw, width, height):
+    line=0
+    # Initialise image
+    img = np.zeros((height,width))
+    
     # Fill the image arrays
     for i in range(startSync + 4, (size_of_one_image / 2) + startSync, 136):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
@@ -22,51 +25,46 @@ def fill_disparity_array(startSync):
                 # Start Of Line
                 startOfBuf = i + 4
                 endOfBuf = (i + 4 + 128)
-
                 img[line, :] = raw[startOfBuf:endOfBuf]
                 line += 1;
                 ## START MATRIX
                 # Search for the startposition
+    return img
 
-previousLeftImage = None
+currentBuffer=[]
 while True:
-    # Read the image
-    raw = ser.read(size_of_one_image*2)    # Read two times the image size... this way we surely have an image
-    raw = bytearray(raw)
+    try:
+        # Read the image
+        currentBuffer, location = stereoboard_tools.readPartOfImage(ser, currentBuffer)
 
-    # Initialise image
-    img = np.zeros((H, W))
+        if location > 0:
+            oneImage = currentBuffer[0:location]
+            currentBuffer=currentBuffer[location::]
 
-    # Initialise the startposition in the buffer and the linenumber
-    sync=0
-    line =0
+            # Search the startbyte
+            sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
+      #      print 'sync ' , sync1, ' ', length, ' ', lineLength, ' ', lineCount
 
-    # Search the startbyte
-    sync1, length, width, height = stereoboard_tools.determine_image_and_line_length(raw)
-    print 'sync 1 ' , sync, ' length: ', length, ' width: ', width, ' height: ', height
-    if sync1<0:    # We did not find the startbit... try again
-        continue
-
-    fill_disparity_array(sync1)
-    img =img[:,::-1]
-    img /= 100
-    if previousLeftImage!=None:
-            # print 'sumLeftImage: ', np.sum(leftImage)
-            # print 'sum previous Image: ', np.sum(previousLeftImage)
-            diffImage = previousLeftImage-img
-            cv2.imshow('img',diffImage)
-            print 'sum difference: ', np.sum(diffImage)
-    previousLeftImage = img
-
-    cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-    # cv2.imshow('img',img)
+            if sync1<0:    # We did not find the startbit... try again
+                continue
 
 
-    key=cv2.waitKey(1)
+            img = fill_disparity_array(sync1,oneImage, lineLength, lineCount)
+            img =img[:,::-1]
+            img /= 100
 
-    if saveImages:
-        import scipy
-        fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
-        scipy.misc.imsave(fileNameBoth, img)
-        frameNumber+=1
+            cv2.namedWindow('img',cv2.WINDOW_NORMAL)
+            cv2.imshow('img',img)
 
+
+            key=cv2.waitKey(1)
+
+            if saveImages:
+                import scipy
+                fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
+                scipy.misc.imsave(fileNameBoth, img)
+                frameNumber+=1
+
+    except Exception as excep:
+        stereoboard_tools.PrintException()
+        print 'error! ' , excep
