@@ -47,16 +47,9 @@ while True:
         img /= 255
         leftImage /= 255
         rightImage /= 255
-        if previousLeftImage!=None:
-            # print 'sumLeftImage: ', np.sum(leftImage)
-            # print 'sum previous Image: ', np.sum(previousLeftImage)
-            diffImage = previousLeftImage-rightImage
-            cv2.imshow('leftimg',diffImage)
-            print 'sum difference: ', np.sum(diffImage)
-        previousLeftImage = rightImage
         # Show the images
         cv2.imshow('img',img)
-
+        cv2.imshow('leftimg',leftImage)
         cv2.imshow('rightimg',rightImage)
         key=cv2.waitKey(1)
 
