@@ -169,7 +169,7 @@ int main(void)
 
   	// Disparity image buffer, initialised with zeros
   	//uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-    //memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
+    memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
 
 
