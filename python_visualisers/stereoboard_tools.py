@@ -13,6 +13,26 @@ def PrintException():
     print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
 
 
+
+def fill_image_array(startSync, raw, width, height):
+    line=0
+    # Initialise image
+    img = np.zeros((height,width))
+
+    # Fill the image arrays
+    for i in range(startSync + 4, startSync+(width+8)*height):
+        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
+            if (raw[i + 3] == 128):
+                # print i
+                # Start Of Line
+                startOfBuf = i + 4
+                endOfBuf = (i + 4 + width)
+                img[line, :] = raw[startOfBuf:endOfBuf]
+                line += 1;
+                ## START MATRIX
+                # Search for the startposition
+    return img
+
 def readPartOfImage(ser, currentBuffer):
 
     readSize= ser.inWaiting()

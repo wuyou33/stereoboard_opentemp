@@ -7,27 +7,6 @@ ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 
-
-
-def fill_disparity_array(startSync, raw, width, height):
-    line=0
-    # Initialise image
-    img = np.zeros((height,width))
-    
-    # Fill the image arrays
-    for i in range(startSync + 4, startSync+(width+8)*height):
-        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-            if (raw[i + 3] == 128):
-                # print i
-                # Start Of Line
-                startOfBuf = i + 4
-                endOfBuf = (i + 4 + width)
-                img[line, :] = raw[startOfBuf:endOfBuf]
-                line += 1;
-                ## START MATRIX
-                # Search for the startposition
-    return img
-
 currentBuffer=[]
 while True:
     try:
@@ -40,13 +19,12 @@ while True:
 
             # Search the startbyte
             sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
-      #      print 'sync ' , sync1, ' ', length, ' ', lineLength, ' ', lineCount
 
             if sync1<0:    # We did not find the startbit... try again
                 continue
 
 
-            img = fill_disparity_array(sync1,oneImage, lineLength, lineCount)
+            img = stereoboard_tools.fill_disparity_array(sync1,oneImage, lineLength, lineCount)
             img =img[:,::-1]
             img /= 100
 
