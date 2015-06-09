@@ -4,9 +4,6 @@ import serial
 import matplotlib.pyplot as plt
 import stereoboard_tools
 ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
-size_of_one_image=25348
-W = 128
-H=96
 frameNumber = 0
 saveImages= False
 
@@ -18,13 +15,13 @@ def fill_disparity_array(startSync, raw, width, height):
     img = np.zeros((height,width))
     
     # Fill the image arrays
-    for i in range(startSync + 4, (size_of_one_image / 2) + startSync, 136):
+    for i in range(startSync + 4, startSync+(width+8)*height):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 128):
                 # print i
                 # Start Of Line
                 startOfBuf = i + 4
-                endOfBuf = (i + 4 + 128)
+                endOfBuf = (i + 4 + width)
                 img[line, :] = raw[startOfBuf:endOfBuf]
                 line += 1;
                 ## START MATRIX
