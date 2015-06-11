@@ -24,37 +24,39 @@ cv2.namedWindow('img', cv2.WINDOW_NORMAL)
 cv2.namedWindow('leftimg', cv2.WINDOW_NORMAL)
 cv2.namedWindow('rightimg', cv2.WINDOW_NORMAL)
 
+currentBuffer=[]
 while True:
     try:
-        # Read two times the image size... this way we surely have an image
-        raw = ser.read(size_of_one_image*2)
-        raw = bytearray(raw)
+        # Read the image
+        currentBuffer, location = stereoboard_tools.readPartOfImage(ser, currentBuffer)
+
+        if location > 0:
+            oneImage = currentBuffer[0:location]
+            currentBuffer=currentBuffer[location::]
+
+            # Search the startbyte
+            sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
+
+            if sync1<0:    # We did not find the startbit... try again
+                continue
 
 
-        # Search for the startposition
-        sync, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(raw)
-        print 'sync ' , sync, ' ', length, ' ', lineLength, ' ', lineCount
+            # Fill the image arrays
+            img, leftImage, rightImage = stereoboard_tools.fill_image_arrays(
+                oneImage, sync1,size_of_one_image, W, H, DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT,DISPARITY_BORDER)
 
-        print 'sync is now: ', sync, ' length buffer; ', len(raw)
-        if sync==0: # We did not find the startbit... try again
-            continue
+            # Go from values between 0-255 to intensities between 0.0-1.0
+            img /= 255
+            leftImage /= 255
+            rightImage /= 255
+            # Show the images
+            cv2.imshow('img',img)
+            cv2.imshow('leftimg',leftImage)
+            cv2.imshow('rightimg',rightImage)
+            key=cv2.waitKey(1)
 
-        # Fill the image arrays
-        img, leftImage, rightImage = stereoboard_tools.fill_image_arrays(
-            raw, sync,size_of_one_image, W, H, DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT,DISPARITY_BORDER)
-
-        # Go from values between 0-255 to intensities between 0.0-1.0
-        img /= 255
-        leftImage /= 255
-        rightImage /= 255
-        # Show the images
-        cv2.imshow('img',img)
-        cv2.imshow('leftimg',leftImage)
-        cv2.imshow('rightimg',rightImage)
-        key=cv2.waitKey(1)
-
-        if saveImages:
-            stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')
-            frameNumber+=1
+            if saveImages:
+                stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')
+                frameNumber+=1
     except:
         print 'error!'

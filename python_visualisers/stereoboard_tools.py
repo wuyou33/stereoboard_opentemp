@@ -1,8 +1,21 @@
 import numpy as np
 import sys
 import linecache
-import serial
+import matplotlib.pyplot as plt
+import matplotlib.colors as matcol
+import Tkinter as tk
+import thread
+from time import sleep
+from matplotlib.widgets import Button
 
+from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, \
+     AnnotationBbox
+from matplotlib._png import read_png
+from matplotlib.cbook import get_sample_data
+SONAR_DISTANCES={0:15,1:10,2:9,3:8,4:7,5:2,6:1.8,7:1.7,8:1.4,9:1.2,10:1.0,11:0.8,12:0.5,13:0.3,14:0.2,15:0.1,16:0,17:0,18:0,19:0,20:0,21:0,22:0}
+AVERAGE_DATA=False
+startedThreadDrawDrone=False
+drawDroneOverSonar = False
 def PrintException():
     exc_type, exc_obj, tb = sys.exc_info()
     f = tb.tb_frame
@@ -12,6 +25,80 @@ def PrintException():
     line = linecache.getline(filename, lineno, f.f_globals)
     print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
 
+def callback():
+    print 'pressed button'
+
+
+drawDroneOverSonar=False
+def changeDrawDrone():
+    global drawDroneOverSonar
+    drawDroneOverSonar = ~drawDroneOverSonar
+def threadmain():
+    t = tk.Tk()
+    b = tk.Button(text='test', command=changeDrawDrone)
+    b.grid(row=0)
+    t.mainloop()
+
+
+def draw_sonar_visualisation(matrix,height):
+    global  startedThreadDrawDrone
+    if not startedThreadDrawDrone:
+        thread.start_new_thread(threadmain, ())
+        startedThreadDrawDrone=True
+    try:
+        plt.ion()
+        r = matrix[1,:]
+        r = (map(abs, map(int, r)))
+        theta = np.arange(0,2*np.pi,(2*np.pi)/len(r))
+
+        ax = plt.subplot(111,polar=True)
+        ax.clear()
+        colors=[]
+
+        for element in matcol.cnames:
+            colors.append(element)
+
+        colors = colors[30::]
+        if AVERAGE_DATA:
+            toPlotSum = np.array(matrix[0])
+            for i in range(1, height):
+                toPlotSum += np.array(matrix[i])
+            toPlotSum/=height
+            toPlotSum = map(int, toPlotSum)
+            distances=[]
+            for element in toPlotSum:
+                distances.append(SONAR_DISTANCES[element])
+            colors = colors[30::]
+
+            theta = np.append(theta,theta[0])
+            distances = np.append(distances,distances[0])
+            ax.plot(theta, distances, color=colors[0],linewidth=5)
+        else:
+            for i in range(0, height):
+                r = matrix[i, :]
+                r = (map(abs, map(int, r)))
+                ax.plot(theta, r, color=colors[i%len(colors)], linewidth=3)
+        ax.set_rmax(20.0)
+        ax.grid(True)
+
+        if drawDroneOverSonar:
+            print 'drawing drone'
+            arr_lena = read_png("ardrone2.png")
+            xy = [0.3, 0.55]
+            imagebox = OffsetImage(arr_lena, zoom=0.2)
+
+            ab = AnnotationBbox(imagebox, xy,
+                                xybox=(1.1,1.1),
+                                xycoords='data',
+                                boxcoords="offset points")
+            ax.add_artist(ab)
+
+        plt.draw()
+    except Exception as ex:
+        PrintException()
+
+#matrix=np.array([[0, 1, 2], [3, 4, 5]])
+#draw_sonar_visualisation(matrix,2)
 
 
 def fill_image_array(startSync, raw, width, height):

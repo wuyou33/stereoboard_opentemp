@@ -74,13 +74,13 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	// Average by dividing by the amount of pixels per bin
 	int bufferIndex;
 	int anyOn=0;
+
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
 		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / (widthPerBin*heightPerBin);
-		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY)
+		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY && bufferIndex <MATRIX_WIDTH_BINS*4)
 		{
 			anyOn=1;
-			//led_set();
 		}
 	}
 	if(anyOn==1){
