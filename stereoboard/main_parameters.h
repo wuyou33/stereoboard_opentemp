@@ -51,5 +51,17 @@
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #endif
 
+#ifndef DISPARITY_OFFSET_RIGHT
+#define DISPARITY_OFFSET_RIGHT  0
+#endif
+
+#ifndef DISPARITY_OFFSET_LEFT
+#define DISPARITY_OFFSET_LEFT  0
+#endif
+
+#ifndef DISPARITY_BORDER
+#define DISPARITY_BORDER  0
+#endif
+
 
 #endif /* MAIN_PARAMETERS_H_ */
