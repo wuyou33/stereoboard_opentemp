@@ -123,8 +123,12 @@ usart.c \
 usart.h \
 dcmi.c \
 dcmi.h \
+sccb.h \
+sccb.c \
 tcm8230.c \
 tcm8230.h \
+ov7670.h \
+ov7670.c \
 jpeg.c \
 jpeg.h \
 cpld.c \
