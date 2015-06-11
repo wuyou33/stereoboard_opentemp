@@ -52,13 +52,13 @@ void camera_ov7670_config(void);
 #define OV7670_VFLIP                    0x1E   // Veritcal Flip
 
 // Camera Settings (z means zoom)
-#define IMG_SIZE_VGA_YUV    (0<<0)
-#define IMG_SIZE_VGA_RGB    (4<<0)
-#define IMG_SIZE_VGA_BAYRAW    (1<<0)
-#define IMG_SIZE_VGA_BAYRAWPROC    (5<<0)
-#define IMG_SIZE_CIF    (1<<5)
-#define IMG_SIZE_QVGA   (1<<4)
-#define IMG_SIZE_QCIF   (1<<3)
+#define IMG_OV_SIZE_VGA_YUV             (0<<0)
+#define IMG_OV_SIZE_VGA_RGB             (4<<0)
+#define IMG_OV_SIZE_VGA_BAYRAW          (1<<0)
+#define IMG_OV_SIZE_VGA_BAYRAWPROC      (5<<0)
+#define IMG_OV_SIZE_CIF                 (1<<5)
+#define IMG_OV_SIZE_QVGA                (1<<4)
+#define IMG_OV_SIZE_QCIF                (1<<3)
 
 //#define IMG_FORMAT_YUV422 (0<<1)
 //#define IMG_FORMAT_RGB565 (1<<1)
