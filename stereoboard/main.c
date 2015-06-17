@@ -14,6 +14,7 @@
 #include "cpld.h"
 #include "usart.h"
 #include "tcm8230.h"
+#include "ov7670.h"
 #include "hmc5883.h"
 #include "stm32f4xx_conf.h"
 #include "jpeg.h"
@@ -133,6 +134,7 @@ int main(void)
   // Initialize all camera GPIO and I2C pins
   camera_dcmi_bus_init();
   camera_tcm8230_i2c_init();
+  //camera_ov7670_i2c_init();
   // Start listening to DCMI frames
   camera_dcmi_init();
   // Start DCMI interrupts (interrupts on frame ready)
@@ -159,6 +161,7 @@ int main(void)
   uint32_t image_height = IMAGE_HEIGHT;
   uint32_t start, stop;
 
+  //camera_ov7670_read();
   /***********
    * MAIN LOOP
    ***********/
