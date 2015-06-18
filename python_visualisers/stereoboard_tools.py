@@ -130,11 +130,22 @@ def readPartOfImage(ser, currentBuffer):
 
     for byte in raw:
         currentBuffer.append(int(byte))
-    for i in range(0,len(currentBuffer)-3):
-        if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
-            if (currentBuffer[i + 3] == 171):# End of Image
-                return currentBuffer, i+4
-    return currentBuffer, -1
+    startPosition=None
+    lastResult=(-1,-1)
+
+    try:
+        for i in range(0,len(currentBuffer)-5):
+            if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
+                # if (currentBuffer[i + 3] == 171):# End of Image
+                #     return currentBuffer, i+4
+                #print 'i: ', i, ' len currentBuffer: ', len(currentBuffer)
+                if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
+                    lastResult=(startPosition,i+4)
+                if currentBuffer[i + 3] == 175:# Start of image
+                    startPosition = i
+    except Exception as e:
+        PrintException()
+    return currentBuffer, lastResult
 
 ## Determines the start, length of one image, and the length of one line and the width and height
 def determine_image_and_line_length(raw):

@@ -2,7 +2,7 @@ import cv2
 import serial
 import stereoboard_tools
 import numpy as np
-ser = serial.Serial('/dev/ttyUSB1',1000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 currentBuffer=[]
@@ -13,10 +13,11 @@ while True:
     try:
         # Read the image
         currentBuffer, location = stereoboard_tools.readPartOfImage(ser, currentBuffer)
-
-        if location > 0:
-            oneImage = currentBuffer[0:location]
-            currentBuffer=currentBuffer[location::]
+        startPosition=location[0]
+        endPosition=location[1]
+        if location[0] > 0:
+            oneImage = currentBuffer[startPosition:endPosition]
+            currentBuffer=currentBuffer[endPosition::]
 
             # Search the startbyte
             sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
