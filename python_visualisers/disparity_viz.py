@@ -3,7 +3,7 @@ import serial
 import stereoboard_tools
 import Tkinter as tk
 import numpy as np
-ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB1',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 currentBuffer=[]
@@ -32,9 +32,13 @@ while True:
          #   stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
 
 
-          #  img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
+           # img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
+            img2=np.zeros((lineCount,lineLength,3))
 
-            cv2.imshow('img',img)
+            img2[:,:,0]=1-img
+            img2[:,:,2]=img
+            img2[img==0,:]=[0,0,0]
+            cv2.imshow('img',img2)
 
 
             key=cv2.waitKey(100)
