@@ -130,10 +130,12 @@ def readPartOfImage(ser, currentBuffer):
 
     for byte in raw:
         currentBuffer.append(int(byte))
-    for i in xrange(len(currentBuffer)-2*readSize,len(currentBuffer)-5):
-       # print currentBuffer[i]
+    for i in range(0,len(currentBuffer)-3):
+
+        #print "at point ", i, " : " , currentBuffer[i]
         if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
             if (currentBuffer[i + 3] == 171):# End of Image
+                print 'end: ', i
                 return currentBuffer, i+4
     return currentBuffer, -1
 
