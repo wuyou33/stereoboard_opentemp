@@ -139,7 +139,7 @@ com:
 BMP_PORT ?= /dev/ttyACM0
 
 singlecamera:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg${CAMNUMBER} #SOMETHING=-DSEND_COMMANDS=1 
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg${CAMNUMBER} 
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}${CAMNUMBER}.elf
 
 uploadsinglecamera: ${CAMERA}${CAMNUMBER}.elf
