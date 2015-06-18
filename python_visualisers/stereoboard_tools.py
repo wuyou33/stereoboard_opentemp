@@ -131,11 +131,8 @@ def readPartOfImage(ser, currentBuffer):
     for byte in raw:
         currentBuffer.append(int(byte))
     for i in range(0,len(currentBuffer)-3):
-
-        #print "at point ", i, " : " , currentBuffer[i]
         if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
             if (currentBuffer[i + 3] == 171):# End of Image
-                print 'end: ', i
                 return currentBuffer, i+4
     return currentBuffer, -1
 
@@ -171,7 +168,6 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
         img = np.zeros((heigth+max(abs(disparity_offset_left),abs(disparity_offset_right))*3,width*2))
         leftImage=np.zeros((heigth,width))
         rightImage=np.zeros((heigth,width))
-
 
         for i in range(startposition,size_of_one_image+startposition):
             if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
@@ -209,3 +205,11 @@ def saveImages(img,leftImage,rightImage,frameNumber,folderName):
     scipy.misc.imsave(fileNameBoth, img)
     scipy.misc.imsave(fileNameLeft, leftImage)
     scipy.misc.imsave(fileNameRight, rightImage)
+
+
+def createRedBlueImage(img, lineCount, lineLength):
+    img2=np.zeros((lineCount,lineLength,3))
+    img2[:,:,0]=1-img
+    img2[:,:,2]=img
+    img2[img==0,:]=[0,0,0]
+    return img2
