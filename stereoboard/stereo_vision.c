@@ -68,7 +68,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 	    {
 
 			// calculate image gradient of left image by subtracting with one pixel offset
-			arm_sub_q15(&block_left[idx_SAD * image_width_bytes], &block_left[(idx_SAD * image_width_bytes) + 1], line_gradient, image_width-1);
+			arm_sub_q15(&block_left[idx_SAD * image_width], &block_left[(idx_SAD * image_width) + 1], line_gradient, image_width-1);
 
 			// make image gradients absolute such that we can look for maximum values in the next step
 			arm_abs_q15(line_gradient, line_gradient, image_width-1);
