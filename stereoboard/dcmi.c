@@ -46,6 +46,7 @@ void camera_clock_init(void)
 {
   //////////////////////////////////////////
   // Make a clock signal on PA7
+  // 21MHz: ABP1 42MHz 50% Duty Cycle counter to 2
 
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
   TIM_OCInitTypeDef  TIM_OCInitStructure;
@@ -116,6 +117,10 @@ void camera_dcmi_bus_init(void)
   GPIO_PinAFConfig(GPIOC, GPIO_PinSource8, GPIO_AF_DCMI); //DCMI_D2
   GPIO_PinAFConfig(GPIOC, GPIO_PinSource9, GPIO_AF_DCMI); //DCMI_D3
   GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_DCMI); //DCMI_D4
+#ifdef DCMI_TEN_BITS
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource12, GPIO_AF_DCMI); //DCMI_D9
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_DCMI); //DCMI_D8
+#endif
 
   // Setup Electrical Pin characteristics: GPIO configuration
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_6;
@@ -128,7 +133,11 @@ void camera_dcmi_bus_init(void)
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9;
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_11;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_12
+#ifdef DCMI_TEN_BITS
+      | GPIO_Pin_10 | GPIO_Pin_12
+#endif
+      ;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 
@@ -169,7 +178,11 @@ void camera_dcmi_init(void)
   DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_Low;
   DCMI_InitStructure.DCMI_HSPolarity = DCMI_HSPolarity_Low;
   DCMI_InitStructure.DCMI_CaptureRate = DCMI_CaptureRate_All_Frame;
+#ifdef DCMI_TEN_BITS
+  DCMI_InitStructure.DCMI_ExtendedDataMode = DCMI_ExtendedDataMode_10b;
+#else
   DCMI_InitStructure.DCMI_ExtendedDataMode = DCMI_ExtendedDataMode_8b;
+#endif
 
   // Configures the DMA2 to transfer Data from DCMI
   // Enable DMA2 clock
@@ -182,7 +195,7 @@ void camera_dcmi_init(void)
   DMA_InitStructure.DMA_PeripheralBaseAddr = DCMI_DR_ADDRESS;
   DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) dcmi_image_buffer_8bit_1;
   DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-  DMA_InitStructure.DMA_BufferSize = FULL_IMAGE_SIZE / 4; // buffer size in date unit (word)
+  DMA_InitStructure.DMA_BufferSize = FULL_IMAGE_SIZE / 4; // buffer size in data unit (word)
   DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
   DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
   DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;

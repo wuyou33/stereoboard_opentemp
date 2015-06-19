@@ -31,8 +31,10 @@ void camera_cpld_stereo_init(void)
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
+#ifndef DCMI_TEN_BITS
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_12;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
+#endif
 
   // Select Desired Default Camera
   CAMERA_CPLD_STEREO();
@@ -41,36 +43,46 @@ void camera_cpld_stereo_init(void)
 // Set Stereo Mode
 void camera_cpld_stereo_left(void)
 {
+#ifndef DCMI_TEN_BITS
   GPIO_ResetBits(GPIOC, GPIO_Pin_10);
   GPIO_ResetBits(GPIOC, GPIO_Pin_12);
+#endif
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
 
 void camera_cpld_stereo_right(void)
 {
+#ifndef DCMI_TEN_BITS
   GPIO_SetBits(GPIOC, GPIO_Pin_10);
   GPIO_ResetBits(GPIOC, GPIO_Pin_12);
+#endif
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
 
 void camera_cpld_stereo_pixmux(void)
 {
+#ifndef DCMI_TEN_BITS
   GPIO_ResetBits(GPIOC, GPIO_Pin_10);
   GPIO_SetBits(GPIOC, GPIO_Pin_12);
+#endif
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
 
 void camera_cpld_stereo_linemux(void)
 {
+#ifndef DCMI_TEN_BITS
   GPIO_ResetBits(GPIOC, GPIO_Pin_10);
   GPIO_ResetBits(GPIOC, GPIO_Pin_12);
+#endif
   GPIO_SetBits(GPIOB, GPIO_Pin_5);
 }
 
 void camera_cpld_stereo_framemux(void)
 {
+#ifndef DCMI_TEN_BITS
   GPIO_SetBits(GPIOC, GPIO_Pin_10);
   GPIO_SetBits(GPIOC, GPIO_Pin_12);
+#endif
   GPIO_SetBits(GPIOB, GPIO_Pin_5);
 }
 

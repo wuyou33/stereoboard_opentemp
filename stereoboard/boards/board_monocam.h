@@ -7,3 +7,6 @@
 #define SEND_MATRIX 0
 #define SEND_DISPARITY_MAP 0
 #define SEND_IMAGE 1
+
+
+#define DCMI_TEN_BITS 1
