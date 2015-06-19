@@ -24,10 +24,10 @@
 #endif
 
 #ifndef SEND_DISPARITY_MAP
-	#define SEND_DISPARITY_MAP 0 // 0
+	#define SEND_DISPARITY_MAP 1 // 0
 #endif
 #ifndef SEND_MATRIX
-	#define SEND_MATRIX 1
+	#define SEND_MATRIX 0
 #endif
 
 #define SMOOTH_DISPARITY_MAP 0 // 0

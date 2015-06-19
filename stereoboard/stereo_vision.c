@@ -4,6 +4,116 @@
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
+/**
+ * Function takes input and calculates disparity using a block
+ * @author Sjoerd + Roland
+ */
+void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
+                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
+{
+  uint32_t image_width_bytes = image_width * 2; 					// number of bytes of 2 interlaced image lines
+  // TODO check if disparity_min is still required
+  uint32_t disparity_max = disparity_range - 1 + disparity_min;		// calculate maximum diisparity value based on minimum and range
+
+  int vertical_block_size = 5; // vertical size of SAD-window
+  int horizontal_block_size = 5; // horizontal size of SAD-window
+  int GRADIENT_THRESHOLD = 5; // defines if image gradient indicates sufficient texture
+  int PKRN_THRESHOLD = 120; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
+
+  int half_vertical_block_size = (vertical_block_size - 1)/2;
+  int half_horizontal_block_size = (horizontal_block_size - 1)/2;
+
+
+  int idx0 = 0; // line starting point index
+  int idx_SAD = -100; // SAD block index
+  int idx_line = 100; // SAD block index
+  int l = 0; // line index
+  int i = 0; // iterator
+  int d = 0; // iterator
+  int h = 0; // iterator
+  int v = 0; // iterator
+
+
+  q15_t block_left[image_width*vertical_block_size]; // block that stores multiple image lines to handle SAD windows
+  q15_t block_right[image_width*vertical_block_size]; // same
+  q15_t line_gradient[image_width-1]; // horizontal image gradients for a single line
+  q15_t cost[disparity_range]; // array to store pixel matching costs
+  q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
+  q15_t c1;
+  q15_t c2;
+  uint32_t c1_i;
+  uint32_t c2_i;
+
+  // check that disparity search stays within the bounds of the input image
+	int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
+	max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
+
+	for (l = min_y; l < max_y; l++)
+	{
+		idx0 = l * image_width_bytes;
+
+		// update index term to store this line at the right location in the left and right blocks
+		idx_line++;
+		if ( idx_line >= vertical_block_size )
+			idx_line = 0;
+
+		idx_SAD++;
+		if ( idx_SAD == half_vertical_block_size )
+			idx_SAD = 0;
+
+		// de-interlace image lines and put them at right place in the image blocks
+	    separate_image_line_offset_block(&in[idx0], block_left, block_right, image_width_bytes, idx_line);
+
+	    if ( idx_SAD > -1 )
+	    {
+
+			// calculate image gradient of left image by subtracting with one pixel offset
+			arm_sub_q15(&block_left[idx_SAD * image_width_bytes], &block_left[(idx_SAD * image_width_bytes) + 1], line_gradient, image_width-1);
+
+			// make image gradients absolute such that we can look for maximum values in the next step
+			arm_abs_q15(line_gradient, line_gradient, image_width-1);
+
+			for ( i = half_horizontal_block_size; i < image_width - half_horizontal_block_size - disparity_max - 2; i++ )
+			{
+				// check if image gradient has a local maximum AND value of image gradient exceeds threshold.
+				if ( line_gradient[i] > line_gradient[i-1] && line_gradient[i] > line_gradient[i+1] && line_gradient[i] > GRADIENT_THRESHOLD )
+				{
+					// set sum vector back to zero for new window
+					arm_fill_q15(0, sum_cost, disparity_range);
+
+					// perform SAD calculations
+					for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++)
+					{
+						for (v = 0; v < vertical_block_size; v++)
+						{
+							// compute difference between pixel from left image with (disparity) range of pixels from right image
+							arm_offset_q15( &block_right[h + (v*image_width)], block_left[h + (v*image_width)], cost, disparity_range  );
+							// obtain absolute difference
+							arm_abs_q15(cost, cost, disparity_range);
+							// sum results of this pixel with other pixels in this window
+							arm_add_q15(cost, sum_cost, sum_cost, disparity_range );
+
+						}
+					}
+
+					// find minimum cost
+					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
+					// put minimum cost much higher to find second minimum
+					sum_cost[c1_i] = 16384;
+					// find second minimum cost
+					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
+
+					if ( (c2*100)/c1 > PKRN_THRESHOLD )
+						out[(image_width*(l-half_vertical_block_size)) + i] = c1_i;
+
+
+				}
+			}
+	    }
+	}
+}
+
+
 /* stereo_vision:
  * takes input image in, which contains both the left and the right image
  * generates disparity image out
@@ -15,6 +125,8 @@
  * thr1: threshold for 1st check (4)
  * thr2: threshold for 2nd check (5)
  * */
+
+
 
 void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
                         uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
@@ -623,6 +735,29 @@ void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_
 		  line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
 		  // We add one because images are interlaced
 		  line2[j] = (q15_t) in[i + 1];
+    }
+  }
+}
+
+void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *block_right, uint32_t image_width_bytes, uint8_t idx)
+{
+  uint32_t i, j;
+  int8_t offset = DISPARITY_OFFSET_LEFT;
+  for (i = 0; i < image_width_bytes; i += 2) {
+	  j = i >> 1;
+	  if (i >= DISPARITY_BORDER)
+	  {
+		  offset = DISPARITY_OFFSET_RIGHT;
+	  }
+	  if (offset >= 0) {
+		  block_left[j + (image_width_bytes * idx)] = (q15_t) in[i];
+		  // We add one because images are interlaced
+		  block_right[j + (image_width_bytes * idx)] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
+	  }
+	  else if (offset < 0) {
+		  block_left[j + (image_width_bytes * idx)] = (q15_t) in[i - (image_width_bytes * offset)];
+		  // We add one because images are interlaced
+		  block_right[j + (image_width_bytes * idx)] = (q15_t) in[i + 1];
     }
   }
 }

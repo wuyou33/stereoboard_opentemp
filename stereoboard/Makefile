@@ -92,10 +92,12 @@ ${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
 ${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_copy_q31.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q31.c \
 ${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c
+
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 
