@@ -39,7 +39,7 @@ while True:
             cv2.imshow('img',img)
 
 
-            key=cv2.waitKey(100)
+            key=cv2.waitKey(1)
 
             if saveImages:
                 import scipy
