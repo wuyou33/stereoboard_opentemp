@@ -12,7 +12,7 @@
 #include "main_parameters.h"
 
 #define TXBUFFERSIZE    (64*64) // 4 KByte
-#define RXBUFFERSIZE    (64*64)
+#define RXBUFFERSIZE    (4*64)
 
 
 #define USART_SUCCESS   1
@@ -35,7 +35,7 @@ struct UartDataStruct {
   uint8_t usart_rx_buffer[RXBUFFERSIZE];
 };
 
-#define USE_USART1  // StereoBoard bottom / multigaze cam1
+//#define USE_USART1  // StereoBoard bottom / multigaze cam1
 //#define USE_USART1B  // Multigaze PC
 //#define USE_USART1MUX
 //#define USE_USART2

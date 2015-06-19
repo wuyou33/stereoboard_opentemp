@@ -13,12 +13,24 @@
 #include "usart.h"
 
 
+#if (defined(USE_USART1) || defined(USE_USART1B) || defined(USE_USART1MUX))
 struct UartDataStruct USART1_Data = {USART1, 0, 0, 0, 0};
+#endif
+#ifdef USE_USART2
 struct UartDataStruct USART2_Data = {USART2, 0, 0, 0, 0};
+#endif
+#ifdef USE_USART3
 struct UartDataStruct USART3_Data = {USART3, 0, 0, 0, 0};
+#endif
+#if defined(USE_USART4) || defined(USE_USART4B)
 struct UartDataStruct USART4_Data = {UART4, 0, 0, 0, 0};
+#endif
+#ifdef USE_USART5
 struct UartDataStruct USART5_Data = {UART5, 0, 0, 0, 0};
+#endif
+#ifdef USE_USART6
 struct UartDataStruct USART6_Data = {USART6, 0, 0, 0, 0};
+#endif
 
 #ifndef USART1_BAUD
 #define USART1_BAUD 9600
