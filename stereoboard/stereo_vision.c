@@ -62,11 +62,11 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 			idx_SAD = 0;
 
 		// de-interlace image lines and put them at right place in the image blocks
-	    separate_image_line_offset_block(&in[idx0], block_left, block_right, image_width_bytes, idx_line);
+	    separate_image_line_offset_block(&in[idx0], block_left, block_right, image_width_bytes, idx_line, image_width);
 
 	    if ( idx_SAD > -1 )
 	    {
-
+/*
 			// calculate image gradient of left image by subtracting with one pixel offset
 			arm_sub_q15(&block_left[idx_SAD * image_width], &block_left[(idx_SAD * image_width) + 1], line_gradient, image_width-1);
 
@@ -108,7 +108,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 
 
 				}
-			}
+			}*/
 	    }
 	}
 }
@@ -739,7 +739,7 @@ void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_
   }
 }
 
-void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *block_right, uint32_t image_width_bytes, uint8_t idx)
+void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *block_right, uint32_t image_width_bytes, uint8_t idx, uint32_t image_width)
 {
   uint32_t i, j;
   int8_t offset = DISPARITY_OFFSET_LEFT;
@@ -750,14 +750,14 @@ void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *blo
 		  offset = DISPARITY_OFFSET_RIGHT;
 	  }
 	  if (offset >= 0) {
-		  block_left[j + (image_width_bytes * idx)] = (q15_t) in[i];
+		  block_left[j + (image_width * idx)] = (q15_t) in[i];
 		  // We add one because images are interlaced
-		  block_right[j + (image_width_bytes * idx)] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
+		  block_right[j + (image_width * idx)] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
 	  }
 	  else if (offset < 0) {
-		  block_left[j + (image_width_bytes * idx)] = (q15_t) in[i - (image_width_bytes * offset)];
+		  block_left[j + (image_width * idx)] = (q15_t) in[i - (image_width_bytes * offset)];
 		  // We add one because images are interlaced
-		  block_right[j + (image_width_bytes * idx)] = (q15_t) in[i + 1];
+		  block_right[j + (image_width * idx)] = (q15_t) in[i + 1];
     }
   }
 }

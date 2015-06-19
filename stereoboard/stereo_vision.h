@@ -22,7 +22,7 @@ uint32_t evaluate_disparities_control2(uint8_t *in, uint32_t image_width, uint32
 
 void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes);
 
-void separate_image_line_offset_block(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes, uint8_t idx);
+void separate_image_line_offset_block(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes, uint8_t idx, uint32_t image_width);
 
 uint32_t evaluate_disparities(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t disparity_threshold,
                               uint32_t disparities_high);
