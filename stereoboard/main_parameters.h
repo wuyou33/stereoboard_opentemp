@@ -73,7 +73,9 @@
 #ifndef UsartTx
 	#define USE_USART4
 	#define UsartTx Usart4Tx
-	#define USART4_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
+  #ifndef USART4_BAUD
+	  #define USART4_BAUD 1000000
+  #endif
 #endif
 
 //////////////////////////////////////////////////////
