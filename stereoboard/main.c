@@ -242,6 +242,7 @@ int main(void)
 
 // Now send the data that we want to send
 #if SEND_IMAGE
+	  led_toggle();
     SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 #if SEND_DISPARITY_MAP
