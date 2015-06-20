@@ -5,5 +5,6 @@
 
 #define USART4_BAUD 1000000
 
+#define SEND_IMAGE 1
 
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_linemux
