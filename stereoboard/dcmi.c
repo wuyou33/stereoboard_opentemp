@@ -146,8 +146,7 @@ void camera_dcmi_bus_init(void)
 #define DCMI_DR_ADDRESS       0x50050028
 
 uint8_t dcmi_image_buffer_8bit_1[FULL_IMAGE_SIZE];
-#ifdef SMALL_IMAGE
-// 128 x 96 images: comment out for larger images:
+#ifdef DCMI_DOUBLE_BUFFER
 uint8_t dcmi_image_buffer_8bit_2[FULL_IMAGE_SIZE];
 #endif
 
@@ -210,7 +209,7 @@ void camera_dcmi_init(void)
   DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
   DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 
-#ifdef SMALL_IMAGE
+#ifdef DCMI_DOUBLE_BUFFER
   // 128 x 96, double buffer mode possible: for larger images comment out:
   DMA_DoubleBufferModeConfig(DMA2_Stream1, (uint32_t) dcmi_image_buffer_8bit_2, DMA_Memory_0);
   DMA_DoubleBufferModeCmd(DMA2_Stream1, ENABLE);
@@ -327,7 +326,7 @@ void dma2_stream1_isr(void)
   }
 
   // Get the currently used buffer
-#ifdef SMALL_IMAGE
+#ifdef DCMI_DOUBLE_BUFFER
   // 128 x 96: comment out for larger images:
   if (DMA_GetCurrentMemoryTarget(DMA2_Stream1) == DMA_Memory_0) {
     current_image_buffer = dcmi_image_buffer_8bit_2;
@@ -335,12 +334,7 @@ void dma2_stream1_isr(void)
     current_image_buffer = dcmi_image_buffer_8bit_1;
   }
 #else
-#ifdef LARGE_IMAGE
   current_image_buffer = dcmi_image_buffer_8bit_1;
-#else
-  // 176 x 144
-  //current_image_buffer = dcmi_image_buffer_8bit_1;
-#endif
 #endif
 
 }

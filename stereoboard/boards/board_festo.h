@@ -1,7 +1,7 @@
 #define USE_HMC
 #define SHOW_HMC
 
-#define USE_RGB
+#define USE_RGB565
 
 #define USART4_BAUD 1000000
 

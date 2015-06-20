@@ -61,10 +61,13 @@
 #endif
 
 //////////////////////////////////////////////////////
-// Define at least 1 image format: default: SMALL
-#if !(defined(SMALL_IMAGE) || defined(MEDIUM_IMAGE) || defined(LARGE_IMAGE))
-#define SMALL_IMAGE
+// Define image format
+#if !(defined(IMAGE_WIDTH) || defined(IMAGE_HEIGHT))
+#define IMAGE_WIDTH 128
+#define IMAGE_HEIGHT 96
 #endif
+
+#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*2)
 
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart

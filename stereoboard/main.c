@@ -200,7 +200,7 @@ int main(void)
     camera_snapshot();
 #endif
 
-#ifdef LARGE_IMAGE
+#ifdef CROPPING
     offset_crop += 80;
     if (offset_crop == 480) {
       offset_crop = 0;

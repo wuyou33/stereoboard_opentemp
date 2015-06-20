@@ -45,7 +45,7 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
   while (UsartTx(code, 4) == 0)
     ;
 
-#ifdef LARGE_IMAGE
+#ifdef CROPPING
 
   if (offset_crop == 0) {
     code[3] = 0xAC;
