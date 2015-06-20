@@ -44,7 +44,7 @@ void camera_ov7670_config(void)
   SCCB_WriteReg(OV7670_ADDR, OV7670_COMMON_CTRL7, 0x80);
   Delay(0x07FFFF);
 
-  SCCB_WriteReg(OV7670_ADDR, REG_CLKRC, 0x81);
+  SCCB_WriteReg(OV7670_ADDR, REG_CLKRC, 0x84);
   // SCCB_WriteReg(OV7670_ADDR, REG_COM11, 0x0A); // Night Mode
   //SCCB_WriteReg(OV7670_ADDR, REG_TSLB, 0x04);  // UYVY YUYV ...
   //SCCB_WriteReg(OV7670_ADDR, REG_TSLB, 0x04);
@@ -62,9 +62,9 @@ void camera_ov7670_config(void)
   //SCCB_WriteReg(OV7670_ADDR, REG_VSTART, 0x02);
   //SCCB_WriteReg(OV7670_ADDR, REG_VSTOP, 0x7a);
   //SCCB_WriteReg(OV7670_ADDR, REG_VREF, 0x0a);
-  //SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);  // VSYNC NEGATIVE?
-  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x20);  // NO PCLK outside HREF
-  SCCB_WriteReg(OV7670_ADDR, REG_COM3, 0x04);     // Scale enable
+//  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);  // VSYNC NEGATIVE?
+//  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x20);  // NO PCLK outside HREF
+//  SCCB_WriteReg(OV7670_ADDR, REG_COM3, 0x04);     // Scale enable
 //  SCCB_WriteReg(OV7670_ADDR, REG_COM14, 0x1a); // divide by 4
       //SCCB_WriteReg(OV7670_ADDR, REG_COM14, 0x1b); // divide by 8
   // SCCB_WriteReg(OV7670_ADDR, REG_MVFP, 0x27); //Vflip?
