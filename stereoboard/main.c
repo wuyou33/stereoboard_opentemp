@@ -159,11 +159,9 @@ int main(void)
   uint32_t image_height = IMAGE_HEIGHT;
   uint32_t start, stop;
 
-  //camera_ov7670_read();
   /***********
    * MAIN LOOP
    ***********/
-  //camera_snapshot();
 
   volatile int processed = 0;
 
@@ -212,10 +210,6 @@ int main(void)
       ;
     processed = frame_counter;
     //led_toggle();
-
-
-    current_image_buffer[0] = 0;
-    current_image_buffer[1] = 0;
 
 
 // Calculate the disparity map, only when we need it
