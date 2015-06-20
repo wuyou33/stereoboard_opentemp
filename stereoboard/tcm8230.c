@@ -116,20 +116,24 @@ uint8_t tcm8230_ReadReg(uint8_t Addr, uint8_t *reply);
 void camera_tcm8230_config(void)
 {
 #ifdef USE_RGB565
-#warning USING_RGB
+#warning USING_RGB565
 #define IMG_FORMAT IMG_FORMAT_RGB565
 #else
 #define IMG_FORMAT IMG_FORMAT_YUV422
 #endif
 
 #if (IMAGE_WIDTH==128) && (IMAGE_HEIGHT==96)
-#define IMAGE_SIZE IMG_SIZE_subQCIF
+  #define IMAGE_SIZE IMG_SIZE_subQCIF
 #elif (IMAGE_WIDTH==176) && (IMAGE_HEIGHT==144)
-#define IMAGE_SIZE IMG_SIZE_QCIF
+  #define IMAGE_SIZE IMG_SIZE_QCIF
 #elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==180)
-#define IMAGE_SIZE IMG_SIZE_VGA
+  #define IMAGE_SIZE IMG_SIZE_VGA
 #else
-#error "TCM8230 camera chip does not support this resolution"
+  #ifdef USE_TCM8230
+    #error "TCM8230 camera chip does not support this resolution"
+  #else
+    #define IMAGE_SIZE 0
+  #endif
 #endif
 
   tcm8230_WriteReg(TCM_FPS, TCM_FPS_FAST);

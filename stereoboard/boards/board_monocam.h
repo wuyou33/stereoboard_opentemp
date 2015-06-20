@@ -13,3 +13,5 @@
 
 #define IMAGE_WIDTH 160
 #define IMAGE_HEIGHT 120
+
+#define USE_OV7670

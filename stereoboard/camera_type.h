@@ -10,7 +10,7 @@
 
 
 
-#ifdef OV7670
+#ifdef USE_OV7670
 #include "ov7670.h"
 #warning OV7670
 
@@ -25,6 +25,7 @@ inline void camera_chip_config()
 }
 
 #else
+#define USE_TCM8230
 #warning TCM8230
 #include "tcm8230.h"
 
