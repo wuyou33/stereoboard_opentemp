@@ -13,8 +13,7 @@
 #include "dcmi.h"
 #include "cpld.h"
 #include "usart.h"
-#include "tcm8230.h"
-#include "ov7670.h"
+#include "camera_type.h"
 #include "hmc5883.h"
 #include "stm32f4xx_conf.h"
 #include "jpeg.h"
@@ -133,8 +132,7 @@ int main(void)
   camera_unreset();
   // Initialize all camera GPIO and I2C pins
   camera_dcmi_bus_init();
-  camera_tcm8230_i2c_init();
-  //camera_ov7670_i2c_init();
+  camera_control_bus_init();
   // Start listening to DCMI frames
   camera_dcmi_init();
   // Start DCMI interrupts (interrupts on frame ready)
@@ -147,7 +145,7 @@ int main(void)
   // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
   // Communicate with camera, setup image type and start streaming
-  camera_tcm8230_config();
+  camera_chip_config();
 
   #if USE_COLOR
   // slight waste of memory, if color is not used:
