@@ -82,8 +82,24 @@
 // Stereoboard: camera merging type
 
 #ifndef CAMERA_CPLD_STEREO
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
+  #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #endif
+
+//////////////////////////////////////////////////////
+// Frame grabbing:
+//  continuous: grab all frames to buffer:
+//      - risk: if processing/sending takes more than 1 frame length
+//              then the buffer might already contain part of the next image
+//      - advantage: no delay + process more recent data: e.g. stereo-avoid always uses most recent data
+// snapshot: grab just I frame and then stop: User must send a snapshot request when you want a new frame
+//      - drawback: after asking for a new frame, you have to wait for the next frame-start, and then full frame
+//                  transfer -> can have up to 1.999 frames delay.
+//      - advantage: e.g. on sending over slow link: the entire buffer is from the same image without the need to copy it
+
+#ifndef CAPTURE_MODE_SNAPSHOT
+  #define CAPTURE_MODE_SNAPSHOT 0
+#endif
+
 
 //////////////////////////////////////////////////////
 // Calibration parameters

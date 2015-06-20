@@ -198,7 +198,10 @@ int main(void)
 	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   while (1) {
+#if (CAPTURE_MODE_SNAPSHOT == 1)
     camera_snapshot();
+#endif
+
 #ifdef LARGE_IMAGE
     offset_crop += 80;
     if (offset_crop == 480) {

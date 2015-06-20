@@ -171,8 +171,11 @@ void camera_dcmi_init(void)
   camera_crop(0);
 
   // DCMI configuration
-  //DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
+#if (CAPTURE_MODE_SNAPSHOT == 1)
   DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
+#else
+  DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
+#endif
   DCMI_InitStructure.DCMI_SynchroMode = DCMI_SynchroMode_Hardware;
   DCMI_InitStructure.DCMI_PCKPolarity = DCMI_PCKPolarity_Falling;
   DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_Low;
