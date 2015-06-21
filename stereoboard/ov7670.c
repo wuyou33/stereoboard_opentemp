@@ -39,8 +39,11 @@ void camera_ov7670_config(void)
   Delay(0x07FFFF);
   //Delay(0x07FFFF);
 
-  SCCB_WriteReg(OV7670_ADDR, REG_CLKRC, 0x82); // Clock source
-  SCCB_WriteReg(OV7670_ADDR, DBLV, 0x40);
+  // 21MHz * 8 / 7 = 24MHz
+  // CLK / 7
+  SCCB_WriteReg(OV7670_ADDR, REG_CLKRC, 0x87); // Clock source
+  // CLK * 8
+  SCCB_WriteReg(OV7670_ADDR, DBLV, 0x80);
   SCCB_WriteReg(OV7670_ADDR, REG_COM7, 0x08); // output format: yuv
   SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);               // 0x02   VSYNC negative (http://nasulica.homelinux.org/?p=959)
 
