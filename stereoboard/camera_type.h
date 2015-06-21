@@ -15,6 +15,7 @@
 #pragma message "Using OV7670"
 
 #define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Rising
+#define CAMERA_CHIP_UNRESET_TIMING 0
 
 static inline void camera_control_bus_init()
 {
@@ -32,6 +33,7 @@ static inline void camera_chip_config()
 #include "tcm8230.h"
 
 #define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Falling
+#define CAMERA_CHIP_UNRESET_TIMING 0x01FFFF
 
 static inline void camera_control_bus_init()
 {

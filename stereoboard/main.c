@@ -129,7 +129,7 @@ int main(void)
   camera_clock_init();
   // Stop resetting the camera (pin high)
 
-  camera_unreset();
+
   // Initialize all camera GPIO and I2C pins
   camera_dcmi_bus_init();
   camera_control_bus_init();
@@ -139,11 +139,13 @@ int main(void)
   camera_dcmi_it_init();
   camera_dcmi_dma_enable();
 
-
-  // Wait for at least 2000 clock cycles after reset
-  Delay(0x07FFFF);
   // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
+  Delay(0x07FFFF);
+
+  camera_unreset();
+  // Wait for at least 2000 clock cycles after reset
+  Delay(CAMERA_CHIP_UNRESET_TIMING);
   // Communicate with camera, setup image type and start streaming
   camera_chip_config();
 
