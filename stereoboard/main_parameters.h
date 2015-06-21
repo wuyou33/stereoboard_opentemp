@@ -88,6 +88,13 @@
 #endif
 
 //////////////////////////////////////////////////////
+// Image Encoding
+
+#if ! (defined(USE_RGB565) || defined(USE_YUV422))
+#define USE_YUV422
+#endif
+
+//////////////////////////////////////////////////////
 // Stereoboard: camera merging type
 
 #ifndef CAMERA_CPLD_STEREO
