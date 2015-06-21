@@ -122,6 +122,7 @@ void camera_tcm8230_config(void)
 #define IMG_FORMAT IMG_FORMAT_YUV422
 #endif
 
+  // Supported Image sized
 #if (IMAGE_WIDTH==128) && (IMAGE_HEIGHT==96)
   #define IMAGE_SIZE IMG_SIZE_subQCIF
 #elif (IMAGE_WIDTH==176) && (IMAGE_HEIGHT==144)

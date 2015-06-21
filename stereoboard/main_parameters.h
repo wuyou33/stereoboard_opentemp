@@ -74,6 +74,9 @@
 #endif
 
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
+#if (FULL_IMAGE_SIZE >= (120*1024))
+#error "Config error: Image does not fit im RAM"
+#endif
 
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart
