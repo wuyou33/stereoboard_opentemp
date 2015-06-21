@@ -2,7 +2,9 @@
 /*
  * ov2640 Camera Driver
  *
- * Copyright (C) 2010 Alberto Panizzo <maramaopercheseimorto@gmail.com>
+ * Copyright (C) 2015 C.De Wagter
+ *
+ * Based on Linux driver by Alberto Panizzo <maramaopercheseimorto@gmail.com>
  *
  * Based on ov772x, ov9640 drivers and previous non merged implementations.
  *
@@ -14,16 +16,7 @@
  * published by the Free Software Foundation.
  */
 
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/i2c.h>
-#include <linux/slab.h>
-#include <linux/delay.h>
-#include <linux/videodev2.h>
-#include <media/v4l2-chip-ident.h>
-#include <media/v4l2-subdev.h>
-#include <media/soc_camera.h>
-#include <media/soc_mediabus.h>
+#include <stdint.h>
 
 #define VAL_SET(x, mask, rshift, lshift)  \
                 ((((x) >> rshift) & mask) << lshift)
@@ -252,19 +245,13 @@
 #define HISTO_LOW   0x61 /* Histogram Algorithm Low Level */
 #define HISTO_HIGH  0x62 /* Histogram Algorithm High Level */
 
-/*
- * ID
- */
-#define MANUFACTURER_ID 0x7FA2
-#define PID_OV2640      0x2642
-#define VERSION(pid, ver) ((pid << 8) | (ver & 0xFF))
 
 /*
  * Struct
  */
 struct regval_list {
-        u8 reg_num;
-        u8 value;
+        uint8_t reg_num;
+        uint8_t value;
 };
 
 /* Supported resolutions */
@@ -299,13 +286,9 @@ struct ov2640_win_size {
 
 
 struct ov2640_priv {
-        struct v4l2_subdev              subdev;
         struct ov2640_camera_info       *info;
-        enum v4l2_mbus_pixelcode        cfmt_code;
         const struct ov2640_win_size    *win;
         int                             model;
-        u16                             flag_vflip:1;
-        u16                             flag_hflip:1;
 };
 
 /*
@@ -605,43 +588,7 @@ static const struct regval_list ov2640_rgb565_regs[] = {
         ENDMARKER,
 };
 
-static enum v4l2_mbus_pixelcode ov2640_codes[] = {
-        V4L2_MBUS_FMT_UYVY8_2X8,
-        V4L2_MBUS_FMT_RGB565_2X8_LE,
-};
-
 /*
- * Supported controls
- */
-static const struct v4l2_queryctrl ov2640_controls[] = {
-        {
-                .id             = V4L2_CID_VFLIP,
-                .type           = V4L2_CTRL_TYPE_BOOLEAN,
-                .name           = "Flip Vertically",
-                .minimum        = 0,
-                .maximum        = 1,
-                .step           = 1,
-                .default_value  = 0,
-        }, {
-                .id             = V4L2_CID_HFLIP,
-                .type           = V4L2_CTRL_TYPE_BOOLEAN,
-                .name           = "Flip Horizontally",
-                .minimum        = 0,
-                .maximum        = 1,
-                .step           = 1,
-                .default_value  = 0,
-        },
-};
-
-/*
- * General functions
- */
-static struct ov2640_priv *to_ov2640(const struct i2c_client *client)
-{
-        return container_of(i2c_get_clientdata(client), struct ov2640_priv,
-                            subdev);
-}
-
 static int ov2640_write_array(struct i2c_client *client,
                               const struct regval_list *vals)
 {
@@ -693,37 +640,8 @@ err:
         dev_dbg(&client->dev, "%s: (ret %d)", __func__, ret);
         return ret;
 }
-
+*/
 /*
- * soc_camera_ops functions
- */
-static int ov2640_s_stream(struct v4l2_subdev *sd, int enable)
-{
-        return 0;
-}
-
-static int ov2640_set_bus_param(struct soc_camera_device *icd,
-                                unsigned long flags)
-{
-        struct soc_camera_link *icl = to_soc_camera_link(icd);
-        unsigned long width_flag = flags & SOCAM_DATAWIDTH_MASK;
-
-        /* Only one width bit may be set */
-        if (!is_power_of_2(width_flag))
-                return -EINVAL;
-
-        if (icl->set_bus_param)
-                return icl->set_bus_param(icl, width_flag);
-
-        /*
-         * Without board specific bus width settings we support only the
-         * sensors native bus width witch are tested working
-         */
-        if (width_flag & (SOCAM_DATAWIDTH_10 | SOCAM_DATAWIDTH_8))
-                return 0;
-
-        return 0;
-}
 
 static unsigned long ov2640_query_bus_param(struct soc_camera_device *icd)
 {
@@ -740,109 +658,6 @@ static unsigned long ov2640_query_bus_param(struct soc_camera_device *icd)
         return soc_camera_apply_sensor_flags(icl, flags);
 }
 
-static int ov2640_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
-{
-        struct i2c_client  *client = v4l2_get_subdevdata(sd);
-        struct ov2640_priv *priv = to_ov2640(client);
-
-        switch (ctrl->id) {
-        case V4L2_CID_VFLIP:
-                ctrl->value = priv->flag_vflip;
-                break;
-        case V4L2_CID_HFLIP:
-                ctrl->value = priv->flag_hflip;
-                break;
-        }
-        return 0;
-}
-
-static int ov2640_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
-{
-        struct i2c_client  *client = v4l2_get_subdevdata(sd);
-        struct ov2640_priv *priv = to_ov2640(client);
-        int ret = 0;
-        u8 val;
-
-        switch (ctrl->id) {
-        case V4L2_CID_VFLIP:
-                val = ctrl->value ? REG04_VFLIP_IMG : 0x00;
-                priv->flag_vflip = ctrl->value ? 1 : 0;
-                ret = ov2640_mask_set(client, REG04, REG04_VFLIP_IMG, val);
-                break;
-        case V4L2_CID_HFLIP:
-                val = ctrl->value ? REG04_HFLIP_IMG : 0x00;
-                priv->flag_hflip = ctrl->value ? 1 : 0;
-                ret = ov2640_mask_set(client, REG04, REG04_HFLIP_IMG, val);
-                break;
-        }
-
-        return ret;
-}
-
-static int ov2640_g_chip_ident(struct v4l2_subdev *sd,
-                               struct v4l2_dbg_chip_ident *id)
-{
-        struct i2c_client *client = v4l2_get_subdevdata(sd);
-        struct ov2640_priv *priv = to_ov2640(client);
-
-        id->ident    = priv->model;
-        id->revision = 0;
-
-        return 0;
-}
-
-#ifdef CONFIG_VIDEO_ADV_DEBUG
-static int ov2640_g_register(struct v4l2_subdev *sd,
-                             struct v4l2_dbg_register *reg)
-{
-        struct i2c_client *client = v4l2_get_subdevdata(sd);
-        int ret;
-
-        reg->size = 1;
-        if (reg->reg > 0xff)
-                return -EINVAL;
-
-        ret = i2c_smbus_read_byte_data(client, reg->reg);
-        if (ret < 0)
-                return ret;
-
-        reg->val = ret;
-
-        return 0;
-}
-
-static int ov2640_s_register(struct v4l2_subdev *sd,
-                             struct v4l2_dbg_register *reg)
-{
-        struct i2c_client *client = v4l2_get_subdevdata(sd);
-
-        if (reg->reg > 0xff ||
-            reg->val > 0xff)
-                return -EINVAL;
-
-        return i2c_smbus_write_byte_data(client, reg->reg, reg->val);
-}
-#endif
-
-/* Select the nearest higher resolution for capture */
-static const struct ov2640_win_size *ov2640_select_win(u32 *width, u32 *height)
-{
-        int i, default_size = ARRAY_SIZE(ov2640_supported_win_sizes) - 1;
-
-        for (i = 0; i < ARRAY_SIZE(ov2640_supported_win_sizes); i++) {
-                if (ov2640_supported_win_sizes[i].width  >= *width &&
-                    ov2640_supported_win_sizes[i].height >= *height) {
-                        *width = ov2640_supported_win_sizes[i].width;
-                        *height = ov2640_supported_win_sizes[i].height;
-                        return &ov2640_supported_win_sizes[i];
-                }
-        }
-
-        *width = ov2640_supported_win_sizes[default_size].width;
-        *height = ov2640_supported_win_sizes[default_size].height;
-        return &ov2640_supported_win_sizes[default_size];
-}
-
 static int ov2640_set_params(struct i2c_client *client, u32 *width, u32 *height,
                              enum v4l2_mbus_pixelcode code)
 {
@@ -850,10 +665,10 @@ static int ov2640_set_params(struct i2c_client *client, u32 *width, u32 *height,
         const struct regval_list *selected_cfmt_regs;
         int ret;
 
-        /* select win */
+        // select win
         priv->win = ov2640_select_win(width, height);
 
-        /* select format */
+        // select format
         priv->cfmt_code = 0;
         switch (code) {
         case V4L2_MBUS_FMT_RGB565_2X8_LE:
@@ -866,33 +681,33 @@ static int ov2640_set_params(struct i2c_client *client, u32 *width, u32 *height,
                 selected_cfmt_regs = ov2640_yuv422_regs;
         }
 
-        /* reset hardware */
+        // reset hardware
         ov2640_reset(client);
 
-        /* initialize the sensor with default data */
+        // initialize the sensor with default data
         dev_dbg(&client->dev, "%s: Init default", __func__);
         ret = ov2640_write_array(client, ov2640_init_regs);
         if (ret < 0)
                 goto err;
 
-        /* select preamble */
+        // select preamble
         dev_dbg(&client->dev, "%s: Set size to %s", __func__, priv->win->name);
         ret = ov2640_write_array(client, ov2640_size_change_preamble_regs);
         if (ret < 0)
                 goto err;
 
-        /* set size win */
+        // set size win
         ret = ov2640_write_array(client, priv->win->regs);
         if (ret < 0)
                 goto err;
 
-        /* cfmt preamble */
+        // cfmt preamble
         dev_dbg(&client->dev, "%s: Set cfmt", __func__);
         ret = ov2640_write_array(client, ov2640_format_change_preamble_regs);
         if (ret < 0)
                 goto err;
 
-        /* set cfmt */
+        // set cfmt
         ret = ov2640_write_array(client, selected_cfmt_regs);
         if (ret < 0)
                 goto err;
@@ -911,297 +726,4 @@ err:
         return ret;
 }
 
-static int ov2640_g_fmt(struct v4l2_subdev *sd,
-                        struct v4l2_mbus_framefmt *mf)
-{
-        struct i2c_client  *client = v4l2_get_subdevdata(sd);
-        struct ov2640_priv *priv = to_ov2640(client);
-
-        if (!priv->win) {
-                u32 width = W_SVGA, height = H_SVGA;
-                int ret = ov2640_set_params(client, &width, &height,
-                                            V4L2_MBUS_FMT_UYVY8_2X8);
-                if (ret < 0)
-                        return ret;
-        }
-
-        mf->width       = priv->win->width;
-        mf->height      = priv->win->height;
-        mf->code        = priv->cfmt_code;
-
-        switch (mf->code) {
-        case V4L2_MBUS_FMT_RGB565_2X8_LE:
-                mf->colorspace = V4L2_COLORSPACE_SRGB;
-                break;
-        default:
-        case V4L2_MBUS_FMT_UYVY8_2X8:
-                mf->colorspace = V4L2_COLORSPACE_JPEG;
-        }
-        mf->field       = V4L2_FIELD_NONE;
-
-        return 0;
-}
-
-static int ov2640_s_fmt(struct v4l2_subdev *sd,
-                        struct v4l2_mbus_framefmt *mf)
-{
-        struct i2c_client *client = v4l2_get_subdevdata(sd);
-        int ret;
-
-
-        switch (mf->code) {
-        case V4L2_MBUS_FMT_RGB565_2X8_LE:
-                mf->colorspace = V4L2_COLORSPACE_SRGB;
-                break;
-        default:
-                mf->code = V4L2_MBUS_FMT_UYVY8_2X8;
-        case V4L2_MBUS_FMT_UYVY8_2X8:
-                mf->colorspace = V4L2_COLORSPACE_JPEG;
-        }
-
-        ret = ov2640_set_params(client, &mf->width, &mf->height, mf->code);
-
-        return ret;
-}
-
-static int ov2640_try_fmt(struct v4l2_subdev *sd,
-                          struct v4l2_mbus_framefmt *mf)
-{
-        const struct ov2640_win_size *win;
-
-        /*
-         * select suitable win
-         */
-        win = ov2640_select_win(&mf->width, &mf->height);
-
-        mf->field       = V4L2_FIELD_NONE;
-
-        switch (mf->code) {
-        case V4L2_MBUS_FMT_RGB565_2X8_LE:
-                mf->colorspace = V4L2_COLORSPACE_SRGB;
-                break;
-        default:
-                mf->code = V4L2_MBUS_FMT_UYVY8_2X8;
-        case V4L2_MBUS_FMT_UYVY8_2X8:
-                mf->colorspace = V4L2_COLORSPACE_JPEG;
-        }
-
-        return 0;
-}
-
-static int ov2640_enum_fmt(struct v4l2_subdev *sd, unsigned int index,
-                           enum v4l2_mbus_pixelcode *code)
-{
-        if (index >= ARRAY_SIZE(ov2640_codes))
-                return -EINVAL;
-
-        *code = ov2640_codes[index];
-        return 0;
-}
-
-static int ov2640_g_crop(struct v4l2_subdev *sd, struct v4l2_crop *a)
-{
-        a->c.left       = 0;
-        a->c.top        = 0;
-        a->c.width      = W_UXGA;
-        a->c.height     = H_UXGA;
-        a->type         = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-        return 0;
-}
-
-static int ov2640_cropcap(struct v4l2_subdev *sd, struct v4l2_cropcap *a)
-{
-        a->bounds.left                  = 0;
-        a->bounds.top                   = 0;
-        a->bounds.width                 = W_UXGA;
-        a->bounds.height                = H_UXGA;
-        a->defrect                      = a->bounds;
-        a->type                         = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        a->pixelaspect.numerator        = 1;
-        a->pixelaspect.denominator      = 1;
-
-        return 0;
-}
-
-static int ov2640_video_probe(struct soc_camera_device *icd,
-                              struct i2c_client *client)
-{
-        struct ov2640_priv *priv = to_ov2640(client);
-        u8 pid, ver, midh, midl;
-        const char *devname;
-        int ret;
-
-        /*
-         * we must have a parent by now. And it cannot be a wrong one.
-         * So this entire test is completely redundant.
-         */
-        if (!icd->dev.parent ||
-            to_soc_camera_host(icd->dev.parent)->nr != icd->iface) {
-                dev_err(&client->dev, "Parent missing or invalid!\n");
-                ret = -ENODEV;
-                goto err;
-        }
-
-        /*
-         * check and show product ID and manufacturer ID
-         */
-        i2c_smbus_write_byte_data(client, BANK_SEL, BANK_SEL_SENS);
-        pid  = i2c_smbus_read_byte_data(client, PID);
-        ver  = i2c_smbus_read_byte_data(client, VER);
-        midh = i2c_smbus_read_byte_data(client, MIDH);
-        midl = i2c_smbus_read_byte_data(client, MIDL);
-
-        switch (VERSION(pid, ver)) {
-        case PID_OV2640:
-                devname     = "ov2640";
-                priv->model = V4L2_IDENT_OV2640;
-                break;
-        default:
-                dev_err(&client->dev,
-                        "Product ID error %x:%x\n", pid, ver);
-                ret = -ENODEV;
-                goto err;
-        }
-
-        dev_info(&client->dev,
-                 "%s Product ID %0x:%0x Manufacturer ID %x:%x\n",
-                 devname, pid, ver, midh, midl);
-
-        return 0;
-
-err:
-        return ret;
-}
-
-static struct soc_camera_ops ov2640_ops = {
-        .set_bus_param          = ov2640_set_bus_param,
-        .query_bus_param        = ov2640_query_bus_param,
-        .controls               = ov2640_controls,
-        .num_controls           = ARRAY_SIZE(ov2640_controls),
-};
-
-static struct v4l2_subdev_core_ops ov2640_subdev_core_ops = {
-        .g_ctrl         = ov2640_g_ctrl,
-        .s_ctrl         = ov2640_s_ctrl,
-        .g_chip_ident   = ov2640_g_chip_ident,
-#ifdef CONFIG_VIDEO_ADV_DEBUG
-        .g_register     = ov2640_g_register,
-        .s_register     = ov2640_s_register,
-#endif
-};
-
-static struct v4l2_subdev_video_ops ov2640_subdev_video_ops = {
-        .s_stream       = ov2640_s_stream,
-        .g_mbus_fmt     = ov2640_g_fmt,
-        .s_mbus_fmt     = ov2640_s_fmt,
-        .try_mbus_fmt   = ov2640_try_fmt,
-        .cropcap        = ov2640_cropcap,
-        .g_crop         = ov2640_g_crop,
-        .enum_mbus_fmt  = ov2640_enum_fmt,
-};
-
-static struct v4l2_subdev_ops ov2640_subdev_ops = {
-        .core   = &ov2640_subdev_core_ops,
-        .video  = &ov2640_subdev_video_ops,
-};
-
-/*
- * i2c_driver functions
- */
-static int ov2640_probe(struct i2c_client *client,
-                        const struct i2c_device_id *did)
-{
-        struct ov2640_priv        *priv;
-        struct soc_camera_device  *icd = client->dev.platform_data;
-        struct i2c_adapter        *adapter = to_i2c_adapter(client->dev.parent);
-        struct soc_camera_link    *icl;
-        int                        ret;
-
-        if (!icd) {
-                dev_err(&adapter->dev, "OV2640: missing soc-camera data!\n");
-                return -EINVAL;
-        }
-
-        icl = to_soc_camera_link(icd);
-        if (!icl) {
-                dev_err(&adapter->dev,
-                        "OV2640: Missing platform_data for driver\n");
-                return -EINVAL;
-        }
-
-        if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
-                dev_err(&adapter->dev,
-                        "OV2640: I2C-Adapter doesn't support SMBUS\n");
-                return -EIO;
-        }
-
-        priv = kzalloc(sizeof(struct ov2640_priv), GFP_KERNEL);
-        if (!priv) {
-                dev_err(&adapter->dev,
-                        "Failed to allocate memory for private data!\n");
-                return -ENOMEM;
-        }
-
-        priv->info = icl->priv;
-
-        v4l2_i2c_subdev_init(&priv->subdev, client, &ov2640_subdev_ops);
-
-        icd->ops = &ov2640_ops;
-
-        ret = ov2640_video_probe(icd, client);
-        if (ret) {
-                icd->ops = NULL;
-                kfree(priv);
-        } else {
-                dev_info(&adapter->dev, "OV2640 Probed\n");
-        }
-
-        return ret;
-}
-
-static int ov2640_remove(struct i2c_client *client)
-{
-        struct ov2640_priv       *priv = to_ov2640(client);
-        struct soc_camera_device *icd = client->dev.platform_data;
-
-        icd->ops = NULL;
-        kfree(priv);
-        return 0;
-}
-
-static const struct i2c_device_id ov2640_id[] = {
-        { "ov2640", 0 },
-        { }
-};
-MODULE_DEVICE_TABLE(i2c, ov2640_id);
-
-static struct i2c_driver ov2640_i2c_driver = {
-        .driver = {
-                .name = "ov2640",
-        },
-        .probe    = ov2640_probe,
-        .remove   = ov2640_remove,
-        .id_table = ov2640_id,
-};
-
-/*
- * Module functions
- */
-static int __init ov2640_module_init(void)
-{
-        return i2c_add_driver(&ov2640_i2c_driver);
-}
-
-static void __exit ov2640_module_exit(void)
-{
-        i2c_del_driver(&ov2640_i2c_driver);
-}
-
-module_init(ov2640_module_init);
-module_exit(ov2640_module_exit);
-
-MODULE_DESCRIPTION("SoC Camera driver for Omni Vision 2640 sensor");
-MODULE_AUTHOR("Alberto Panizzo");
-MODULE_LICENSE("GPL v2");
-
+*/
