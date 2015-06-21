@@ -67,7 +67,13 @@
 #define IMAGE_HEIGHT 96
 #endif
 
-#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*2)
+#if (DCMI_TEN_BITS == 1)
+#define BYTES_PER_PIXEL 4
+#else
+#define BYTES_PER_PIXEL 2
+#endif
+
+#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
 
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart

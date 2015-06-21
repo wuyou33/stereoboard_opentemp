@@ -71,7 +71,7 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
       ;
 
     // Line data
-    while (UsartTx(b + j * width * 2, width * 2 + 1) == 0)
+    while (UsartTx(b + j * width * BYTES_PER_PIXEL, width * BYTES_PER_PIXEL + 1) == 0)
       ;
 
     // EAV: End of Line
