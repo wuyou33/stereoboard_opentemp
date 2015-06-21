@@ -42,6 +42,7 @@ void camera_ov7670_config(void)
   SCCB_WriteReg(OV7670_ADDR, REG_CLKRC, 0x82); // Clock source
   SCCB_WriteReg(OV7670_ADDR, DBLV, 0x40);
   SCCB_WriteReg(OV7670_ADDR, REG_COM7, 0x08); // output format: yuv
+  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);               // 0x02   VSYNC negative (http://nasulica.homelinux.org/?p=959)
 
 
   SCCB_WriteReg(OV7670_ADDR, REG_COM11,  0x80); // Night Mode
@@ -110,7 +111,6 @@ void camera_ov7670_config(void)
 
 #if 0
   SCCB_WriteReg(OV7670_ADDR, REG_RGB444, 0x00);              // Disable RGB444
-//  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);               // 0x02   VSYNC negative (http://nasulica.homelinux.org/?p=959)
   SCCB_WriteReg(OV7670_ADDR, REG_MVFP, 0x27);                // mirror image
 
   SCCB_WriteReg(OV7670_ADDR, REG_CLKRC, 0x80);               // prescaler x1
