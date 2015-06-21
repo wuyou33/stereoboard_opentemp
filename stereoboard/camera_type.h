@@ -12,29 +12,33 @@
 
 #ifdef USE_OV7670
 #include "ov7670.h"
-#warning OV7670
+#pragma message "Using OV7670"
 
-inline void camera_control_bus_init()
+#define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Rising
+
+static inline void camera_control_bus_init()
 {
   camera_ov7670_i2c_init();
 }
 
-inline void camera_chip_config()
+static inline void camera_chip_config()
 {
   camera_ov7670_config();
 }
 
 #else
 #define USE_TCM8230
-#warning TCM8230
+#pragma message "Using TCM8230"
 #include "tcm8230.h"
 
-inline void camera_control_bus_init()
+#define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Falling
+
+static inline void camera_control_bus_init()
 {
   camera_tcm8230_i2c_init();
 }
 
-inline void camera_chip_config()
+static inline void camera_chip_config()
 {
   camera_tcm8230_config();
 }

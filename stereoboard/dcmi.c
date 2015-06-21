@@ -3,6 +3,7 @@
 
 
 #include "dcmi.h"
+#include "camera_type.h"
 #include "../common/utils.h"
 #include "../common/led.h"
 
@@ -176,7 +177,7 @@ void camera_dcmi_init(void)
   DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
 #endif
   DCMI_InitStructure.DCMI_SynchroMode = DCMI_SynchroMode_Hardware;
-  DCMI_InitStructure.DCMI_PCKPolarity = DCMI_PCKPolarity_Falling;
+  DCMI_InitStructure.DCMI_PCKPolarity = DCMI_CLOCK_POLARITY;
   DCMI_InitStructure.DCMI_VSPolarity = DCMI_VSPolarity_Low;
   DCMI_InitStructure.DCMI_HSPolarity = DCMI_HSPolarity_Low;
   DCMI_InitStructure.DCMI_CaptureRate = DCMI_CaptureRate_All_Frame;
@@ -210,6 +211,9 @@ void camera_dcmi_init(void)
   DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 
 #ifdef DCMI_DOUBLE_BUFFER
+#if ((IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL) > 65536)
+#error Image buffer does not fit memory block
+#endif
   // 128 x 96, double buffer mode possible: for larger images comment out:
   DMA_DoubleBufferModeConfig(DMA2_Stream1, (uint32_t) dcmi_image_buffer_8bit_2, DMA_Memory_0);
   DMA_DoubleBufferModeCmd(DMA2_Stream1, ENABLE);
@@ -228,7 +232,7 @@ void camera_crop(uint16_t offset)
   DCMI_CROPInitStructure.DCMI_VerticalLineCount = IMAGE_HEIGHT - 1;
   DCMI_CROPInitStructure.DCMI_HorizontalOffsetCount = 0;
   DCMI_CROPInitStructure.DCMI_VerticalStartLine = offset;
-  DCMI_CROPInitStructure.DCMI_CaptureCount = IMAGE_WIDTH * 2;
+  DCMI_CROPInitStructure.DCMI_CaptureCount = IMAGE_WIDTH * 2 - 1;   // In Pixel-clock (not bytes)
   DCMI_CROPConfig(&DCMI_CROPInitStructure);
   DCMI_CROPCmd(ENABLE);
 }
