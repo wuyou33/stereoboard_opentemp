@@ -45,7 +45,11 @@ void camera_ov7670_config(void)
   SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);               // 0x02   VSYNC negative (http://nasulica.homelinux.org/?p=959)
 
 
-  SCCB_WriteReg(OV7670_ADDR, REG_COM11,  0x80); // Night Mode
+  SCCB_WriteReg(OV7670_ADDR, REG_COM11,  0x00); // Night Mode Off
+  //SCCB_WriteReg(OV7670_ADDR, REG_COM11,  0x80); // Night Mode Light
+  //SCCB_WriteReg(OV7670_ADDR, REG_COM11,  0xC0); // Night Mode Medium
+  //SCCB_WriteReg(OV7670_ADDR, REG_COM11,  0xE0); // Night Mode Strong
+
   //SCCB_WriteReg(OV7670_ADDR, REG_TSLB, 0x04);  // UYVY YUYV ...
   //SCCB_WriteReg(OV7670_ADDR, REG_TSLB, 0x04);
   //SCCB_WriteReg(OV7670_ADDR, REG_COM7, 0x04); /* output format: rgb */
@@ -55,33 +59,36 @@ void camera_ov7670_config(void)
 
       /* not even sure what all these do, gonna check the oscilloscope and go
        * from there... */
-#if 1
-  //SCCB_WriteReg(OV7670_ADDR, REG_HSTART, 0x16);
-  //SCCB_WriteReg(OV7670_ADDR, REG_HSTOP, 0x04);
-  //SCCB_WriteReg(OV7670_ADDR, REG_HREF, 0x24);
+#if 0
+  SCCB_WriteReg(OV7670_ADDR, REG_HSTART, 0x16);
+  SCCB_WriteReg(OV7670_ADDR, REG_HSTOP, 0x04);
+  SCCB_WriteReg(OV7670_ADDR, REG_HREF, 0x24);
   SCCB_WriteReg(OV7670_ADDR, REG_VSTART, 0x02);
   SCCB_WriteReg(OV7670_ADDR, REG_VSTOP, 0x7a);
   SCCB_WriteReg(OV7670_ADDR, REG_VREF, 0x0a);
 #endif
+  //  SCCB_WriteReg(OV7670_ADDR, REG_MVFP, 0x27); //Vflip?
+  //  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);  // VSYNC NEGATIVE?
+  //  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x20);  // NO PCLK outside HREF
 #if 1
-//  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x02);  // VSYNC NEGATIVE?
-//  SCCB_WriteReg(OV7670_ADDR, REG_COM10, 0x20);  // NO PCLK outside HREF
   SCCB_WriteReg(OV7670_ADDR, REG_COM3, 0x04);     // Scale enable
   SCCB_WriteReg(OV7670_ADDR, REG_COM14, 0x1a); // divide by 4
-//  SCCB_WriteReg(OV7670_ADDR, REG_COM14, 0x1b); // divide by 8
-//  SCCB_WriteReg(OV7670_ADDR, REG_MVFP, 0x27); //Vflip?
   SCCB_WriteReg(OV7670_ADDR, 0x72, 0x22); // downsample by 4
-  //SCCB_WriteReg(OV7670_ADDR, 0x72, 0x33); // downsample by 8
   SCCB_WriteReg(OV7670_ADDR, 0x73, 0x02); // divide by 4
-  //SCCB_WriteReg(OV7670_ADDR, 0x73, 0xf3); // divide by 8
+#endif
+#if 0
+  SCCB_WriteReg(OV7670_ADDR, REG_COM3, 0x04);     // Scale enable
+  SCCB_WriteReg(OV7670_ADDR, REG_COM14, 0x1b); // divide by 8
+  SCCB_WriteReg(OV7670_ADDR, 0x72, 0x33); // downsample by 8
+  SCCB_WriteReg(OV7670_ADDR, 0x73, 0xf3); // divide by 8
 #endif
 
       // test pattern
   //SCCB_WriteReg(OV7670_ADDR, 0x70, 1 << 7 + 0x4A);
   //SCCB_WriteReg(OV7670_ADDR, 0x70, 0x35 + 0x80);
 
-#if 1
-      // COLOR SETTING
+#if 0
+      // COLOR SETTING V1
   SCCB_WriteReg(OV7670_ADDR, 0x4f, 0x80);
   SCCB_WriteReg(OV7670_ADDR, 0x50, 0x80);
   SCCB_WriteReg(OV7670_ADDR, 0x51, 0x00);
@@ -656,7 +663,7 @@ void camera_ov7670_config(void)
 #endif
 
 
-#if 0 // site 2
+#if 1 // site 2
       // COLOR SETTING
       SCCB_WriteReg(OV7670_ADDR, 0x4f,0x80);
       SCCB_WriteReg(OV7670_ADDR, 0x50,0x80);
