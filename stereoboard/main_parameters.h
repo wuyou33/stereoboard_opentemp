@@ -16,8 +16,6 @@
 // Include board specific overrides
 #include BOARD_FILE
 
-#define USE_COLOR 0 // 0
-
 //////////////////////////////////////////////////////
 // Define which code should be run:
 #ifndef SEND_COMMANDS
@@ -95,6 +93,10 @@
 
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
 #define USE_YUV422
+#endif
+
+#ifndef TCM8230_EXTRA_SATURATION
+#define TCM8230_EXTRA_SATURATION 0
 #endif
 
 //////////////////////////////////////////////////////

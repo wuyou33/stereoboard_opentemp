@@ -142,7 +142,7 @@ void camera_tcm8230_config(void)
   tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
   tcm8230_WriteReg(TCM_EXP, EXP_DEFAULT | EXP_SHORT);
 
-#ifndef TCM8230_NORMAL_COLOR
+#if (TCM8230_EXTRA_SATURATION == 1)
   tcm8230_WriteReg(TCM_AWB,
                    TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
   tcm8230_WriteReg(TCM_SATU, 255);
