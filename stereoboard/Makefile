@@ -129,6 +129,9 @@ tcm8230.c \
 tcm8230.h \
 ov7670.h \
 ov7670.c \
+ov2640.c \
+ov2640_drv.c \
+ov7670_drv.c \
 jpeg.c \
 jpeg.h \
 cpld.c \

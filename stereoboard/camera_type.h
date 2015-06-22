@@ -27,6 +27,23 @@ static inline void camera_chip_config()
   camera_ov7670_config();
 }
 
+#elif defined( USE_OV2640 )
+#include "ov2640.h"
+#pragma message "Using OV2640"
+
+#define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Rising
+#define CAMERA_CHIP_UNRESET_TIMING 0
+
+static inline void camera_control_bus_init()
+{
+  camera_ov2640_i2c_init();
+}
+
+static inline void camera_chip_config()
+{
+  camera_ov2640_config();
+}
+
 #else
 #define USE_TCM8230
 #pragma message "Using TCM8230"
