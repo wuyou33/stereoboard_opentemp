@@ -54,6 +54,14 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	uint8_t y;
 	uint8_t valueInImageBuffer=0;
 	uint8_t x;
+	uint8_t z;
+	uint8_t highestValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][5];
+	for (x = 0; x < MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS; x++) {
+		for(y=0;y<5;y++){
+			highestValues[x][y]=0;
+		}
+	}
+
 	for (x = 0; x < MATRIX_WIDTH_BINS; x++) {
 		for (y = 0; y < MATRIX_HEIGHT_BINS; y++) {
 			int line;
@@ -65,7 +73,14 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 					if(valueInImageBuffer>matrixBuffer[y * MATRIX_WIDTH_BINS + x])
 					{
 						matrixBuffer[y * MATRIX_WIDTH_BINS + x]=valueInImageBuffer;
-						toSendBuffer[y * MATRIX_WIDTH_BINS + x]=valueInImageBuffer;
+					}
+					for(z=0;z <5;z++)
+					{
+						if(valueInImageBuffer>highestValues[y * MATRIX_WIDTH_BINS + x][z])
+						{
+							highestValues[y * MATRIX_WIDTH_BINS + x][z]=valueInImageBuffer;
+							break;
+						}
 					}
 				}
 			}
@@ -79,7 +94,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
-		toSendBuffer[bufferIndex]=matrixBuffer[bufferIndex];
+		toSendBuffer[bufferIndex]=highestValues[bufferIndex][4];
 		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY && bufferIndex <MATRIX_WIDTH_BINS*4)
 		{
 			anyOn=1;
@@ -251,7 +266,7 @@ int main(void)
 #endif
 #if SEND_DISPARITY_MAP
 
-//	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
+	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
 	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);

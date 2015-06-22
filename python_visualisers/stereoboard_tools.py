@@ -140,11 +140,41 @@ def readPartOfImage(ser, currentBuffer):
                 #print 'i: ', i, ' len currentBuffer: ', len(currentBuffer)
                 if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
                     lastResult=(startPosition,i+4)
+                    print 'end of image'
                 if currentBuffer[i + 3] == 175:# Start of image
                     startPosition = i
     except Exception as e:
         PrintException()
     return currentBuffer, lastResult
+
+def readPartOfImageFrequency(ser, currentBuffer):
+
+    readSize= ser.inWaiting()
+    while readSize ==0:
+        readSize= ser.inWaiting()
+
+    raw = bytearray(ser.read(readSize))
+
+    for byte in raw:
+        currentBuffer.append(int(byte))
+    startPosition=None
+    lastResult=(-1,-1)
+    endOfImagesFound=0
+    try:
+        for i in range(0,len(currentBuffer)-5):
+            if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
+                # if (currentBuffer[i + 3] == 171):# End of Image
+                #     return currentBuffer, i+4
+                #print 'i: ', i, ' len currentBuffer: ', len(currentBuffer)
+                if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
+                    lastResult=(startPosition,i+4)
+                    endOfImagesFound+=1
+                   # print 'end of image'
+                if currentBuffer[i + 3] == 175:# Start of image
+                    startPosition = i
+    except Exception as e:
+        PrintException()
+    return currentBuffer, lastResult, endOfImagesFound
 
 ## Determines the start, length of one image, and the length of one line and the width and height
 def determine_image_and_line_length(raw):
