@@ -216,3 +216,12 @@ def saveImages(img,leftImage,rightImage,frameNumber,folderName):
     scipy.misc.imsave(fileNameBoth, img)
     scipy.misc.imsave(fileNameLeft, leftImage)
     scipy.misc.imsave(fileNameRight, rightImage)
+
+
+
+def createRedBlueImage(img, lineCount, lineLength):
+    img2=np.zeros((lineCount,lineLength,3))
+    img2[:,:,0]=1-img
+    img2[:,:,2]=img
+    img2[img==0,:]=[0,0,0]
+    return img2

@@ -52,6 +52,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	int indexBuffer;
 
 	uint8_t y;
+	uint8_t valueInImageBuffer=0;
 	uint8_t x;
 	for (x = 0; x < MATRIX_WIDTH_BINS; x++) {
 		for (y = 0; y < MATRIX_HEIGHT_BINS; y++) {
@@ -60,11 +61,12 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 				int bufferIndex = 0;
 				for (bufferIndex = 0; bufferIndex < widthPerBin;
 						bufferIndex++) {
-					matrixBuffer[y * MATRIX_WIDTH_BINS + x] +=
-							disparity_image[pixelsPerLine
-									* (y * heightPerBin) + line * pixelsPerLine
-									+ widthPerBin * x + blackBorderSize
-									+ bufferIndex];
+					valueInImageBuffer=disparity_image[pixelsPerLine* (y * heightPerBin) + line * pixelsPerLine+ widthPerBin * x + blackBorderSize+ bufferIndex];
+					if(valueInImageBuffer>matrixBuffer[y * MATRIX_WIDTH_BINS + x])
+					{
+						matrixBuffer[y * MATRIX_WIDTH_BINS + x]=valueInImageBuffer;
+						toSendBuffer[y * MATRIX_WIDTH_BINS + x]=valueInImageBuffer;
+					}
 				}
 			}
 		}
@@ -77,7 +79,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
-		toSendBuffer[bufferIndex] = matrixBuffer[bufferIndex] / (widthPerBin*heightPerBin);
+		toSendBuffer[bufferIndex]=matrixBuffer[bufferIndex];
 		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY && bufferIndex <MATRIX_WIDTH_BINS*4)
 		{
 			anyOn=1;
@@ -175,7 +177,7 @@ int main(void)
 
 	// Stereo parameters:
 	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
-	uint32_t disparity_min = 0;
+	uint32_t disparity_min = 6;
 	uint32_t disparity_step = 1;
 	uint8_t thr1 = 7;
 	uint8_t thr2 = 4;
@@ -228,7 +230,7 @@ int main(void)
 				disparity_image_buffer_8bit, image_width, image_height,
 				disparity_min, disparity_range, disparity_step, thr1, thr2,
 				min_y, max_y);
-	led_toggle();
+	//led_toggle();
 #endif
 
 
@@ -249,7 +251,7 @@ int main(void)
 #endif
 #if SEND_DISPARITY_MAP
 
-	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
+//	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
 	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);

@@ -37,6 +37,9 @@ while True:
             img /= 20
          #   stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
 
+            # Create a color image
+            img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
+
 
           #  img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
 
