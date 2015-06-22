@@ -18,7 +18,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   int vertical_block_size = 5; // vertical size of SAD-window
   int horizontal_block_size = 5; // horizontal size of SAD-window
   int GRADIENT_THRESHOLD = 5; // defines if image gradient indicates sufficient texture
-  int PKRN_THRESHOLD = 120; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
+  int PKRN_THRESHOLD = 90; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
 
   int half_vertical_block_size = (vertical_block_size - 1)/2;
   int half_horizontal_block_size = (horizontal_block_size - 1)/2;
@@ -27,7 +27,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   int idx0 = 0; // line starting point index
   int idx_SAD = -1; // SAD block index
   int idx_line = 100; // SAD block index
-  int l = 0; // line index
+  uint32_t lineIndex = 0;
   int i = 0; // iterator
   int d = 0; // iterator
   int h = 0; // iterator
@@ -39,7 +39,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   q15_t line_gradient[fakeShitImageWidth-1]; // horizontal image gradients for a single line
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
-  q15_t c1;
+  uint32_t c1;
   q15_t c2;
   uint32_t c1_i;
   uint32_t c2_i;
@@ -47,10 +47,10 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   // check that disparity search stays within the bounds of the input image
 	int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
 	max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
-
-	for (l = min_y; l < max_y; l++)
+	int superIndexInBuffer=0;
+	for (lineIndex = min_y; lineIndex < max_y; lineIndex++)
 	{
-		idx0 = l * image_width_bytes;
+		idx0 = lineIndex * image_width_bytes;
 
 		// update index term to store this line at the right location in the left and right blocks
 		idx_line++;
@@ -62,7 +62,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 			idx_SAD = 0;
 
 		// de-interlace image lines and put them at right place in the image blocks
-	    separate_image_line_offset_block(&in[idx0], block_left, block_right, image_width_bytes, idx_line, fakeShitImageWidth-1);
+	    separate_image_line_offset_block(&in[idx0], block_right,block_left , image_width_bytes, idx_line, fakeShitImageWidth-1);
 
 	    if ( idx_SAD > -1 )
 	    {
@@ -103,14 +103,22 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 					// find second minimum cost
 					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
 
-					if ( (c2*100)/c1 > PKRN_THRESHOLD )
-						out[(fakeShitImageWidth*(l-half_vertical_block_size)) + i] = c1_i;
+					if ( (c2*100)/c1 > PKRN_THRESHOLD ){
+
+						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + i;
+						if (locationInBuffer<12288){
+							out[locationInBuffer] = c1_i;
+						}
+	//					out[superIndexInBuffer++]=c1_i;
+		//				out[0]=20;
+					}
 
 
 				}
 			}
 	    }
 	}
+
 }
 
 

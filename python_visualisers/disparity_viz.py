@@ -6,17 +6,11 @@ import numpy as np
 ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
-treshold=0.3
-
-def changeTreshold(newValue):
-    global  treshold
-    treshold = newValue/20.0
 
 
 currentBuffer=[]
 
 cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-cv2.createTrackbar('tresholdTrackbar','img',10,20,changeTreshold)
 
 while True:
     try:
@@ -38,10 +32,9 @@ while True:
 
             img = stereoboard_tools.fill_image_array(sync1,oneImage, lineLength, lineCount)
             img=np.array(img)
+            print 'sum: ', img.sum()
+            print 'max: ', img.max()
             img /= 20
-            img[img>=treshold]=1
-            img[img<treshold]=0
-
          #   stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
 
 
@@ -50,7 +43,7 @@ while True:
             cv2.imshow('img',img)
 
 
-            key=cv2.waitKey(100)
+            key=cv2.waitKey(1)
 
             if saveImages:
                 import scipy
