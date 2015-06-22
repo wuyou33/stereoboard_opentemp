@@ -19,8 +19,8 @@ averageOverAmountOfValues=2
 while True:
     try:
         # Read the image
-        currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImageFrequency(ser, currentBuffer)
-        if location[1]>0:
+        currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImage(ser, currentBuffer)
+        if location[0]>-1:
             currentBuffer=currentBuffer[location[1]::]
             totalEndOfImagesFound+=endOfImagesFound
             if totalEndOfImagesFound>readImagesPerFrequencyMeasurement:

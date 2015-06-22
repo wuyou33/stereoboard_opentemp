@@ -15,17 +15,17 @@ cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 while True:
     try:
         # Read the image
-        currentBuffer, location = stereoboard_tools.readPartOfImage(ser, currentBuffer)
+        currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImage(ser, currentBuffer)
         startPosition=location[0]
         endPosition=location[1]
-        if location[0] > 0:
+        if location[0] > -1:
             oneImage = currentBuffer[startPosition:endPosition]
             currentBuffer=currentBuffer[endPosition::]
 
 
             # Search the startbyte
             sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
-            print 'length: ', length, ' count: ', lineCount, ' lineLength: ', lineLength
+            print 'length: ', length, ' count: ', lineCount, ' lineLength: ', lineLength, ' end of images found: ', endOfImagesFound
             if sync1<0:    # We did not find the startbit... try again
                 continue
 

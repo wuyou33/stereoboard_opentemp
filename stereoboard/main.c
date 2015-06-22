@@ -265,7 +265,6 @@ int main(void)
     SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 #if SEND_DISPARITY_MAP
-
 	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
