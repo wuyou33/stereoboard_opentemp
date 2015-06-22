@@ -14,7 +14,8 @@ AR            = $(CROSS)ar
 GDB           = $(CROSS)gdb
 
 #SOMETHING    ?= -DSEND_COMMANDS=1
-CFLAGS        = -g -O3 -mlittle-endian -mthumb -DHSE_VALUE=12000000
+#CFLAGS        = -g -O3 -mlittle-endian -mthumb -DHSE_VALUE=12000000
+CFLAGS        = -g -O1 -mlittle-endian -mthumb -DHSE_VALUE=12000000
 CFLAGS       += -mcpu=cortex-m4	-DARM_MATH_CM4
 CFLAGS       += -ffreestanding -nostdlib
 CFLAGS       += -DBOARD_FILE=\"./boards/board_$(BOARD).h\"

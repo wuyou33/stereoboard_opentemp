@@ -23,9 +23,9 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   int half_vertical_block_size = (vertical_block_size - 1)/2;
   int half_horizontal_block_size = (horizontal_block_size - 1)/2;
 
-
+  int fakeShitImageWidth=128;
   int idx0 = 0; // line starting point index
-  int idx_SAD = -100; // SAD block index
+  int idx_SAD = -1; // SAD block index
   int idx_line = 100; // SAD block index
   int l = 0; // line index
   int i = 0; // iterator
@@ -36,7 +36,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 
   q15_t block_left[image_width*vertical_block_size]; // block that stores multiple image lines to handle SAD windows
   q15_t block_right[image_width*vertical_block_size]; // same
-  q15_t line_gradient[image_width-1]; // horizontal image gradients for a single line
+  q15_t line_gradient[fakeShitImageWidth-1]; // horizontal image gradients for a single line
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
   q15_t c1;
@@ -58,20 +58,20 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 			idx_line = 0;
 
 		idx_SAD++;
-		if ( idx_SAD == half_vertical_block_size )
+		if ( idx_line == half_vertical_block_size )
 			idx_SAD = 0;
 
 		// de-interlace image lines and put them at right place in the image blocks
-	    separate_image_line_offset_block(&in[idx0], block_left, block_right, image_width_bytes, idx_line, image_width);
+	    separate_image_line_offset_block(&in[idx0], block_left, block_right, image_width_bytes, idx_line, fakeShitImageWidth-1);
 
 	    if ( idx_SAD > -1 )
 	    {
-/*
-			// calculate image gradient of left image by subtracting with one pixel offset
-			arm_sub_q15(&block_left[idx_SAD * image_width], &block_left[(idx_SAD * image_width) + 1], line_gradient, image_width-1);
 
-			// make image gradients absolute such that we can look for maximum values in the next step
-			arm_abs_q15(line_gradient, line_gradient, image_width-1);
+			// calculate image gradient of left image by subtracting with one pixel offset
+			arm_sub_q15(&block_left[idx_SAD * fakeShitImageWidth], &block_left[(idx_SAD * fakeShitImageWidth) + 1], line_gradient, fakeShitImageWidth-1);
+
+	//		// make image gradients absolute such that we can look for maximum values in the next step
+			arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth-1);
 
 			for ( i = half_horizontal_block_size; i < image_width - half_horizontal_block_size - disparity_max - 2; i++ )
 			{
@@ -104,11 +104,11 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
 
 					if ( (c2*100)/c1 > PKRN_THRESHOLD )
-						out[(image_width*(l-half_vertical_block_size)) + i] = c1_i;
+						out[(fakeShitImageWidth*(l-half_vertical_block_size)) + i] = c1_i;
 
 
 				}
-			}*/
+			}
 	    }
 	}
 }

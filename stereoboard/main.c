@@ -224,10 +224,11 @@ int main(void)
 			disparity_min, disparity_range, disparity_step, thr1, thr2,
 			min_y, max_y);*/
 	memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
-	/*stereo_vision_sparse_block(current_image_buffer,
+	stereo_vision_sparse_block(current_image_buffer,
 				disparity_image_buffer_8bit, image_width, image_height,
 				disparity_min, disparity_range, disparity_step, thr1, thr2,
-				min_y, max_y);*/
+				min_y, max_y);
+	led_toggle();
 #endif
 
 
