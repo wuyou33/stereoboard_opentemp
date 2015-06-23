@@ -18,6 +18,8 @@
 #ifndef OV2640_REG_H_
 #define OV2640_REG_H_
 
+#include "sccb.h"
+
 #define VAL_SET(x, mask, rshift, lshift)  \
                 ((((x) >> rshift) & mask) << lshift)
 /*
@@ -244,14 +246,6 @@
 #define REG60       0x60 /* AVGsel[31:24], 16-zone average weight option */
 #define HISTO_LOW   0x61 /* Histogram Algorithm Low Level */
 #define HISTO_HIGH  0x62 /* Histogram Algorithm High Level */
-
-/*
- * Struct
- */
-struct regval_list {
-        uint8_t reg_num;
-        uint8_t value;
-};
 
 
 /*

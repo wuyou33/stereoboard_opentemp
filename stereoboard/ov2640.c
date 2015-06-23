@@ -24,19 +24,6 @@ void camera_ov2640_i2c_init(void)
 
 #define OV2640_ADDR      0x60
 
-static int ov2640_write_array( const struct regval_list *vals)
-{
-  int ret;
-
-  while ((vals->reg_num != 0xff) || (vals->value != 0xff)) {
-    ret = SCCB_WriteReg(OV2640_ADDR, vals->reg_num, vals->value);
-    if (ret != 0)
-      return ret;
-    vals++;
-  }
-  return 0;
-}
-
 static int ov2640_reset(void)
 {
   int ret;
@@ -46,7 +33,7 @@ static int ov2640_reset(void)
           ENDMARKER,
   };
 
-  ret = ov2640_write_array( reset_seq);
+  ret = SCCB_WriteArray( OV2640_ADDR, reset_seq);
 
   Delay(0x07FFFF);
   //msleep(5);
@@ -65,27 +52,27 @@ void camera_ov2640_config(void)
   ov2640_reset();
 
   // Init
-  ret = ov2640_write_array(ov2640_init_regs);
+  ret = SCCB_WriteArray( OV2640_ADDR,ov2640_init_regs);
   if (ret < 0)
     goto err;
 
   // select preamble
-  ret = ov2640_write_array( ov2640_size_change_preamble_regs);
+  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_size_change_preamble_regs);
   if (ret < 0)
           goto err;
 
   // set size win
-  ret = ov2640_write_array( ov2640_qcif_regs);
+  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_qcif_regs);
   if (ret < 0)
           goto err;
 
   // cfmt preamble
-  ret = ov2640_write_array( ov2640_format_change_preamble_regs);
+  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_format_change_preamble_regs);
   if (ret < 0)
           goto err;
 
   // set cfmt
-  ret = ov2640_write_array( ov2640_yuv422_regs);
+  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_yuv422_regs);
   if (ret < 0)
           goto err;
 
