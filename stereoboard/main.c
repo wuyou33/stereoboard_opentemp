@@ -28,6 +28,7 @@
 #include "../multigaze/stereoboard_parameters.h"
 #include BOARD_FILE
 #include "main_parameters.h"
+#include "divergence.h"
 
 #include "commands.h"
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -161,6 +162,23 @@ int main(void)
   uint32_t image_height = IMAGE_HEIGHT;
   uint32_t start, stop;
 
+
+//#if SEND_DIVERGENCE
+	int32_t displacement[IMAGE_WIDTH];
+	int32_t* displacement_p=displacement;
+	uint8_t prev_image_buffer[FULL_IMAGE_SIZE];
+    uint8_t* prev_image_buffer_p=prev_image_buffer;
+	uint8_t divergence_image_buffer[FULL_IMAGE_SIZE];
+	uint8_t* divergence_image_buffer_p;//;=divergence_image_buffer;
+	uint32_t edge_histogram_prev[image_width];
+	uint32_t* edge_histogram_prev_p=edge_histogram_prev;
+	uint32_t edge_histogram[image_width];
+	uint32_t* edge_histogram_p=edge_histogram;
+	float slope=0.0;
+	float yint=0.0;
+//#endif
+
+
   /***********
    * MAIN LOOP
    ***********/
@@ -237,6 +255,23 @@ int main(void)
 #endif
 
 
+#if SEND_DIVERGENCE
+	 calculate_edge_flow_simple(current_image_buffer,edge_histogram_p,edge_histogram_prev_p,displacement_p,&slope,&yint,IMAGE_WIDTH,IMAGE_HEIGHT);
+	  //visualize_divergence(current_image_buffer,displacement_p,slope, yint,IMAGE_WIDTH,IMAGE_HEIGHT);
+     memcpy(edge_histogram_prev_p,edge_histogram_p,sizeof edge_histogram);
+
+
+     uint8_t divergencearray[2];
+		divergencearray[0]=(uint8_t)(1000*slope+100);
+
+
+		divergencearray[1]=(uint8_t)(10*yint+100);
+
+
+
+	 SendArray( divergencearray,2,1);
+
+#endif
 // Now send the data that we want to send
 #if SEND_IMAGE
 	  led_toggle();
