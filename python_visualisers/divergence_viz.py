@@ -38,7 +38,7 @@ while True:
             yint=img[0,1]
             print 'sloap: ' , slope, ' yint: ' , yint
 	    print img
-            yintHistory.append(slope)
+            yintHistory.append(yint)
 	    plt.plot(yintHistory)
 	    plt.draw()
 	    time.sleep(0.05)

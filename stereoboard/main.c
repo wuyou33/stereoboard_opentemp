@@ -163,7 +163,34 @@ int main(void)
   uint32_t start, stop;
 
 
-//#if SEND_DIVERGENCE
+#if SEND_DIVERGENCE
+	//Define arrays and pointers for edge histogram and displacements
+	struct displacement_t displacement;
+	displacement.horizontal[IMAGE_WIDTH];
+	displacement.vertical[IMAGE_HEIGHT];
+
+	//Initializing the dynamic parameters and the edge histogram structure
+	int rear=1;
+			int front=0;
+
+			/*//Intializing edge histogram structure
+			struct edge_hist_t* edge_hist;
+			edge_hist=(struct edge_hist_t*)calloc(MAX_HORIZON,sizeof(struct edge_hist_t));*/
+
+	//Intializing edge histogram structure
+	struct edge_hist_t edge_hist[MAX_HORIZON];
+	int i;
+	for(i=0;i<MAX_HORIZON;i++)
+	memset(&edge_hist[i],0,sizeof(struct edge_hist_t));
+
+	//Initializing for divergence and flow parameters
+	struct edge_flow_t edge_flow;
+	edge_flow.horizontal[0]=0.0;
+	edge_flow.horizontal[1]=0.0;
+	edge_flow.vertical[0]=0.0;
+	edge_flow.vertical[1]=0.0;
+
+	/*
 	int32_t displacement[IMAGE_WIDTH];
 	int32_t* displacement_p=displacement;
 	uint8_t prev_image_buffer[FULL_IMAGE_SIZE];
@@ -175,8 +202,8 @@ int main(void)
 	uint32_t edge_histogram[image_width];
 	uint32_t* edge_histogram_p=edge_histogram;
 	float slope=0.0;
-	float yint=0.0;
-//#endif
+	float yint=0.0;*/
+	#endif
 
 
   /***********
@@ -256,18 +283,22 @@ int main(void)
 
 
 #if SEND_DIVERGENCE
-	 calculate_edge_flow_simple(current_image_buffer,edge_histogram_p,edge_histogram_prev_p,displacement_p,&slope,&yint,IMAGE_WIDTH,IMAGE_HEIGHT);
+
+
+	calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, &edge_hist, front,rear,10,10,10, image_width, image_height);
+
+
+
+	 //calculate_edge_flow_simple(current_image_buffer,edge_histogram_p,edge_histogram_prev_p,displacement_p,&slope,&yint,IMAGE_WIDTH,IMAGE_HEIGHT);
 	  //visualize_divergence(current_image_buffer,displacement_p,slope, yint,IMAGE_WIDTH,IMAGE_HEIGHT);
-     memcpy(edge_histogram_prev_p,edge_histogram_p,sizeof edge_histogram);
+     //memcpy(edge_histogram_prev_p,edge_histogram_p,sizeof edge_histogram);
 
 
      uint8_t divergencearray[2];
-		divergencearray[0]=(uint8_t)(1000*slope+100);
+		divergencearray[0]=(uint8_t)(edge_flow.horizontal[0]*10+100);
 
 
-		divergencearray[1]=(uint8_t)(10*yint+100);
-
-
+		divergencearray[1]=(uint8_t)(edge_flow.horizontal[1]*1000+100);
 
 	 SendArray( divergencearray,2,1);
 

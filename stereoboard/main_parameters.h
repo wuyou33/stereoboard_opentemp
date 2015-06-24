@@ -19,7 +19,7 @@
 //////////////////////////////////////////////////////
 // Define which code should be run:
 #ifndef SEND_COMMANDS
-	#define SEND_COMMANDS 1 // 1
+	#define SEND_COMMANDS 0 // 1
 #endif
 
 #ifndef SEND_IMAGE
