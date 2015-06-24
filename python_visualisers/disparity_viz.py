@@ -3,7 +3,7 @@ import serial
 import stereoboard_tools
 import Tkinter as tk
 import numpy as np
-ser = serial.Serial('/dev/ttyUSB1',1000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 
@@ -34,8 +34,9 @@ while True:
             img=np.array(img)
             print 'sum: ', img.sum()
             print 'max: ', img.max()
+            stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
             img /= 20
-         #   stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
+
 
             # Create a color image
             img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)

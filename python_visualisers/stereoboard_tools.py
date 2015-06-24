@@ -14,6 +14,7 @@ from matplotlib._png import read_png
 from matplotlib.cbook import get_sample_data
 SONAR_DISTANCES={0:15,1:10,2:9,3:8,4:7,5:2,6:1.8,7:1.7,8:1.4,9:1.2,10:1.0,11:0.8,12:0.5,13:0.3,14:0.2,15:0.1,16:0,17:0,18:0,19:0,20:0,21:0,22:0}
 AVERAGE_DATA=False
+MAX_DATA=True
 startedThreadDrawDrone=False
 drawDroneOverSonar = False
 def PrintException():
@@ -29,22 +30,8 @@ def callback():
     print 'pressed button'
 
 
-drawDroneOverSonar=False
-def changeDrawDrone():
-    global drawDroneOverSonar
-    drawDroneOverSonar = ~drawDroneOverSonar
-def threadmain():
-    t = tk.Tk()
-    b = tk.Button(text='test', command=changeDrawDrone)
-    b.grid(row=0)
-    t.mainloop()
-
 
 def draw_sonar_visualisation(matrix,height):
-    global  startedThreadDrawDrone
-    if not startedThreadDrawDrone:
-        thread.start_new_thread(threadmain, ())
-        startedThreadDrawDrone=True
     try:
         plt.ion()
         r = matrix[1,:]
@@ -59,8 +46,23 @@ def draw_sonar_visualisation(matrix,height):
             colors.append(element)
 
         colors = colors[30::]
-        if AVERAGE_DATA:
+        if MAX_DATA:
+            toPlot = np.zeros((1,matrix.shape[1]))
+            for x in range(0,matrix.shape[1]):
+                for y in range(0,matrix.shape[0]):
+                    if matrix[y,x]>toPlot[0,x]:
+                        toPlot[0,x]=matrix[y,x]
+
+            colors = colors[30::]
+            distances=np.array(toPlot[0,:])
+
+            theta = np.append(theta,theta[0])
+            distances = np.append(distances,distances[0])
+            print 'theta: ', theta.shape, ' distances: ', distances.shape
+            ax.plot(theta, distances, color=colors[0],linewidth=5)
+        elif AVERAGE_DATA:
             toPlotSum = np.array(matrix[0])
+
             for i in range(1, height):
                 toPlotSum += np.array(matrix[i])
             toPlotSum/=height
