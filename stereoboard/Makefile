@@ -131,6 +131,7 @@ ov7670.h \
 ov7670.c \
 ov2640.c \
 ov7670_drv.c \
+ov9712_drv.c \
 jpeg.c \
 jpeg.h \
 cpld.c \

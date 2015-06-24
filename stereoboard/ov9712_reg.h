@@ -30,21 +30,15 @@
 #ifndef OV9712_REG_H_
 #define OV9712_REG_H_
 
-#include <stdint.h>
+#include "sccb.h"
+
+#define OV9712_ADDR             0x60
 
 
-#define OV534_REG_ADDRESS       0xf1    /* sensor address */
-#define OV534_REG_SUBADDR       0xf2
-#define OV534_REG_WRITE         0xf3
-#define OV534_REG_READ          0xf4
-#define OV534_REG_OPERATION     0xf5
-#define OV534_REG_STATUS        0xf6
+#define PID         0x0A /* Product ID Number MSB */
+#define VER         0x0B /* Product ID Number LSB */
 
-#define OV534_OP_WRITE_3        0x37
-#define OV534_OP_WRITE_2        0x33
-#define OV534_OP_READ_2         0xf9
-
-static const uint8_t ov361x_start_2048[][2] = {
+static const struct regval_list ov361x_start_2048[] = {
         {0x12, 0x80},
         {0x13, 0xcf},
         {0x14, 0x40},
@@ -65,7 +59,7 @@ static const uint8_t ov361x_start_2048[][2] = {
         {0x19, 0x00},
         {0x1a, 0xc0},
 };
-static const uint8_t ov361x_bridge_start_2048[][2] = {
+static const struct regval_list ov361x_bridge_start_2048[] = {
         {0xf1, 0x60},
         {0x88, 0x00},
         {0x89, 0x08},
@@ -82,7 +76,7 @@ static const uint8_t ov361x_bridge_start_2048[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t ov361x_start_1600[][2] = {
+static const struct regval_list ov361x_start_1600[] = {
         {0x12, 0x80},
         {0x13, 0xcf},
         {0x14, 0x40},
@@ -103,7 +97,7 @@ static const uint8_t ov361x_start_1600[][2] = {
         {0x19, 0x00},
         {0x1a, 0xc0},
 };
-static const uint8_t ov361x_bridge_start_1600[][2] = {
+static const struct regval_list ov361x_bridge_start_1600[] = {
         {0xf1, 0x60},  /* Hsize[7:0] */
         {0x88, 0x00},  /* Hsize[15:8] Write Only, can't read */
         {0x89, 0x08},  /* Vsize[7:0] */
@@ -120,7 +114,7 @@ static const uint8_t ov361x_bridge_start_1600[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t ov361x_start_1024[][2] = {
+static const struct regval_list ov361x_start_1024[] = {
         {0x12, 0x80},
         {0x13, 0xcf},
         {0x14, 0x40},
@@ -141,7 +135,7 @@ static const uint8_t ov361x_start_1024[][2] = {
         {0x19, 0x00},
         {0x1a, 0x68},
 };
-static const uint8_t ov361x_bridge_start_1024[][2] = {
+static const struct regval_list ov361x_bridge_start_1024[] = {
         {0xf1, 0x60},  /* Hsize[7:0] */
         {0x88, 0x00},  /* Hsize[15:8] Write Only, can't read */
         {0x89, 0x04},  /* Vsize[7:0] */
@@ -158,7 +152,7 @@ static const uint8_t ov361x_bridge_start_1024[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t ov361x_start_640[][2] = {
+static const struct regval_list ov361x_start_640[] = {
         {0x12, 0x80},
         {0x13, 0xcf},
         {0x14, 0x40},
@@ -180,7 +174,7 @@ static const uint8_t ov361x_start_640[][2] = {
         {0x1a, 0x68},
 };
 
-static const uint8_t ov361x_bridge_start_640[][2] = {
+static const struct regval_list ov361x_bridge_start_640[] = {
         {0xf1, 0x60},  /* Hsize[7:0]*/
         {0x88, 0x00},  /* Hsize[15:8] Write Only, can't read */
         {0x89, 0x04},  /* Vsize[7:0] */
@@ -197,7 +191,7 @@ static const uint8_t ov361x_bridge_start_640[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t ov361x_start_320[][2] = {
+static const struct regval_list ov361x_start_320[] = {
         {0x12, 0x80},
         {0x13, 0xcf},
         {0x14, 0x40},
@@ -219,7 +213,7 @@ static const uint8_t ov361x_start_320[][2] = {
         {0x1a, 0x68},
 };
 
-static const uint8_t ov361x_bridge_start_320[][2] = {
+static const struct regval_list ov361x_bridge_start_320[] = {
         {0xf1, 0x60},  /* Hsize[7:0] */
         {0x88, 0x00},  /* Hsize[15:8] Write Only, can't read */
         {0x89, 0x04},  /* Vsize[7:0] */
@@ -236,7 +230,7 @@ static const uint8_t ov361x_bridge_start_320[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t ov361x_start_160[][2] = {
+static const struct regval_list ov361x_start_160[] = {
         {0x12, 0x80},
         {0x13, 0xcf},
         {0x14, 0x40},
@@ -258,7 +252,7 @@ static const uint8_t ov361x_start_160[][2] = {
         {0x1a, 0x68},
 };
 
-static const uint8_t ov361x_bridge_start_160[][2] = {
+static const struct regval_list ov361x_bridge_start_160[] = {
         {0xf1, 0x60},  /* Hsize[7:0] */
         {0x88, 0x00},  /* Hsize[15:8] Write Only, can't read */
         {0x89, 0x04},  /* Vsize[7:0] */
@@ -275,7 +269,7 @@ static const uint8_t ov361x_bridge_start_160[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t bridge_init[][2] = {
+static const struct regval_list bridge_init[] = {
         {0x88, 0xf8},
         {0x89, 0xff},
         {0x76, 0x03},
@@ -309,7 +303,7 @@ static const uint8_t bridge_init[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t ov965x_init[][2] = {
+static const struct regval_list ov965x_init[] = {
         {0x12, 0x80},   /* com7 - SSCB reset */
         {0x00, 0x00},   /* gain */
         {0x01, 0x80},   /* blue */
@@ -491,7 +485,7 @@ static const uint8_t ov965x_init[][2] = {
         {0xc0, 0xaa},
 };
 
-static const uint8_t bridge_init_2[][2] = {
+static const struct regval_list bridge_init_2[] = {
         {0x94, 0xaa},
         {0xf1, 0x60},
         {0xe5, 0x04},
@@ -519,7 +513,7 @@ static const uint8_t bridge_init_2[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t ov965x_init_2[][2] = {
+static const struct regval_list ov965x_init_2[] = {
         {0x3b, 0xc4},
         {0x1e, 0x04},   /* mvfp */
         {0x13, 0xe0},   /* com8 */
@@ -561,7 +555,7 @@ static const uint8_t ov965x_init_2[][2] = {
         {0x13, 0xe7},   /* com8 - everything (AGC, AWB and AEC) */
 };
 
-static const uint8_t ov971x_init[][2] = {
+static const struct regval_list ov971x_init[] = {
         {0x12, 0x80},
         {0x09, 0x10},
         {0x1e, 0x07},
@@ -619,7 +613,7 @@ static const uint8_t ov971x_init[][2] = {
         {0x09, 0x00}
 };
 
-static const uint8_t ov965x_start_1_vga[][2] = {     /* same for qvga */
+static const struct regval_list ov965x_start_1_vga[] = {     /* same for qvga */
         {0x12, 0x62},   /* com7 - 30fps VGA YUV */
         {0x36, 0xfa},   /* aref3 */
         {0x69, 0x0a},   /* hv */
@@ -642,7 +636,7 @@ static const uint8_t ov965x_start_1_vga[][2] = {     /* same for qvga */
         {0xc0, 0xaa},
 };
 
-static const uint8_t ov965x_start_1_svga[][2] = {
+static const struct regval_list ov965x_start_1_svga[] = {
         {0x12, 0x02},   /* com7 - YUYV - VGA 15 full resolution */
         {0x36, 0xf8},   /* aref3 */
         {0x69, 0x02},   /* hv */
@@ -664,7 +658,7 @@ static const uint8_t ov965x_start_1_svga[][2] = {
         {0xc0, 0xe2},
 };
 
-static const uint8_t ov965x_start_1_xga[][2] = {
+static const struct regval_list ov965x_start_1_xga[] = {
         {0x12, 0x02},   /* com7 */
         {0x36, 0xf8},   /* aref3 */
         {0x69, 0x02},   /* hv */
@@ -687,7 +681,7 @@ static const uint8_t ov965x_start_1_xga[][2] = {
         {0xc0, 0xe2},
 };
 
-static const uint8_t ov965x_start_1_sxga[][2] = {
+static const struct regval_list ov965x_start_1_sxga[] = {
         {0x12, 0x02},   /* com7 */
         {0x36, 0xf8},   /* aref3 */
         {0x69, 0x02},   /* hv */
@@ -710,7 +704,7 @@ static const uint8_t ov965x_start_1_sxga[][2] = {
         {0xc0, 0xe2},
 };
 
-static const uint8_t bridge_start_qvga[][2] = {
+static const struct regval_list bridge_start_qvga[] = {
         {0x94, 0xaa},
         {0xf1, 0x60},
         {0xe5, 0x04},
@@ -738,7 +732,7 @@ static const uint8_t bridge_start_qvga[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t bridge_start_vga[][2] = {
+static const struct regval_list bridge_start_vga[] = {
         {0x94, 0xaa},
         {0xf1, 0x60},
         {0xe5, 0x04},
@@ -765,7 +759,7 @@ static const uint8_t bridge_start_vga[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t bridge_start_svga[][2] = {
+static const struct regval_list bridge_start_svga[] = {
         {0x94, 0xaa},
         {0xf1, 0x60},
         {0xe5, 0x04},
@@ -792,7 +786,7 @@ static const uint8_t bridge_start_svga[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t bridge_start_xga[][2] = {
+static const struct regval_list bridge_start_xga[] = {
         {0x94, 0xaa},
         {0xf1, 0x60},
         {0xe5, 0x04},
@@ -819,7 +813,7 @@ static const uint8_t bridge_start_xga[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t bridge_start_sxga[][2] = {
+static const struct regval_list bridge_start_sxga[] = {
         {0x94, 0xaa},
         {0xf1, 0x60},
         {0xe5, 0x04},
@@ -836,7 +830,7 @@ static const uint8_t bridge_start_sxga[][2] = {
         {0x94, 0x11},
 };
 
-static const uint8_t ov965x_start_2_qvga[][2] = {
+static const struct regval_list ov965x_start_2_qvga[] = {
         {0x3b, 0xe4},   /* com11 - night mode 1/4 frame rate */
         {0x1e, 0x04},   /* mvfp */
         {0x13, 0xe0},   /* com8 */
@@ -854,7 +848,7 @@ static const uint8_t ov965x_start_2_qvga[][2] = {
         {0x3a, 0x80},   /* tslb - yuyv */
 };
 
-static const uint8_t ov965x_start_2_vga[][2] = {
+static const struct regval_list ov965x_start_2_vga[] = {
         {0x3b, 0xc4},   /* com11 - night mode 1/4 frame rate */
         {0x1e, 0x04},   /* mvfp */
         {0x13, 0xe0},   /* com8 */
@@ -870,7 +864,7 @@ static const uint8_t ov965x_start_2_vga[][2] = {
         {0x2d, 0x00},   /* advfl */
 };
 
-static const uint8_t ov965x_start_2_svga[][2] = {    /* same for xga */
+static const struct regval_list ov965x_start_2_svga[] = {    /* same for xga */
         {0x3b, 0xc4},   /* com11 - night mode 1/4 frame rate */
         {0x1e, 0x04},   /* mvfp */
         {0x13, 0xe0},   /* com8 */
@@ -884,7 +878,7 @@ static const uint8_t ov965x_start_2_svga[][2] = {    /* same for xga */
         {0xa3, 0x41},   /* bd60 */
 };
 
-static const uint8_t ov965x_start_2_sxga[][2] = {
+static const struct regval_list ov965x_start_2_sxga[] = {
         {0x13, 0xe0},   /* com8 */
         {0x00, 0x00},
         {0x13, 0xe7},   /* com8 - everything (AGC, AWB and AEC) */
@@ -898,7 +892,7 @@ static const uint8_t ov965x_start_2_sxga[][2] = {
         {0xa3, 0x41},   /* bd60 */
 };
 
-static const uint8_t ov562x_init[][2] = {
+static const struct regval_list ov562x_init[] = {
         {0x88, 0x20},
         {0x89, 0x0a},
         {0x8a, 0x90},
@@ -914,7 +908,7 @@ static const uint8_t ov562x_init[][2] = {
         {0x1d, 0x1e},
 };
 
-static const uint8_t ov562x_init_2[][2] = {
+static const struct regval_list ov562x_init_2[] = {
         {0x12, 0x80},
         {0x11, 0x41},
         {0x13, 0x00},
