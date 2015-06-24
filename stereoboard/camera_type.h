@@ -34,7 +34,7 @@ static inline void camera_chip_config() { camera_ov2640_config(); }
 #include "ov9712.h"
 #pragma message "Using OV9712"
 #define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Rising
-#define CAMERA_CHIP_UNRESET_TIMING 0
+#define CAMERA_CHIP_UNRESET_TIMING 0x1FFFF
 static inline void camera_control_bus_init() { SCCB_Init(); }
 static inline void camera_chip_config() { camera_ov9712_config(); }
 
