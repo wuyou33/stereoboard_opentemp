@@ -13,7 +13,6 @@
 #include "ov2640_reg.h"
 
 // Functions
-void camera_ov2640_i2c_init(void);
 void camera_ov2640_read(void);
 void camera_ov2640_config(void);
 

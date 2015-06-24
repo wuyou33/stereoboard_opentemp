@@ -3,16 +3,6 @@
 #include "sccb.h"
 
 
-/**
-  * @brief  Configures the ov2640 camera
-  */
-
-void camera_ov2640_i2c_init(void)
-{
-  SCCB_Init();
-}
-
-
 
 /***************************************************************
  *

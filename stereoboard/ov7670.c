@@ -3,16 +3,6 @@
 #include "sccb.h"
 
 
-/**
-  * @brief  Configures the ov7670 camera
-  */
-
-void camera_ov7670_i2c_init(void)
-{
-  SCCB_Init();
-}
-
-
 
 /***************************************************************
  *

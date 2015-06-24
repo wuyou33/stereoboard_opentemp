@@ -15,7 +15,7 @@
 #pragma message "Using OV7670"
 #define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Rising
 #define CAMERA_CHIP_UNRESET_TIMING 0
-static inline void camera_control_bus_init() { camera_ov7670_i2c_init(); }
+static inline void camera_control_bus_init() { SCCB_Init(); }
 static inline void camera_chip_config() { camera_ov7670_config(); }
 
 

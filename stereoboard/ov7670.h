@@ -13,7 +13,6 @@
 #include "ov7670_reg.h"
 
 // Functions
-void camera_ov7670_i2c_init(void);
 void camera_ov7670_read(void);
 void camera_ov7670_config(void);
 

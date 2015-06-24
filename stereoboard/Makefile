@@ -205,6 +205,9 @@ upload:
 cleanspaces:
 	make -C style
 
+testall:
+	make clean && make BOARD=ov7670 && make clean && make BOARD=ov2640 && make clean && make BOARD=ov9712 && make clean && make BOARD=festo
+
 style:
 	find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/\r$$//' \;
 	find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/\r$$//' \;
