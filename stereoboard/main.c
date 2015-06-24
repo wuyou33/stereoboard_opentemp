@@ -47,18 +47,24 @@ uint16_t offset_crop = 0;
 void calculateDistanceMatrix(uint8_t* disparity_image,
 		int* matrixBuffer,
 		uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
-		uint8_t heightPerBin,uint8_t *toSendBuffer) {
+		uint8_t heightPerBin,uint8_t *toSendBuffer, uint32_t disparity_range) {
 
 	int indexBuffer;
 
 	uint8_t y;
 	uint8_t valueInImageBuffer=0;
+	uint16_t positionInImageBuffer=0;
+	uint8_t positionInMatrix=0;
 	uint8_t x;
 	uint8_t z;
 	uint8_t highestValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][5];
+	uint16_t sumDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range];
 	for (x = 0; x < MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS; x++) {
 		for(y=0;y<5;y++){
 			highestValues[x][y]=0;
+		}
+		for(y=0;y<disparity_range;y++){
+			sumDisparities[x][y]=0;
 		}
 	}
 
@@ -69,19 +75,27 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 				int bufferIndex = 0;
 				for (bufferIndex = 0; bufferIndex < widthPerBin;
 						bufferIndex++) {
-					valueInImageBuffer=disparity_image[pixelsPerLine* (y * heightPerBin) + line * pixelsPerLine+ widthPerBin * x + blackBorderSize+ bufferIndex];
-					if(valueInImageBuffer>matrixBuffer[y * MATRIX_WIDTH_BINS + x])
+					positionInImageBuffer = pixelsPerLine* (y * heightPerBin) + line * pixelsPerLine+ widthPerBin * x + blackBorderSize+ bufferIndex;
+					valueInImageBuffer=disparity_image[positionInImageBuffer];
+
+					positionInMatrix = y * MATRIX_WIDTH_BINS + x;
+
+					sumDisparities[positionInMatrix][valueInImageBuffer]++;
+
+					/*
+					if(valueInImageBuffer>matrixBuffer[positionInMatrix])
 					{
-						matrixBuffer[y * MATRIX_WIDTH_BINS + x]=valueInImageBuffer;
+						matrixBuffer[positionInMatrix]=valueInImageBuffer;
 					}
 					for(z=0;z <5;z++)
 					{
-						if(valueInImageBuffer>highestValues[y * MATRIX_WIDTH_BINS + x][z])
+						if(valueInImageBuffer>highestValues[positionInMatrix][z])
 						{
-							highestValues[y * MATRIX_WIDTH_BINS + x][z]=valueInImageBuffer;
+							highestValues[positionInMatrix][z]=valueInImageBuffer;
 							break;
 						}
 					}
+					*/
 				}
 			}
 		}
@@ -94,11 +108,30 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
+
+		int sum_disparities = 0;
+		for ( y = disparity_range-1; y>=0; y--)
+		{
+			int COUNTER_THRESHOLD = 10;
+			sum_disparities += sumDisparities[bufferIndex][y];
+			if (sum_disparities > COUNTER_THRESHOLD)
+			{
+				toSendBuffer[bufferIndex] = y;
+				if ( y > CLOSE_BOUNDARY )
+				{
+					anyOn=1;
+				}
+				break;
+
+			}
+		}
+		/*
 		toSendBuffer[bufferIndex]=highestValues[bufferIndex][4];
-		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY && bufferIndex <MATRIX_WIDTH_BINS*4)
+		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY)
 		{
 			anyOn=1;
 		}
+		*/
 	}
 	if(anyOn==1){
 		led_set();
@@ -107,6 +140,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	{
 		led_clear();
 	}
+
 
 }
 
@@ -192,7 +226,7 @@ int main(void)
 
 	// Stereo parameters:
 	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
-	uint32_t disparity_min = 6;
+	uint32_t disparity_min = 0;
 	uint32_t disparity_step = 1;
 	uint8_t thr1 = 7;
 	uint8_t thr2 = 4;
@@ -236,15 +270,21 @@ int main(void)
 	// Determine disparities:
 	min_y = 0;
 	max_y = 96;
-	/*stereo_vision_Kirk(current_image_buffer,
-			disparity_image_buffer_8bit, image_width, image_height,
-			disparity_min, disparity_range, disparity_step, thr1, thr2,
-			min_y, max_y);*/
 	memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
-	stereo_vision_sparse_block(current_image_buffer,
+
+	if ( STEREO_ALGORITHM )
+	{
+		stereo_vision_Kirk(current_image_buffer,
 				disparity_image_buffer_8bit, image_width, image_height,
 				disparity_min, disparity_range, disparity_step, thr1, thr2,
 				min_y, max_y);
+	}
+	else {
+		stereo_vision_sparse_block(current_image_buffer,
+				disparity_image_buffer_8bit, image_width, image_height,
+				disparity_min, disparity_range, disparity_step, thr1, thr2,
+				min_y, max_y);
+	}
 	//led_toggle();
 #endif
 
@@ -256,7 +296,7 @@ int main(void)
 	//led_clear();
 	// Create the distance matrix by summing pixels per bin
 	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
-			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
+			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 #endif
 
 

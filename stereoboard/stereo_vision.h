@@ -4,6 +4,7 @@
 
 #include <arm_math.h>
 #include "main_parameters.h"
+#include "../multigaze/stereoboard_parameters.h"
 
 // Stereo vision header file
 void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,

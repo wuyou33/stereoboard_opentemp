@@ -1,7 +1,7 @@
 // Stereo vision code
 
 #include "stereo_vision.h"
-
+#include BOARD_FILE
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 /**
@@ -18,7 +18,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   int vertical_block_size = 5; // vertical size of SAD-window
   int horizontal_block_size = 5; // horizontal size of SAD-window
   int GRADIENT_THRESHOLD = 5; // defines if image gradient indicates sufficient texture
-  int PKRN_THRESHOLD = 120; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
+  int PKRN_THRESHOLD = 130; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
 
   int half_vertical_block_size = (vertical_block_size - 1)/2;
   int half_horizontal_block_size = (horizontal_block_size - 1)/2;
@@ -39,10 +39,15 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   q15_t line_gradient[fakeShitImageWidth-1]; // horizontal image gradients for a single line
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
+  q15_t sum_counts[disparity_range];
   q15_t c1;
   q15_t c2;
-  q15_t c1_i;
-  q15_t c2_i;
+  uint32_t  c1_i;
+  uint32_t  c2_i;
+  uint8_t anyOn=0;
+
+  // set sum vector back to zero for new window
+  //arm_fill_q15(0, sum_counts, disparity_range);
 
   // check that disparity search stays within the bounds of the input image
 	int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
@@ -109,6 +114,8 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + i;
 						if (locationInBuffer<12288){
 							out[locationInBuffer] = disparity_value;//c1_i;
+							//sum_counts[disparity_value]++;
+
 						}
 	//					out[superIndexInBuffer++]=c1_i;
 		//				out[0]=20;
@@ -119,7 +126,22 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 			}
 	    }
 	}
-	out[0]=20;
+
+	/*
+	int sum_disparities = 0;
+	for ( d = disparity_range-1; d>CLOSE_BOUNDARY; d--)
+	{
+		sum_disparities += sum_counts[d];
+	}
+
+	if(sum_disparities>5){
+		led_set();
+	}
+	else
+	{
+		led_clear();
+	}
+	*/
 
 }
 
