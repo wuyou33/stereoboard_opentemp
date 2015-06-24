@@ -6,7 +6,7 @@ import array
 import sys
 import stereoboard_tools
 BAUDRATE=1000000
-ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
+ser = serial.Serial('/dev/ttyUSB1',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 W = 128
 H=96

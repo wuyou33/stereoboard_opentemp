@@ -3,7 +3,7 @@ import serial
 import stereoboard_tools
 import Tkinter as tk
 import numpy as np
-ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB1',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 
