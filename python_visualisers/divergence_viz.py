@@ -4,7 +4,7 @@ import stereoboard_tools
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-plt.axis([0,500, 0, 200])
+plt.axis([0,300, 0, 200])
 plt.ion()
 plt.show()
    
@@ -14,7 +14,10 @@ saveImages= False
 currentBuffer=[]
 maxExpectedInImage=250 # Each pixel is divided by this value to go to grayscale values for the cv2 image
 cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-yintHistory=[]
+yint_yHistory=[]
+yint_xHistory=[]
+slope_xHistory=[]
+slope_yHistory=[]
 while True:
     try:
         # Read the image
@@ -34,13 +37,26 @@ while True:
 
             img = stereoboard_tools.fill_image_array(sync1,oneImage, lineLength, lineCount)
             img=np.array(img)
-	    slope=img[0,0]
-            yint=img[0,1]
-            print 'sloap: ' , slope, ' yint: ' , yint
+	    slope_x=img[0,0]
+            yint_x=img[0,1]
+	    slope_y=img[0,2]
+            yint_y=img[0,3]
+            frame_number=img[0,4]
+           # print 'x:: slop: ' , slope_x, ' yint: ' , yint_x,'x:: slop: ' , slope_y, ' yint: ' , yint_y
+            print frame_number
 	    print img
-            yintHistory.append(yint)
-	    plt.plot(yintHistory)
+            yint_xHistory.append(yint_x)
+            yint_yHistory.append(yint_y)
+            slope_xHistory.append(slope_x)
+            slope_yHistory.append(slope_y)
+	    plt.plot(yint_xHistory)
 	    plt.draw()
+	   # plt.plot(slope_xHistory)
+	    #plt.draw()
+	   # plt.plot(yint_yHistory)
+	    #plt.draw()
+	    #plt.plot(slope_yHistory)
+	    #plt.draw()
 	    time.sleep(0.05)
         
 

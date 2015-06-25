@@ -7,135 +7,110 @@
 
 #include <divergence.h>
 
-//main code for the edge flow divergence cod
-/*void calculate_edge_flow_simple(uint8_t* in,uint32_t* edge_histogram,uint32_t* edge_histogram_prev,int32_t* displacement,float* slope,float* yint,uint32_t image_width, uint32_t image_height)
-{
-	//Initialize arrays and variables
 
 
-	//calculate edge histograms from previous image and current
-	calculate_edge_histogram(in,edge_histogram,image_width,image_height);
-	//calculate_edge_histogram(in_prev,edge_histogram_prev_p,image_width,image_height);
-
-	//calculate displacement between previous image and current
-	calculate_displacement(edge_histogram,edge_histogram_prev, displacement, image_width, image_height);
-
-
-	//Fit a linear model to the displacement to aquire slope and displacement
-	line_fit(displacement,slope,yint,image_width);
-	//line_fit_RANSAC(displacement,slope,yint,image_width);
-
-}*/
-
-
-void calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct edge_flow_t* edge_flow, struct edge_hist_t* edge_hist[],int front,int rear,int windowsize,int max_distance,int edge_threshold,uint32_t  image_width,uint32_t  image_height)
+int calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct edge_flow_t* edge_flow, struct edge_hist_t* edge_hist,int front,int rear,int windowsize,int max_distance,int edge_threshold,uint32_t  image_width,uint32_t  image_height)
 {
 
-    //Define arrays and pointers for edge histogram and displacements
-    int edge_histogram_x[image_width],prev_edge_histogram_x[image_width];
-    int * edge_histogram_x_p=edge_histogram_x;
-    int * prev_edge_histogram_x_p=prev_edge_histogram_x;
+	//Define arrays and pointers for edge histogram and displacements
+	int edge_histogram_x[IMAGE_WIDTH], prev_edge_histogram_x[IMAGE_WIDTH];
 
-    int edge_histogram_y[image_height],prev_edge_histogram_y[image_height];
-    int * edge_histogram_y_p=edge_histogram_y;
-    int * prev_edge_histogram_y_p=prev_edge_histogram_y;
+	int * edge_histogram_x_p=edge_histogram_x;
+	int * prev_edge_histogram_x_p=prev_edge_histogram_x;
 
-    float slope_x=0.0;
-    float trans_x=0.0;
-    float slope_y=0.0;
-    float trans_y=0.0;
+	int edge_histogram_y[IMAGE_HEIGHT],prev_edge_histogram_y[IMAGE_HEIGHT];
+	int * edge_histogram_y_p=edge_histogram_y;
+	int * prev_edge_histogram_y_p=prev_edge_histogram_y;
 
-
-    int previous_frame_number[2];
-
-        if(MAX_HORIZON!=2){
-        float edge_flow_x,edge_flow_y;
-
-        if(edge_flow->horizontal[1]<0)
-        edge_flow_x=-1*edge_flow->horizontal[1];
-        else
-        edge_flow_x=edge_flow->horizontal[1];
-
-        if(edge_flow->vertical[1]<0)
-        edge_flow_y=-1*edge_flow->vertical[1];
-        else
-        edge_flow_y=edge_flow->vertical[1];
-
-       if((int)(1/edge_flow_x>MAX_HORIZON-1))
-           previous_frame_number[0]=MAX_HORIZON-1;
-       else
-           previous_frame_number[0]=(int)(1/edge_flow_x)+1;
-
-       if((int)(1/edge_flow_y>MAX_HORIZON-1))
-           previous_frame_number[1]=MAX_HORIZON-1;
-       else
-           previous_frame_number[1]=(int)(1/edge_flow_y)+1;
-        }else{
-       	 previous_frame_number[0]=1;
-       	 previous_frame_number[1]=1;
-        }
+	float slope_x=0.0;
+	float trans_x=0.0;
+	float slope_y=0.0;
+	float trans_y=0.0;
 
 
-        // the previous frame number relative to dynamic parameters
-        int previous_frame_number_rel[2];
-        previous_frame_number_rel[0]=front-previous_frame_number[0];
-        previous_frame_number_rel[1]=front-previous_frame_number[1];
-        if(previous_frame_number_rel[0]<0)
-            previous_frame_number_rel[0]=rear+(MAX_HORIZON-1-abs(previous_frame_number[0]));
-        if(previous_frame_number_rel[1]<0)
-            previous_frame_number_rel[1]=rear+(MAX_HORIZON-1-abs(previous_frame_number[1]));
+	//Calculate previous frame number
+	int previous_frame_number[2];
+
+	if(MAX_HORIZON!=2){
+		float edge_flow_x,edge_flow_y;
+
+		if(edge_flow->horizontal_trans<0)
+			edge_flow_x=-1*edge_flow->horizontal_trans;
+		else
+			edge_flow_x=edge_flow->horizontal_trans;
+
+		if(edge_flow->vertical_trans<0)
+			edge_flow_y=-1*edge_flow->vertical_trans;
+		else
+			edge_flow_y=edge_flow->vertical_trans;
+
+		if((int)(1/edge_flow_x>MAX_HORIZON-1))
+			previous_frame_number[0]=MAX_HORIZON-1;
+		else
+			previous_frame_number[0]=(int)(1/edge_flow_x)+1;
+
+		if((int)(1/edge_flow_y>MAX_HORIZON-1))
+			previous_frame_number[1]=MAX_HORIZON-1;
+		else
+			previous_frame_number[1]=(int)(1/edge_flow_y)+1;
+	}else{
+		previous_frame_number[0]=1;
+		previous_frame_number[1]=1;
+	}
 
 
-        // prev_edge_histogram_x_p=&edge_hist[previous_frame_number_rel[0]].horizontal;
-         //prev_edge_histogram_y_p=&edge_hist[previous_frame_number_rel[1]].vertical;
-
-        memcpy(prev_edge_histogram_x_p,&edge_hist[previous_frame_number_rel[1]]->horizontal,sizeof(int)*image_width);
-       memcpy(prev_edge_histogram_y_p,&edge_hist[previous_frame_number_rel[1]]->vertical,sizeof(int)*image_height);
-
-
-
-        calculate_edge_histogram(in,edge_histogram_x_p,image_width,image_height);
-        calculate_edge_histogram(in,edge_histogram_y_p,image_height,image_width);
+	// the previous frame number relative to dynamic parameters
+	int previous_frame_number_rel[2];
+	previous_frame_number_rel[0]=front-previous_frame_number[0];
+	previous_frame_number_rel[1]=front-previous_frame_number[1];
+	if(previous_frame_number_rel[0]<0)
+		previous_frame_number_rel[0]=rear+(MAX_HORIZON-1-abs(previous_frame_number[0]));
+	if(previous_frame_number_rel[1]<0)
+		previous_frame_number_rel[1]=rear+(MAX_HORIZON-1-abs(previous_frame_number[1]));
 
 
-        calculate_displacement(edge_histogram_x_p,prev_edge_histogram_x_p,displacement->horizontal,previous_frame_number[0],image_width);
-        calculate_displacement(edge_histogram_y_p,prev_edge_histogram_y_p,displacement->vertical,previous_frame_number[1],image_height);
+	// copy previous edge histogram based on previous frame number
+
+	memcpy(prev_edge_histogram_x_p,edge_hist[previous_frame_number_rel[0]].horizontal,sizeof(int)*image_width);
+	memcpy(prev_edge_histogram_y_p,edge_hist[previous_frame_number_rel[1]].vertical,sizeof(int)*image_height);
 
 
-        line_fit_RANSAC(displacement->horizontal, &slope_x,&trans_x,image_width);
-        line_fit_RANSAC(displacement->vertical, &slope_y,&trans_y,image_height);
+	//Calculate Edge Histogram
+	calculate_edge_histogram(in,edge_histogram_x_p,image_width,image_height,'x');
+	calculate_edge_histogram(in,edge_histogram_y_p,image_width,image_height,'y');
 
-        //Correct Divergence slope and translation by the amount of frames skipped
-        slope_x=slope_x/(float)previous_frame_number[0];
-        trans_x=trans_x/(float)previous_frame_number[0];
-
-        slope_y=slope_y/(float)previous_frame_number[1];
-        trans_y=trans_y/(float)previous_frame_number[1];
-
-
-        edge_flow->horizontal[1]=trans_x;
-        edge_flow->vertical[1]=trans_y;
-        edge_flow->horizontal[0]=slope_x;
-        edge_flow->vertical[0]=slope_y;
-
-
-       // int* adresse_hor=&edge_hist[front].horizontal;
-       // int* adresse_ver=&edge_hist[front].vertical;
+	//Calculate displacement
+	//TODO add max distance and window size to function (is divined iin function)
+	calculate_displacement(edge_histogram_x_p,prev_edge_histogram_x_p,displacement->horizontal,image_width);
+	calculate_displacement(edge_histogram_y_p,prev_edge_histogram_y_p,displacement->vertical,image_height);
 
 
 
-    //Copy new edge histogram to the structure
-    memcpy(&edge_hist[front]->horizontal,edge_histogram_x_p,sizeof(int)*image_width);
-    memcpy(&edge_hist[front]->vertical,edge_histogram_y_p,sizeof(int)*image_height);
+
+	//Fit a linear line
+	//TODO Fix RANSAC function from producing NAN's
+	line_fit(displacement->horizontal, &slope_x,&trans_x,image_width);
+	line_fit(displacement->vertical,  &slope_y,&trans_y,image_height);
 
 
-	front++;
-	rear++;
+	//Correct Divergence slope and translation by the amount of frames skipped
+	slope_x=slope_x/(float)previous_frame_number[0];
+	trans_x=trans_x/(float)previous_frame_number[0];
+	slope_y=slope_y/(float)previous_frame_number[1];
+	trans_y=trans_y/(float)previous_frame_number[1];
 
-	if(front>MAX_HORIZON-1)
-		front=0;
-	if(rear>MAX_HORIZON-1)
-		rear=0;
+
+	edge_flow->horizontal_trans=trans_x;
+	edge_flow->vertical_trans=trans_y;
+	edge_flow->horizontal_slope=slope_x;
+	edge_flow->vertical_slope=slope_y;
+
+
+	//Copy new edge histogram to the structure
+	memcpy(edge_hist[front].horizontal,edge_histogram_x_p,sizeof(int)*image_width);
+	memcpy(edge_hist[front].vertical,edge_histogram_y_p,sizeof(int)*image_height);
+
+	return previous_frame_number[0];
 
 
 }
@@ -143,7 +118,7 @@ void calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct
 
 
 //calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
-void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_width, uint32_t image_height)
+void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_width, uint32_t image_height,char direction)
 {
 
 	int8_t  sobel_left;
@@ -158,51 +133,88 @@ void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_wid
 
 	int8_t  c,r;
 
-	for( x = 0; x < image_width; x++)
+	if(direction=='x')
 	{
-		for( y = 0; y < image_height; y++)
+		for( x = 0; x < image_width; x++)
 		{
-
-			uint32_t idx = image_width*y*2 + (x)*2;
-			sobel_left=0;
-			sobel_right=0;
-
-			for(c = -1; c <=1; c++)
+			for( y = 0; y < image_height; y++)
 			{
-				uint32_t idx_filter = image_width*(y)*2 + (x+c)*2;
 
-				sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
-				sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);
+				uint32_t idx = image_width*y*2 + (x)*2;
+				sobel_left=0;
+				sobel_right=0;
+
+				for(c = -1; c <=1; c++)
+				{
+					uint32_t idx_filter = image_width*(y)*2 + (x+c)*2;
+
+					sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
+					sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);
+
+				}
+				sobel_left=abs(sobel_left);
+				edge_histogram_temp += (uint32_t)sobel_left;
+				//out[idx+1]=(uint8_t)sobel_left;
+				//out[idx]=0;
 
 			}
-			sobel_left=abs(sobel_left);
-			edge_histogram_temp += (uint32_t)sobel_left;
-			//out[idx+1]=(uint8_t)sobel_left;
-			//out[idx]=0;
+
+			edge_histogram[x]=(uint32_t)edge_histogram_temp;
+			edge_histogram_temp=0;
+
+		}
+	}
+	else if(direction=='y'){
+		for( y = 0; y < image_height; y++)
+		{
+			for( x = 0; x < image_width; x++)
+			{
+
+				uint32_t idx = image_width*y*2 + (x)*2;
+				sobel_left=0;
+				sobel_right=0;
+
+				for(c = -1; c <=1; c++)
+				{
+					uint32_t idx_filter = image_width*(y+c)*2 + (x)*2;
+
+					sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
+					sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);
+
+				}
+				sobel_left=abs(sobel_left);
+				edge_histogram_temp += (uint32_t)sobel_left;
+				//out[idx+1]=(uint8_t)sobel_left;
+				//out[idx]=0;
+
+			}
+
+			edge_histogram[y]=(uint32_t)edge_histogram_temp;
+			edge_histogram_temp=0;
 
 		}
 
-		edge_histogram[x]=(uint32_t)edge_histogram_temp;
-		edge_histogram_temp=0;
+	}else{}
 
-	}
 }
 
 //Calculate_displacement calculates the displacement between two histograms
-void calculate_displacement(int* edge_histogram,int* edge_histogram_prev,int* displacement,uint32_t image_width,uint32_t image_height)
-{	 int32_t  c,r;
-uint16_t y,x,flow_ind;
+void calculate_displacement(int* edge_histogram,int* edge_histogram_prev,int* displacement,uint32_t size)
+{volatile	int  c=0;
+volatile int r=0;
+volatile int y=0;
+volatile int x=0;
 
-int32_t W=10;
-int32_t D=10;
-uint32_t SAD_temp[20];
+volatile int W=10;
+volatile int D=10;
+volatile int SAD_temp[20];
 
-uint32_t min_index=0;
+volatile int min_index=0;
 
-for(x=0; x<image_width;x++)
+for(x=0; x<size;x++)
 {
 
-	if(x>=W+D&&x<=image_width-W-D)
+	if(x>=W+D&&x<=size-W-D)
 	{
 		for(c=-D;c<W;c++)
 		{
@@ -216,7 +228,7 @@ for(x=0; x<image_width;x++)
 
 		min_index=getMinimum(SAD_temp,20);
 
-		displacement[x]=(int32_t)(min_index-W);
+		displacement[x]=(int)(min_index-W);
 	}else{
 		displacement[x]=0;
 	}
@@ -229,7 +241,7 @@ for(x=0; x<image_width;x++)
 }
 
 //Line_fit fits a line using least squared to the histogram disparity map (displacement
-void line_fit(int32_t* displacement, float* Slope, float* Yint,uint32_t image_width)
+void line_fit(int* displacement, float* Slope, float* Yint,uint32_t image_width)
 {
 	int16_t x;
 
@@ -247,12 +259,12 @@ void line_fit(int32_t* displacement, float* Slope, float* Yint,uint32_t image_wi
 
 		if(displacement[x]!=0){
 
-		SumX+=x;
-		SumY+=displacement[x];
+			SumX+=x;
+			SumY+=displacement[x];
 
-		SumX2+=x *x;
-		SumXY+=x *displacement[x];
-		Count++;
+			SumX2+=x *x;
+			SumXY+=x *displacement[x];
+			Count++;
 		}
 
 	}
@@ -274,23 +286,22 @@ void line_fit(int32_t* displacement, float* Slope, float* Yint,uint32_t image_wi
 
 }
 
-void line_fit_RANSAC( int* displacement, float* Slope, float* Yint,int size)
+void line_fit_RANSAC( int* displacement, float* Slope, float* Yint,int size,int* X)
 {
-
 	//Fit a linear line with RANSAC (from Guido's code)
 	int ransac_iter=20;
 	int it;
-	int k;
-	int ind1, ind2, tmp, entry, total_error, best_ind;
-	int dx, dflow, predicted_flow;
+	volatile int k;
+	volatile int ind1, ind2, tmp, entry, total_error, best_ind;
+	volatile int dx, dflow, predicted_flow;
 	// flow = a * x + b
 	float a[ransac_iter];
 	float b[ransac_iter];
 	float a_temp,b_temp;
 	int errors[ransac_iter];
 
-	int X[size];
-	int count_disp=0;
+
+	volatile int count_disp=0;
 
 	for(k=0;k<size;k++){
 		X[k]=k;
@@ -316,10 +327,10 @@ void line_fit_RANSAC( int* displacement, float* Slope, float* Yint,int size)
 				ind2 = ind1;
 				ind1 = tmp;
 			}
-			while(displacement[ind1]==0)
+			/*while(displacement[ind1]==0)
 				ind1 = rand() % size;
 			while(displacement[ind2]==0)
-				ind2 = rand() % size;
+				ind2 = rand() % size;*/
 
 
 
@@ -343,20 +354,34 @@ void line_fit_RANSAC( int* displacement, float* Slope, float* Yint,int size)
 		// select best fit:
 		best_ind = getMinimum2(errors, 20);
 		//printf("%d\n",best_ind);
-		(*Slope) = (float)a[best_ind] ;
-		(*Yint) = (float)b[best_ind];
+		(*Slope) = a[best_ind];
+		(*Yint) = b[best_ind];
 	}
 	else
 	{
-		(*Slope) = 0.0 ;
-		(*Yint) = 0.0;
+		(*Slope) = 0.0;
+		(*Yint)= 0.0;
 	}
-
 
 
 
 }
 
+float simpleKalmanFilter(float* cov,float previous_est, float current_meas,float Q,float R)
+{
+
+	float predict_state=previous_est;
+	float predict_cov=*cov+Q;
+	float K=predict_cov*(1/(*cov+R));
+
+	float new_est=predict_state+K*(current_meas-previous_est);
+	*cov=(1-K)*predict_cov;
+
+	current_meas=new_est;
+
+
+	return new_est;
+}
 
 
 //This function is a visualization tool which visualizes the Edge filter in the one image and the histogram disparity with line fit in the second.
@@ -379,7 +404,7 @@ void visualize_divergence(uint8_t* in,int32_t* displacement,float Slope, float Y
 
 		{
 
-			 idx =  image_width*y*2 + (x)*2;
+			idx =  image_width*y*2 + (x)*2;
 
 			/*if(y==line_check1)
 				out[idx]=255;
@@ -408,7 +433,7 @@ int getMinimum2(int * flow_error, int  max_ind)
 	uint32_t min_err = flow_error[0];
 	for(i = 1; i < max_ind; i++)
 	{
-		if(flow_error[i] < min_err)
+		if(flow_error[i] < min_err&&!isnan(flow_error[i]))
 		{
 			min_ind = i;
 			min_err = flow_error[i];
