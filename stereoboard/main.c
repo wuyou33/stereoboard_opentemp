@@ -308,6 +308,8 @@ int main(void)
 	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
+	
+    SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 #endif
 

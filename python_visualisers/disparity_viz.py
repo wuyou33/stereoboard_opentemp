@@ -10,7 +10,7 @@ saveImages= False
 
 currentBuffer=[]
 
-cv2.namedWindow('img',cv2.WINDOW_NORMAL)
+#cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 
 while True:
     try:
