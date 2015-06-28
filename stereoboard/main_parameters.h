@@ -20,14 +20,14 @@
 #endif
 
 #ifndef SEND_IMAGE
-	#define SEND_IMAGE 0 // 1
+	#define SEND_IMAGE 1 // 1
 #endif
 
 #ifndef SEND_DISPARITY_MAP
 	#define SEND_DISPARITY_MAP 0
 #endif
 #ifndef SEND_MATRIX
-	#define SEND_MATRIX 1
+	#define SEND_MATRIX 0
 #endif
 
 #define SMOOTH_DISPARITY_MAP 1

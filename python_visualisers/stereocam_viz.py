@@ -12,7 +12,6 @@ saveImages=True
 DISPARITY_OFFSET_LEFT=0
 DISPARITY_OFFSET_RIGHT=0
 DISPARITY_BORDER=W/2
-previousLeftImage=None
 ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 
@@ -20,19 +19,21 @@ frameNumber = 0
 
 
 
-cv2.namedWindow('img', cv2.WINDOW_NORMAL)
-cv2.namedWindow('leftimg', cv2.WINDOW_NORMAL)
-cv2.namedWindow('rightimg', cv2.WINDOW_NORMAL)
+#cv2.namedWindow('img', cv2.WINDOW_NORMAL)
+#cv2.namedWindow('leftimg', cv2.WINDOW_NORMAL)
+#cv2.namedWindow('rightimg', cv2.WINDOW_NORMAL)
 
 currentBuffer=[]
 while True:
     try:
         # Read the image
-        currentBuffer, location = stereoboard_tools.readPartOfImage(ser, currentBuffer)
+        currentBuffer, location,eofsread = stereoboard_tools.readPartOfImage(ser, currentBuffer)
 
-        if location > 0:
-            oneImage = currentBuffer[0:location]
-            currentBuffer=currentBuffer[location::]
+        startPosition=location[0]
+        endPosition=location[1]
+        if location[0] > -1:
+            oneImage = currentBuffer[startPosition:endPosition]
+            currentBuffer=currentBuffer[endPosition::]
 
             # Search the startbyte
             sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
@@ -58,5 +59,8 @@ while True:
             if saveImages:
                 stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')
                 frameNumber+=1
-    except:
+    except KeyboardInterrupt:
+	break
+    except Exception:
         print 'error!'
+	stereoboard_tools.PrintException()

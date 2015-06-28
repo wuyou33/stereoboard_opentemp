@@ -104,24 +104,31 @@ def draw_sonar_visualisation(matrix,height):
 
 
 def fill_image_array(startSync, raw, width, height):
-    line=0
-    # Initialise image
-    img = np.zeros((height,width))
+    try:
+	    line=0
+	    # Initialise image
+	    img = np.zeros((height,width))
 
-    # Fill the image arrays
-    for i in range(startSync + 4, startSync+(width+8)*height):
-        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-            if (raw[i + 3] == 128):
-                # print i
-                # Start Of Line
-                startOfBuf = i + 4
-                endOfBuf = (i + 4 + width)
-                img[line, :] = raw[startOfBuf:endOfBuf]
-                line += 1;
-                ## START MATRIX
-                # Search for the startposition
-    return img
-
+	    # Fill the image arrays
+	    for i in range(startSync + 4, startSync+(width+8)*height):
+		if i+60 > len(raw):
+		   break
+		if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
+		    if (raw[i + 3] == 128):
+			try:
+				# print i
+				# Start Of Line
+				startOfBuf = i + 4
+				endOfBuf = (i + 4 + width)
+				img[line, :] = raw[startOfBuf:endOfBuf]
+				line += 1;
+				## START MATRIX
+				# Search for the startposition
+			except Exception:
+				print 'ended before end'
+	    return img
+    except Exception as ecsfsf: 
+	PrintException()
 def readPartOfImage(ser, currentBuffer):
     readSize= ser.inWaiting()
     while readSize ==0:
@@ -183,29 +190,31 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
 
 
         for i in range(startposition,size_of_one_image+startposition):
-            if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
-                if (raw[i+3] == 128):# Start Of Line
-                    startOfBuf = i+4
-                    endOfBuf = (i+4+128+128)
-                    lineBuffer = raw[startOfBuf:endOfBuf]
-                    rightLine = lineBuffer[::2]
-                    leftLine = lineBuffer[1:][::2]
+	    try:
+		    if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
+		        if (raw[i+3] == 128):# Start Of Line
+		            startOfBuf = i+4
+		            endOfBuf = (i+4+128+128)
+		            lineBuffer = raw[startOfBuf:endOfBuf]
+		            rightLine = lineBuffer[::2]
+		            leftLine = lineBuffer[1:][::2]
 
-                    halfWay = disparity_border
+		            halfWay = disparity_border
 
-                    # Line indicates the horizontal line
-                    img[line,1:2*halfWay:2]=leftLine[0:halfWay]
-                    img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
-                    img[line,2*halfWay+1::2]=leftLine[halfWay::]
-                    img[line+disparity_offset_right,2*halfWay+0::2]=rightLine[halfWay::]
-                    leftImage[line,:]=leftLine
-                    rightImage[line,:]=rightLine
-                    line+=1
-                else:
-                    if (raw[i+3] == 171):
-                        # End of Image
-                        print 'END OF IMAGE'
-
+		            # Line indicates the horizontal line
+		            img[line,1:2*halfWay:2]=leftLine[0:halfWay]
+		            img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
+		            img[line,2*halfWay+1::2]=leftLine[halfWay::]
+		            img[line+disparity_offset_right,2*halfWay+0::2]=rightLine[halfWay::]
+		            leftImage[line,:]=leftLine
+		            rightImage[line,:]=rightLine
+		            line+=1
+		        else:
+		            if (raw[i+3] == 171):
+		                # End of Image
+		                print 'END OF IMAGE'
+	    except Exception as esfsfs: 
+	        break
         return img, leftImage, rightImage
     except Exception as e:
         PrintException()
