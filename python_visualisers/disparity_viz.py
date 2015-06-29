@@ -45,16 +45,15 @@ while True:
 		    totalData.extend(row)
 		dataWriter.writerow(totalData)
                 frameNumber+=1
-            if lineCount < 20:
-            	#stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
-            	img /= 20
-            	# Create a color image
-            	img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
+    	    #stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
+    	    img /= 20
+    	    # Create a color image
+    	    img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
 
-	    print 'image! ', img.sum()
-          #  img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
-	    img=cv2.resize(img,(0,0),fx=20,fy=20,interpolation=cv2.INTER_NEAREST)
-            cv2.imshow('img',img)
+   
+  #  img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
+    	    img=cv2.resize(img,(0,0),fx=10,fy=10,interpolation=cv2.INTER_NEAREST)
+   	    cv2.imshow('img',img)
 
 
             key=cv2.waitKey(1)
