@@ -58,14 +58,18 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	uint8_t x;
 	uint8_t z;
 	uint8_t highestValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][5];
-	uint16_t sumDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range];
+	uint16_t sumCountDisparityValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range];
+	
+	uint32_t sumValuesDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS];
+	// Initialise the sum array and the max arrays
 	for (x = 0; x < MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS; x++) {
 		for(y=0;y<5;y++){
 			highestValues[x][y]=0;
 		}
 		for(y=0;y<disparity_range;y++){
-			sumDisparities[x][y]=0;
+			sumCountDisparityValues[x][y]=0;
 		}
+		sumValuesDisparities[x]=0;
 	}
 
 	for (x = 0; x < MATRIX_WIDTH_BINS; x++) {
@@ -79,23 +83,8 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 					valueInImageBuffer=disparity_image[positionInImageBuffer];
 
 					positionInMatrix = y * MATRIX_WIDTH_BINS + x;
-
-					sumDisparities[positionInMatrix][valueInImageBuffer]++;
-
-					/*
-					if(valueInImageBuffer>matrixBuffer[positionInMatrix])
-					{
-						matrixBuffer[positionInMatrix]=valueInImageBuffer;
-					}
-					for(z=0;z <5;z++)
-					{
-						if(valueInImageBuffer>highestValues[positionInMatrix][z])
-						{
-							highestValues[positionInMatrix][z]=valueInImageBuffer;
-							break;
-						}
-					}
-					*/
+					sumCountDisparityValues[positionInMatrix][valueInImageBuffer]++;
+					sumValuesDisparities[positionInMatrix]+=valueInImageBuffer;
 				}
 			}
 		}
@@ -105,15 +94,22 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	// Average by dividing by the amount of pixels per bin
 	int bufferIndex;
 	int anyOn=0;
-
+	int pixelsPerBin=heightPerBin*widthPerBin;
 	for (bufferIndex = 0; bufferIndex < MATRIX_WIDTH_BINS * MATRIX_HEIGHT_BINS;
 			bufferIndex++) {
 
-		int sum_disparities = 0;
+		int sum_disparities = 0;	
+	        #if  STEREO_ALGORITHM // When the stereo algorithm is dense
+		 
+		  toSendBuffer[bufferIndex]=sumValuesDisparities[bufferIndex]/pixelsPerBin;
+		  if (toSendBuffer>CLOSE_BOUNDARY){
+		      anyOn=1;
+		  }
+		#else
 		for ( y = disparity_range-1; y>=0; y--)
 		{
 			int COUNTER_THRESHOLD = 10;
-			sum_disparities += sumDisparities[bufferIndex][y];
+			sum_disparities += sumCountDisparityValues[bufferIndex][y];
 			if (sum_disparities > COUNTER_THRESHOLD)
 			{
 				toSendBuffer[bufferIndex] = y;
@@ -125,13 +121,8 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 
 			}
 		}
-		/*
-		toSendBuffer[bufferIndex]=highestValues[bufferIndex][4];
-		if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY)
-		{
-			anyOn=1;
-		}
-		*/
+	       
+		#endif
 	}
 	if(anyOn==1){
 		led_set();
@@ -140,8 +131,6 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	{
 		led_clear();
 	}
-
-
 }
 
 
@@ -308,8 +297,6 @@ int main(void)
 	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
-	
-    SendArray(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 #endif
 
