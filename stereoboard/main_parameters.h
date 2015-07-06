@@ -20,7 +20,7 @@
 #endif
 
 #ifndef SEND_IMAGE
-	#define SEND_IMAGE 0 // 1
+	#define SEND_IMAGE 1 // 1
 #endif
 
 #ifndef SEND_DISPARITY_MAP
@@ -37,7 +37,7 @@
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_CAM_NUMBER 1 //  0 = DelFly Explorer cam   1 = spare camera
-#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define LARGE_IMAGE
 
