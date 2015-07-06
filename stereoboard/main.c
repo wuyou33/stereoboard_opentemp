@@ -244,10 +244,21 @@ int main(void)
 	// Determine disparities:
 	min_y = 0;
 	max_y = 96;
-	stereo_vision_Kirk(current_image_buffer,
-			disparity_image_buffer_8bit, image_width, image_height,
-			disparity_min, disparity_range, disparity_step, thr1, thr2,
-			min_y, max_y);
+	memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
+
+	if ( STEREO_ALGORITHM )
+	{
+		stereo_vision_Kirk(current_image_buffer,
+				disparity_image_buffer_8bit, image_width, image_height,
+				disparity_min, disparity_range, disparity_step, thr1, thr2,
+				min_y, max_y);
+	}
+	else {
+		stereo_vision_sparse_block(current_image_buffer,
+				disparity_image_buffer_8bit, image_width, image_height,
+				disparity_min, disparity_range, disparity_step, thr1, thr2,
+				min_y, max_y);
+	}
 #endif
 
 

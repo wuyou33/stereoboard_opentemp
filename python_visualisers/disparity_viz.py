@@ -41,19 +41,19 @@ while True:
                 import scipy
                 fileNameBoth = 'image'+str(frameNumber)+'.png'
                 scipy.misc.imsave(fileNameBoth, img)
-        totalData=[frameNumber,time.time()]
-        img /= 20
-        # Create a color image
-        img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
-        cv2.imshow('img',img)
+            totalData=[frameNumber,time.time()]
+            img /= 20
+            # Create a color image
+            img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
+            cv2.imshow('img',img)
 
 
-        key=cv2.waitKey(1)
-        if saveImages:
-            import scipy
-            fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
-            scipy.misc.imsave(fileNameBoth, img)
-            frameNumber+=1
+            key=cv2.waitKey(1)
+            if saveImages:
+                import scipy
+                fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
+                scipy.misc.imsave(fileNameBoth, img)
+                frameNumber+=1
 
     except Exception as excep:
         stereoboard_tools.PrintException()
