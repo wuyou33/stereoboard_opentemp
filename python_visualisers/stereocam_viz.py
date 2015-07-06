@@ -4,6 +4,7 @@ import serial
 import stereoboard_tools
 import array
 import sys
+import os
 
 BAUDRATE=1000000
 W = 128
@@ -17,8 +18,12 @@ ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 
 frameNumber = 0
-
-
+imageFolderName='imagesWalktroughSubstation'
+folderExtensionTry=0
+while os.path.exists(imageFolderName+str(folderExtensionTry)):
+    folderExtensionTry+=1
+imageFolderName=imageFolderName+str(folderExtensionTry)
+os.makedirs(imageFolderName)
 
 cv2.namedWindow('img', cv2.WINDOW_NORMAL)
 cv2.namedWindow('leftimg', cv2.WINDOW_NORMAL)
@@ -58,9 +63,11 @@ while True:
             key=cv2.waitKey(1)
 
             if saveImages:
-                stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, 'images')
+                stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, imageFolderName)
                 frameNumber+=1
-    except:
+    except KeyboardInterrupt:
+	break
+    except Exception:
         print 'error!'
         stereoboard_tools.PrintException()
 

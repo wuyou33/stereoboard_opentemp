@@ -14,6 +14,7 @@ from matplotlib._png import read_png
 from matplotlib.cbook import get_sample_data
 SONAR_DISTANCES={0:15,1:10,2:9,3:8,4:7,5:2,6:1.8,7:1.7,8:1.4,9:1.2,10:1.0,11:0.8,12:0.5,13:0.3,14:0.2,15:0.1,16:0,17:0,18:0,19:0,20:0,21:0,22:0}
 AVERAGE_DATA=False
+MAX_DATA=True
 startedThreadDrawDrone=False
 drawDroneOverSonar = False
 def PrintException():
@@ -59,7 +60,21 @@ def draw_sonar_visualisation(matrix,height):
             colors.append(element)
 
         colors = colors[30::]
-        if AVERAGE_DATA:
+        if MAX_DATA:
+            toPlot = np.zeros((1,matrix.shape[1]))
+            for x in range(0,matrix.shape[1]):
+                for y in range(0,matrix.shape[0]):
+                    if matrix[y,x]>toPlot[0,x]:
+                        toPlot[0,x]=matrix[y,x]
+
+            colors = colors[30::]
+            distances=np.array(toPlot[0,:])
+
+            theta = np.append(theta,theta[0])
+            distances = np.append(distances,distances[0])
+            print 'theta: ', theta.shape, ' distances: ', distances.shape
+            ax.plot(theta, distances, color=colors[0],linewidth=5)
+        elif AVERAGE_DATA:
             toPlotSum = np.array(matrix[0])
             for i in range(1, height):
                 toPlotSum += np.array(matrix[i])
@@ -102,53 +117,31 @@ def draw_sonar_visualisation(matrix,height):
 
 
 def fill_image_array(startSync, raw, width, height):
-    line=0
-    # Initialise image
-    img = np.zeros((height,width))
-
-    # Fill the image arrays
-    for i in range(startSync + 4, startSync+(width+8)*height):
-        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-            if (raw[i + 3] == 128):
-                # print i
-                # Start Of Line
-                startOfBuf = i + 4
-                endOfBuf = (i + 4 + width)
-                img[line, :] = raw[startOfBuf:endOfBuf]
-                line += 1;
-                ## START MATRIX
-                # Search for the startposition
-    return img
-
-
-def readDivergenceFromSerial(ser, currentBuffer):
-
-    readSize= ser.inWaiting()
-    while readSize ==0:
-        readSize= ser.inWaiting()
-
-    raw = bytearray(ser.read(readSize))
-
-    for byte in raw:
-        currentBuffer.append(int(byte))
-    startPosition=None
-    lastResult=(-1,-1)
-
     try:
-        for i in range(0,len(currentBuffer)-5):
-	   # print currentBuffer[i]
-            if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
-                # if (currentBuffer[i + 3] == 171):# End of Image
-                #     return currentBuffer, i+4
-                #print 'i: ', i, ' len currentBuffer: ', len(currentBuffer)
-                if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
-                    lastResult=(startPosition,i+4)
-                if currentBuffer[i + 3] == 175:# Start of image
-                    startPosition = i
-    except Exception as e:
-        PrintException()
-    return currentBuffer, lastResult
+	    line=0
+	    # Initialise image
+	    img = np.zeros((height,width))
 
+	    # Fill the image arrays
+	    for i in range(startSync + 4, startSync+(width+8)*height):
+		if i+60 > len(raw):
+		   break
+		if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
+		    if (raw[i + 3] == 128):
+			try:
+				# print i
+				# Start Of Line
+				startOfBuf = i + 4
+				endOfBuf = (i + 4 + width)
+				img[line, :] = raw[startOfBuf:endOfBuf]
+				line += 1;
+				## START MATRIX
+				# Search for the startposition
+			except Exception:
+				print 'ended before end'
+	    return img
+    except Exception as ecsfsf: 
+	PrintException()
 def readPartOfImage(ser, currentBuffer):
 
     readSize= ser.inWaiting()
@@ -161,20 +154,20 @@ def readPartOfImage(ser, currentBuffer):
         currentBuffer.append(int(byte))
     startPosition=None
     lastResult=(-1,-1)
-
+    endOfImagesFound=0
+    startOfImagesFound=0
     try:
         for i in range(0,len(currentBuffer)-5):
             if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
-                # if (currentBuffer[i + 3] == 171):# End of Image
-                #     return currentBuffer, i+4
-                #print 'i: ', i, ' len currentBuffer: ', len(currentBuffer)
                 if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
                     lastResult=(startPosition,i+4)
+                    endOfImagesFound+=1
                 if currentBuffer[i + 3] == 175:# Start of image
                     startPosition = i
+                    startOfImagesFound+=1
     except Exception as e:
         PrintException()
-    return currentBuffer, lastResult
+    return currentBuffer, lastResult, endOfImagesFound
 
 ## Determines the start, length of one image, and the length of one line and the width and height
 def determine_image_and_line_length(raw):
@@ -211,29 +204,31 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
 
 
         for i in range(startposition,size_of_one_image+startposition):
-            if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
-                if (raw[i+3] == 128):# Start Of Line
-                    startOfBuf = i+4
-                    endOfBuf = (i+4+128+128)
-                    lineBuffer = raw[startOfBuf:endOfBuf]
-                    rightLine = lineBuffer[::2]
-                    leftLine = lineBuffer[1:][::2]
+	    try:
+		    if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
+		        if (raw[i+3] == 128):# Start Of Line
+		            startOfBuf = i+4
+		            endOfBuf = (i+4+128+128)
+		            lineBuffer = raw[startOfBuf:endOfBuf]
+		            rightLine = lineBuffer[::2]
+		            leftLine = lineBuffer[1:][::2]
 
-                    halfWay = disparity_border
+		            halfWay = disparity_border
 
-                    # Line indicates the horizontal line
-                    img[line,1:2*halfWay:2]=leftLine[0:halfWay]
-                    img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
-                    img[line,2*halfWay+1::2]=leftLine[halfWay::]
-                    img[line+disparity_offset_right,2*halfWay+0::2]=rightLine[halfWay::]
-                    leftImage[line,:]=leftLine
-                    rightImage[line,:]=rightLine
-                    line+=1
-                else:
-                    if (raw[i+3] == 171):
-                        # End of Image
-                        print 'END OF IMAGE'
-
+		            # Line indicates the horizontal line
+		            img[line,1:2*halfWay:2]=leftLine[0:halfWay]
+		            img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
+		            img[line,2*halfWay+1::2]=leftLine[halfWay::]
+		            img[line+disparity_offset_right,2*halfWay+0::2]=rightLine[halfWay::]
+		            leftImage[line,:]=leftLine
+		            rightImage[line,:]=rightLine
+		            line+=1
+		        else:
+		            if (raw[i+3] == 171):
+		                # End of Image
+		                print 'END OF IMAGE'
+	    except Exception as esfsfs: 
+	        break
         return img, leftImage, rightImage
     except Exception as e:
         PrintException()
@@ -246,11 +241,3 @@ def saveImages(img,leftImage,rightImage,frameNumber,folderName):
     scipy.misc.imsave(fileNameBoth, img)
     scipy.misc.imsave(fileNameLeft, leftImage)
     scipy.misc.imsave(fileNameRight, rightImage)
-
-
-def createRedBlueImage(img, lineCount, lineLength):
-    img2=np.zeros((lineCount,lineLength,3))
-    img2[:,:,0]=1-img
-    img2[:,:,2]=img
-    img2[img==0,:]=[0,0,0]
-    return img2

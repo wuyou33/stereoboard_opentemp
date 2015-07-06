@@ -284,7 +284,7 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
   } // for all image lines
 
 
-#ifdef SMOOTH_DISPARITY_MAP
+#if SMOOTH_DISPARITY_MAP
 
 	int bufferIndex=0;
 	uint8_t cleaner_image_buffer[image_width*image_height];

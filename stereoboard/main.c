@@ -53,7 +53,26 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	int indexBuffer;
 
 	uint8_t y;
+	uint8_t valueInImageBuffer=0;
+	uint16_t positionInImageBuffer=0;
+	uint8_t positionInMatrix=0;
 	uint8_t x;
+	uint8_t z;
+	uint8_t highestValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][5];
+	uint16_t sumCountDisparityValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range];
+	
+	uint32_t sumValuesDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS];
+	// Initialise the sum array and the max arrays
+	for (x = 0; x < MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS; x++) {
+		for(y=0;y<5;y++){
+			highestValues[x][y]=0;
+		}
+		for(y=0;y<disparity_range;y++){
+			sumCountDisparityValues[x][y]=0;
+		}
+		sumValuesDisparities[x]=0;
+	}
+
 	for (x = 0; x < MATRIX_WIDTH_BINS; x++) {
 		for (y = 0; y < MATRIX_HEIGHT_BINS; y++) {
 			int line;
@@ -61,11 +80,12 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 				int bufferIndex = 0;
 				for (bufferIndex = 0; bufferIndex < widthPerBin;
 						bufferIndex++) {
-					matrixBuffer[y * MATRIX_WIDTH_BINS + x] +=
-							disparity_image[pixelsPerLine
-							                * (y * heightPerBin) + line * pixelsPerLine
-							                + widthPerBin * x + blackBorderSize
-							                + bufferIndex];
+					positionInImageBuffer = pixelsPerLine* (y * heightPerBin) + line * pixelsPerLine+ widthPerBin * x + blackBorderSize+ bufferIndex;
+					valueInImageBuffer=disparity_image[positionInImageBuffer];
+
+					positionInMatrix = y * MATRIX_WIDTH_BINS + x;
+					sumCountDisparityValues[positionInMatrix][valueInImageBuffer]++;
+					sumValuesDisparities[positionInMatrix]+=valueInImageBuffer;
 				}
 			}
 		}
@@ -308,7 +328,7 @@ int main(void)
 	//led_clear();
 	// Create the distance matrix by summing pixels per bin
 	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
-			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
+			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 #endif
 
 
