@@ -6,3 +6,8 @@
 
 # Python
 *.pyc
+
+
+.settings
+.cproject
+.project
