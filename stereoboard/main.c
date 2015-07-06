@@ -1,12 +1,12 @@
 /**
- ******************************************************************************
- * @file    main.c
- * @author  C. De Wagter
- * @version V1.0.0
- * @date    2013
- * @brief   Main program body
- ******************************************************************************
- */
+  ******************************************************************************
+  * @file    main.c
+  * @author  C. De Wagter
+  * @version V1.0.0
+  * @date    2013
+  * @brief   Main program body
+  ******************************************************************************
+  */
 
 /* Includes ------------------------------------------------------------------*/
 #include "../common/led.h"
@@ -40,8 +40,8 @@ uint8_t* disparity_image_buffer_8bit = ((uint8_t*) 0x10000000);
 uint16_t offset_crop = 0;
 
 /** @addtogroup StereoCam
- * @{
- */
+  * @{
+  */
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -97,40 +97,40 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 
 
 /**
- * @brief  Main program
- * @param  None
- * @retval None
- */
+  * @brief  Main program
+  * @param  None
+  * @retval None
+  */
 int main(void)
 {
-	/*
+  /*
     At this stage the microcontroller clock setting is already configured,
     this is done through SystemInit() function which is called from startup
     file (startup_stm32f4xx.s) before to branch to application main.
     To reconfigure the default setting of SystemInit() function, refer to
     system_stm32f4xx.c file
-	 */
+  */
 
 
-	/****************
-	 * INITIALIZATION
-	 ****************/
+  /****************
+   * INITIALIZATION
+   ****************/
 
-	// Initialize the LED
-	led_init();
-	led_set();
-	// Initialize the serial communication (before the camera so we can print status)
-	usart_init();
-	// Initialize the CPLD
-	camera_cpld_stereo_init();
-	// Reset the camera's
-	camera_reset_init();
-	camera_reset();
-	// Make a 21MHz clock signal to the camera's
-	camera_clock_init();
-	// Stop resetting the camera (pin high)
+  // Initialize the LED
+  led_init();
+  led_set();
+  // Initialize the serial communication (before the camera so we can print status)
+  usart_init();
+  // Initialize the CPLD
+  camera_cpld_stereo_init();
+  // Reset the camera's
+  camera_reset_init();
+  camera_reset();
+  // Make a 21MHz clock signal to the camera's
+  camera_clock_init();
+  // Stop resetting the camera (pin high)
 
-
+  camera_unreset();
 	// Initialize all camera GPIO and I2C pins
 	camera_dcmi_bus_init();
 	camera_control_bus_init();
@@ -162,6 +162,10 @@ int main(void)
 	uint32_t image_height = IMAGE_HEIGHT;
 	uint32_t start, stop;
 
+  /***********
+   * MAIN LOOP
+   ***********/
+  //camera_snapshot();
 
 #if SEND_DIVERGENCE
 	//Define arrays and pointers for edge histogram and displacements
@@ -230,16 +234,43 @@ int main(void)
 	uint8_t pixelsPerColumn = 96;
 
 	uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
-					/ MATRIX_WIDTH_BINS;
+			/ MATRIX_WIDTH_BINS;
 	uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
 	// Initialise matrixbuffer
 	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-	while (1) {
-#if (CAPTURE_MODE_SNAPSHOT == 1)
-		camera_snapshot();
+  while (1) {
+
+#if SEND_PROXIMITY
+	  uint8_t response[6];
+	  response[0]=10;
+	  proximity_sensor_WriteReg(REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_ALS_ENABLE);
+	  proximity_sensor_WriteReg(REGISTER_CONTROL,COMMAND_AGAIN_64);
+	  proximity_sensor_WriteReg(REGISTER_PPULSE,COMMAND_32us_63p);
+	  proximity_sensor_WriteReg(REGISTER_CONFIG2,COMMAND_BOOST_150);
+
+
+
+	  readRegisterProximitySensor(REGISTER_PDATA,&response[0]);
+	  readRegisterProximitySensor( REGISTER_CDATAL ,&response[2]);
+	  readRegisterProximitySensor( REGISTER_CDATAH ,&response[3]);
+	  SendArray(response,4,1);
+#else //SEND_PROXIMITY
+
+    camera_snapshot();
+#ifdef LARGE_IMAGE
+    offset_crop += 80;
+    if (offset_crop == 480) {
+      offset_crop = 0;
+    }
+    camera_crop(offset_crop);
 #endif
+    // wait for new frame
+    while (frame_counter == processed)
+      ;
+    processed = frame_counter;
+    //led_toggle();
 
 #ifdef CROPPING
 		offset_crop += 80;
@@ -254,125 +285,68 @@ int main(void)
 		processed = frame_counter;
 		//led_toggle();
 
+    current_image_buffer[0] = 0;
+    current_image_buffer[1] = 0;
 
-		// Calculate the disparity map, only when we need it
+
+// Calculate the disparity map, only when we need it
 #if SEND_DISPARITY_MAP || SEND_MATRIX
-		// Determine disparities:
-		min_y = 0;
-		max_y = 96;
-		stereo_vision_Kirk(current_image_buffer,
-				disparity_image_buffer_8bit, image_width, image_height,
-				disparity_min, disparity_range, disparity_step, thr1, thr2,
-				min_y, max_y);
+	// Determine disparities:
+	min_y = 0;
+	max_y = 96;
+	stereo_vision_Kirk(current_image_buffer,
+			disparity_image_buffer_8bit, image_width, image_height,
+			disparity_min, disparity_range, disparity_step, thr1, thr2,
+			min_y, max_y);
 #endif
 
 
 #if SEND_MATRIX
-		// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-		memset(matrixBuffer,0,sizeof matrixBuffer);
-		memset(toSendBuffer,0,sizeof toSendBuffer);
-		//led_clear();
-		// Create the distance matrix by summing pixels per bin
-		calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
-				pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
+	// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
+	memset(matrixBuffer,0,sizeof matrixBuffer);
+	memset(toSendBuffer,0,sizeof toSendBuffer);
+	//led_clear();
+	// Create the distance matrix by summing pixels per bin
+	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
+			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer);
 #endif
 
 
-#if SEND_DIVERGENCE
-
-		//calculate the edge flow
-		int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, front,rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
-
-		//move the indices for the edge hist structure
-		front++;
-		rear++;
-
-		if(front>MAX_HORIZON-1)
-			front=0;
-		if(rear>MAX_HORIZON-1)
-			rear=0;
-
-//Kalman filtering
-		if(isnan(coveriance_trans_x))
-			coveriance_trans_x=0;
-		if(isnan(coveriance_trans_y))
-			coveriance_trans_y=0;
-		if(isnan(coveriance_slope_x))
-			coveriance_slope_x=0;
-		if(isnan(coveriance_slope_y))
-			coveriance_slope_y=0;
-
-
-		if(isnan(prev_edge_flow.horizontal_trans))
-			prev_edge_flow.horizontal_trans=0;
-		if(isnan(prev_edge_flow.vertical_trans))
-			prev_edge_flow.vertical_trans=0;
-		if(isnan(prev_edge_flow.horizontal_slope))
-			prev_edge_flow.horizontal_slope=0;
-		if(isnan(prev_edge_flow.vertical_slope))
-			prev_edge_flow.vertical_slope=0;
-
-
-		new_est_x_trans=simpleKalmanFilter(&coveriance_trans_x,prev_edge_flow.horizontal_trans,edge_flow.horizontal_trans,Q,R);
-		new_est_y_trans=simpleKalmanFilter(&coveriance_trans_y,prev_edge_flow.vertical_trans,edge_flow.vertical_trans,Q,R);
-		new_est_x_slope=simpleKalmanFilter(&coveriance_slope_x,prev_edge_flow.horizontal_slope,edge_flow.horizontal_slope,Q,R);
-		new_est_y_slope=simpleKalmanFilter(&coveriance_slope_y,prev_edge_flow.vertical_slope,edge_flow.vertical_slope,Q,R);
-
-		edge_flow.horizontal_trans=new_est_x_trans;
-		edge_flow.vertical_trans=new_est_y_trans;
-		edge_flow.horizontal_slope=new_est_x_slope;
-		edge_flow.vertical_slope=new_est_y_slope;
-
-		//send array with flow parameters
-
-		uint8_t divergencearray[5];
-		divergencearray[0]=(uint8_t)(edge_flow.horizontal_slope*1000+100);
-		divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
-		divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
-		divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
-		divergencearray[4]=(uint8_t)previous_frame;
-
-		SendArray( divergencearray,5,1);
-
-		memcpy(&prev_edge_flow,&edge_flow,4*sizeof(float));
-
-#endif
-		// Now send the data that we want to send
+// Now send the data that we want to send
 #if SEND_IMAGE
-		led_toggle();
-		SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+    SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
 #if SEND_DISPARITY_MAP
-		SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
+	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
 #endif
 #if SEND_MATRIX
-		SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 #endif
-
-	}
+#endif // #PROXIMITY
+  }
 }
 
 #ifdef  USE_FULL_ASSERT
 
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* User can add his own implementation to report the file name and line number,
+  /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 
-	/* Infinite loop */
-	while (1) {
-	}
+  /* Infinite loop */
+  while (1) {
+  }
 }
 #endif
 
 /**
- * @}
- */
+  * @}
+  */
 

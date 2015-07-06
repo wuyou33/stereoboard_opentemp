@@ -209,6 +209,7 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
         leftImage=np.zeros((heigth,width))
         rightImage=np.zeros((heigth,width))
 
+
         for i in range(startposition,size_of_one_image+startposition):
             if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
                 if (raw[i+3] == 128):# Start Of Line

@@ -13,11 +13,11 @@
  * MAIN PARAMETERS
  *****************/
 
-// Include board specific overrides
 #include BOARD_FILE
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
+#define USE_COLOR 0
 #ifndef SEND_COMMANDS
 	#define SEND_COMMANDS 0 // 1
 #endif
@@ -29,7 +29,6 @@
 #ifndef SEND_DISPARITY_MAP
 	#define SEND_DISPARITY_MAP 0 // 0
 #endif
-
 #ifndef SEND_MATRIX
 	#define SEND_MATRIX 0
 #endif
@@ -60,6 +59,9 @@
 #ifndef STEREO_CAM_NUMBER
 #define STEREO_CAM_NUMBER 1 //  0 = DelFly Explorer cam   1 = spare camera
 #endif
+#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
+#define SMALL_IMAGE
+//#define LARGE_IMAGE
 
 //////////////////////////////////////////////////////
 // Define image format

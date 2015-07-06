@@ -28,11 +28,13 @@ currentBuffer=[]
 while True:
     try:
         # Read the image
-        currentBuffer, location = stereoboard_tools.readPartOfImage(ser, currentBuffer)
+        currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImage(ser, currentBuffer)
 
-        if location > 0:
-            oneImage = currentBuffer[0:location]
-            currentBuffer=currentBuffer[location::]
+        startPosition=location[0]
+        endPosition=location[1]
+        if location[0] > -1:
+            oneImage = currentBuffer[startPosition:endPosition]
+            currentBuffer=currentBuffer[endPosition::]
 
             # Search the startbyte
             sync1, length,lineLength, lineCount=stereoboard_tools.determine_image_and_line_length(oneImage)
@@ -60,3 +62,5 @@ while True:
                 frameNumber+=1
     except:
         print 'error!'
+        stereoboard_tools.PrintException()
+
