@@ -27,7 +27,7 @@
 #endif
 
 #ifndef SEND_DISPARITY_MAP
-	#define SEND_DISPARITY_MAP 0 // 0
+	#define SEND_DISPARITY_MAP 1 // 0
 #endif
 #ifndef SEND_MATRIX
 	#define SEND_MATRIX 0
@@ -36,7 +36,7 @@
 //////////////////////////////////////////////////////
 // Settings
 #ifndef SEND_DIVERGENCE
-#define SEND_DIVERGENCE 1 // 0
+#define SEND_DIVERGENCE 0 // 0
 #endif
 #ifndef SMOOTH_DISPARITY_MAP
 #define SMOOTH_DISPARITY_MAP 0 // 0
