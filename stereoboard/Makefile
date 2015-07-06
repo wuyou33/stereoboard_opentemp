@@ -160,7 +160,9 @@ eeprom.c \
 hmc5883.h \
 hmc5883.c \
 ../common/utils.h \
-../common/utils.c
+../common/utils.c \
+divergence.h \
+divergence.c 
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
