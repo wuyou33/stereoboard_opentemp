@@ -10,15 +10,8 @@ frameNumber = 0
 saveImages= False
 treshold=0.3
 
-def changeTreshold(newValue):
-    global  treshold
-    treshold = newValue/20.0
-
-
 currentBuffer=[]
-maxExpectedInImage=250 # Each pixel is divided by this value to go to grayscale values for the cv2 image
 cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-cv2.createTrackbar('tresholdTrackbar','img',10,20,changeTreshold)
 
 #cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 fileToWrite=file("data.csv",'w')
@@ -48,33 +41,19 @@ while True:
                 import scipy
                 fileNameBoth = 'image'+str(frameNumber)+'.png'
                 scipy.misc.imsave(fileNameBoth, img)
-		totalData=[frameNumber,time.time()]
-		for row in img:
-		    totalData.extend(row)
-		dataWriter.writerow(totalData)
-                frameNumber+=1
-    	    #stereoboard_tools.draw_sonar_visualisation(img, img.shape[0])
-    	    img /= 20
-    	    # Create a color image
-    	    img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
-
-   
-  #  img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
-    	    img=cv2.resize(img,(0,0),fx=10,fy=10,interpolation=cv2.INTER_NEAREST)
-   	    cv2.imshow('img',img)
-
-          #  img=cv2.cvtColor(img, img, cv2.COLOR_GRAY2BGR)
-
-            cv2.imshow('img',img)
+        totalData=[frameNumber,time.time()]
+        img /= 20
+        # Create a color image
+        img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
+        cv2.imshow('img',img)
 
 
-            key=cv2.waitKey(1)
-
-            if saveImages:
-                import scipy
-                fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
-                scipy.misc.imsave(fileNameBoth, img)
-                frameNumber+=1
+        key=cv2.waitKey(1)
+        if saveImages:
+            import scipy
+            fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
+            scipy.misc.imsave(fileNameBoth, img)
+            frameNumber+=1
 
     except Exception as excep:
         stereoboard_tools.PrintException()
