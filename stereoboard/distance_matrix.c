@@ -5,7 +5,7 @@
  *      Author: roland
  */
 
-
+#include "distance_matrix.h"
 
 
 void calculateDistanceMatrix(uint8_t* disparity_image,

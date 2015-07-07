@@ -164,7 +164,8 @@ hmc5883.c \
 ../common/utils.h \
 ../common/utils.c \
 divergence.h \
-divergence.c 
+divergence.c \
+distance_matrix.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
