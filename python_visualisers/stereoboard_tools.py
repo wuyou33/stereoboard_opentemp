@@ -119,13 +119,12 @@ def draw_sonar_visualisation(matrix,height):
 def fill_image_array(startSync, raw, width, height):
     try:
 	    line=0
+	    print 'raw: ' , raw
 	    # Initialise image
 	    img = np.zeros((height,width))
 
 	    # Fill the image arrays
 	    for i in range(startSync + 4, startSync+(width+8)*height):
-		if i+60 > len(raw):
-		   break
 		if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
 		    if (raw[i + 3] == 128):
 			try:
@@ -142,6 +141,35 @@ def fill_image_array(startSync, raw, width, height):
 	    return img
     except Exception as ecsfsf: 
 	PrintException()
+
+def readDivergenceFromSerial(ser, currentBuffer):
+
+    readSize= ser.inWaiting()
+    while readSize ==0:
+        readSize= ser.inWaiting()
+
+    raw = bytearray(ser.read(readSize))
+
+    for byte in raw:
+        currentBuffer.append(int(byte))
+    startPosition=None
+    lastResult=(-1,-1)
+
+    try:
+        for i in range(0,len(currentBuffer)-5):
+	   # print currentBuffer[i]
+            if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
+                # if (currentBuffer[i + 3] == 171):# End of Image
+                #     return currentBuffer, i+4
+                #print 'i: ', i, ' len currentBuffer: ', len(currentBuffer)
+                if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
+                    lastResult=(startPosition,i+4)
+                if currentBuffer[i + 3] == 175:# Start of image
+                    startPosition = i
+    except Exception as e:
+        PrintException()
+    return currentBuffer, lastResult
+
 def readPartOfImage(ser, currentBuffer):
 
     readSize= ser.inWaiting()

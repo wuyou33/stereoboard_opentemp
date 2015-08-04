@@ -273,7 +273,66 @@ int main(void)
 #endif
 
 
-// Now send the data that we want to send
+#if SEND_DIVERGENCE
+
+		//calculate the edge flow
+		int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, front,rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+		//move the indices for the edge hist structure
+		front++;
+		rear++;
+
+		if(front>MAX_HORIZON-1)
+			front=0;
+		if(rear>MAX_HORIZON-1)
+			rear=0;
+
+//Kalman filtering
+		if(isnan(coveriance_trans_x))
+			coveriance_trans_x=0;
+		if(isnan(coveriance_trans_y))
+			coveriance_trans_y=0;
+		if(isnan(coveriance_slope_x))
+			coveriance_slope_x=0;
+		if(isnan(coveriance_slope_y))
+			coveriance_slope_y=0;
+
+
+		if(isnan(prev_edge_flow.horizontal_trans))
+			prev_edge_flow.horizontal_trans=0;
+		if(isnan(prev_edge_flow.vertical_trans))
+			prev_edge_flow.vertical_trans=0;
+		if(isnan(prev_edge_flow.horizontal_slope))
+			prev_edge_flow.horizontal_slope=0;
+		if(isnan(prev_edge_flow.vertical_slope))
+			prev_edge_flow.vertical_slope=0;
+
+
+		new_est_x_trans=simpleKalmanFilter(&coveriance_trans_x,prev_edge_flow.horizontal_trans,edge_flow.horizontal_trans,Q,R);
+		new_est_y_trans=simpleKalmanFilter(&coveriance_trans_y,prev_edge_flow.vertical_trans,edge_flow.vertical_trans,Q,R);
+		new_est_x_slope=simpleKalmanFilter(&coveriance_slope_x,prev_edge_flow.horizontal_slope,edge_flow.horizontal_slope,Q,R);
+		new_est_y_slope=simpleKalmanFilter(&coveriance_slope_y,prev_edge_flow.vertical_slope,edge_flow.vertical_slope,Q,R);
+
+		edge_flow.horizontal_trans=new_est_x_trans;
+		edge_flow.vertical_trans=new_est_y_trans;
+		edge_flow.horizontal_slope=new_est_x_slope;
+		edge_flow.vertical_slope=new_est_y_slope;
+
+		//send array with flow parameters
+
+		uint8_t divergencearray[5];
+		divergencearray[0]=(uint8_t)(100);//edge_flow.horizontal_slope*1000+100);
+		divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
+		divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
+		divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
+		divergencearray[4]=(uint8_t)previous_frame;
+
+		SendArray( divergencearray,5,1);
+		led_toggle();
+		memcpy(&prev_edge_flow,&edge_flow,4*sizeof(float));
+
+#endif
+		// Now send the data that we want to send
 #if SEND_IMAGE
     SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif

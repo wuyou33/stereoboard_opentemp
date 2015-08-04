@@ -26,6 +26,7 @@ while True:
         endPosition=location[1]
         if location[0] > 0:
             oneImage = currentBuffer[startPosition:endPosition]
+	    
             currentBuffer=currentBuffer[endPosition::]
 
             # Search the startbyte
@@ -36,6 +37,7 @@ while True:
 
 
             img = stereoboard_tools.fill_image_array(sync1,oneImage, lineLength, lineCount)
+	    print 'img: ' , img
             img=np.array(img)
 	    slope_x=img[0,0]
             yint_x=img[0,1]

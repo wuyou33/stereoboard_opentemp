@@ -22,8 +22,8 @@
 	#define SEND_COMMANDS 0 // 1
 	#define SEND_IMAGE 0 // 1
 	#define SEND_DISPARITY_MAP 0 // 0
-	#define SEND_MATRIX 1
-	#define SEND_DIVERGENCE 0 // 0
+	#define SEND_MATRIX 0
+	#define SEND_DIVERGENCE 1 // 0
 #endif
 
 //////////////////////////////////////////////////////
