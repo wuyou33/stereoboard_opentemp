@@ -21,8 +21,8 @@
 #if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE))
 	#define SEND_COMMANDS 0 // 1
 	#define SEND_IMAGE 0 // 1
-	#define SEND_DISPARITY_MAP 1 // 0
-	#define SEND_MATRIX 0
+	#define SEND_DISPARITY_MAP 0 // 0
+	#define SEND_MATRIX 1
 	#define SEND_DIVERGENCE 0 // 0
 #endif
 
