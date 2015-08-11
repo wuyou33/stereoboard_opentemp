@@ -19,7 +19,6 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   int horizontal_block_size = 5; // horizontal size of SAD-window
   int GRADIENT_THRESHOLD = 5; // defines if image gradient indicates sufficient texture
   int PKRN_THRESHOLD = 130; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
-  int RESOLUTION_FACTOR = 6;
 
   int half_vertical_block_size = (vertical_block_size - 1)/2;
   int half_horizontal_block_size = (horizontal_block_size - 1)/2;
@@ -145,7 +144,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 								h21 = (y2-y1)*4;
 								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
 
-								out[locationInBuffer] = sub_disp;
+								out[locationInBuffer] = sub_disp + DISPARITY_OFFSET_HORIZONTAL;
 
 							}
 							//sum_counts[disparity_value]++;
@@ -165,7 +164,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 			// make image gradients absolute such that we can look for maximum values in the next step
 			arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
 
-			int cx_diff_compensation = 8;
+			int cx_diff_compensation = DISPARITY_OFFSET_HORIZONTAL;
 
 			for ( ii = half_imageWidth + cx_diff_compensation; ii < fakeShitImageWidth-half_horizontal_block_size; ii++ )
 			{
@@ -219,7 +218,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 								h21 = (y2-y1)*4;
 								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
 
-								out[locationInBuffer] = (disparity_max*RESOLUTION_FACTOR) - sub_disp;
+								out[locationInBuffer] = (disparity_max*RESOLUTION_FACTOR) - sub_disp + DISPARITY_OFFSET_HORIZONTAL;
 
 							}
 

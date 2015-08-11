@@ -7,5 +7,7 @@
 #define DISPARITY_OFFSET_LEFT  0
 #define DISPARITY_OFFSET_RIGHT  0
 #define DISPARITY_BORDER  96
+#define DISPARITY_OFFSET_HORIZONTAL 11
+#define RESOLUTION_FACTOR 6
 
 //#define CAPTURE_MODE_SNAPSHOT 0   // No-snapshot, but continuous: We want fast frames without any delay, and it does not matter if the lower half of the buffer already contains a new image
