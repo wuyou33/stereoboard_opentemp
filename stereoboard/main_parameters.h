@@ -15,6 +15,8 @@
 
 #include BOARD_FILE
 
+//#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
+#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
 
 
 //////////////////////////////////////////////////////
