@@ -1,3 +1,5 @@
+#include "multigaze_common.h"
+
 #define BOARD_NUMBER 6
 #define DISPARITY_OFFSET_LEFT  -2
 #define DISPARITY_OFFSET_RIGHT  -2
