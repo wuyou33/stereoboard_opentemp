@@ -10,6 +10,8 @@
 
 #include <arm_math.h>
 #include "../multigaze/stereoboard_parameters.h"
+#include "main_parameters.h"
+
 
 void calculateDistanceMatrix(uint8_t* disparity_image,
 		int* matrixBuffer,

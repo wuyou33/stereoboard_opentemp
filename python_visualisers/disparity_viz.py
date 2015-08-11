@@ -43,12 +43,13 @@ while True:
                 scipy.misc.imsave(fileNameBoth, img)
             totalData=[frameNumber,time.time()]
             img /= 20
+            img /= 6
 
             # Create a color image
             img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
 
             if not '3.0.0'==cv2.__version__:
-                img = cv2.resize(img,(0,0),fx=3,fy=3)
+                img = cv2.resize(img,(0,0),fx=20,fy=20,interpolation=cv2.INTER_NEAREST)
             cv2.imshow('img',img)
 
 

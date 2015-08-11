@@ -22,7 +22,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 	uint8_t x;
 	uint8_t z;
 	uint8_t highestValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][5];
-	uint16_t sumDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range];
+	uint16_t sumDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range*RESOLUTION_FACTOR];
 	for (x = 0; x < MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS; x++) {
 		for(y=0;y<5;y++){
 			highestValues[x][y]=0;
@@ -74,7 +74,7 @@ void calculateDistanceMatrix(uint8_t* disparity_image,
 			bufferIndex++) {
 
 		int sum_disparities = 0;
-		for ( y = disparity_range-1; y>=0; y--)
+		for ( y = (disparity_range-1)*RESOLUTION_FACTOR; y>=0; y--)
 		{
 			int COUNTER_THRESHOLD = 10;
 			sum_disparities += sumDisparities[bufferIndex][y];

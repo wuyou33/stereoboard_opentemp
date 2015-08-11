@@ -1,7 +1,11 @@
+#include "multigaze_common.h"
+
 #define BOARD_NUMBER 3
-#define DISPARITY_OFFSET_LEFT 2
+#define DISPARITY_OFFSET_LEFT 1
 #define DISPARITY_OFFSET_RIGHT 1
 #define DISPARITY_BORDER  50
+#define DISPARITY_OFFSET_HORIZONTAL -9
+#define RESOLUTION_FACTOR 6
 #define USE_USART1
 #define UsartTx Usart1Tx
 #define USART1_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.

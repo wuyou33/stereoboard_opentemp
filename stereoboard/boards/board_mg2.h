@@ -1,10 +1,10 @@
 #include "multigaze_common.h"
 
 #define BOARD_NUMBER 2
-#define DISPARITY_OFFSET_LEFT  0
+#define DISPARITY_OFFSET_LEFT  -1
 #define DISPARITY_OFFSET_RIGHT  -1
 #define DISPARITY_BORDER  84
-#define DISPARITY_OFFSET_HORIZONTAL 11
+#define DISPARITY_OFFSET_HORIZONTAL -8
 #define RESOLUTION_FACTOR 6
 #define USE_USART1
 #define UsartTx Usart1Tx

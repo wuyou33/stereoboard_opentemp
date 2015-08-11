@@ -303,7 +303,7 @@ int main(void)
     current_image_buffer[0] = 0;
     current_image_buffer[1] = 0;
 
-
+/*
 		uint8_t readChar = ' ';
 
 		while(UsartCh()){
@@ -328,7 +328,7 @@ int main(void)
 			{
 				current_stereoboard_algorithm=SEND_DIVERGENCE;
 			}
-		}
+		}*/
 
 		// New frame code: Vertical blanking = ON
 
