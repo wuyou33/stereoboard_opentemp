@@ -11,7 +11,6 @@ saveImages= False
 treshold=0.3
 
 currentBuffer=[]
-<<<<<<< HEAD
 if '3.0.0'==cv2.__version__:
     cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 
