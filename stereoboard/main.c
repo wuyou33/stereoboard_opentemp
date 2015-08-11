@@ -356,6 +356,17 @@ int main(void)
 	}
 
 
+	if(current_stereoboard_algorithm==SEND_MATRIX){
+
+		// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
+		memset(matrixBuffer,0,sizeof matrixBuffer);
+		memset(toSendBuffer,0,sizeof toSendBuffer);
+		//led_clear();
+		// Create the distance matrix by summing pixels per bin
+		calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
+				pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+	}
+
 
 	if(current_stereoboard_algorithm==SEND_DIVERGENCE){
 			if(initialisedDivergence==0){
