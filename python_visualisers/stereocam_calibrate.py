@@ -6,7 +6,7 @@ import array
 import sys
 import stereoboard_tools
 BAUDRATE=1000000
-ser = serial.Serial('/dev/ttyUSB1',BAUDRATE)
+ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 W = 128
 H=96
@@ -58,8 +58,8 @@ def createEverythingUsingData():
         rightImage /=255
 
         #print 'current blur: ', np.max(cv2.convertScaleAbs(cv2.Laplacian(img,1)))
-        #img = cv2.Laplacian(img,cv2.CV_64F)
-        #img = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
+        img = cv2.Laplacian(img,cv2.CV_64F)
+        img = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
 
         #print 'current blur: ', np.max(cv2.convertScaleAbs(cv2.Laplacian(img,cv2.CV_64F)))
         #print 'img: ' , img

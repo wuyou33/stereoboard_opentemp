@@ -15,19 +15,11 @@
 
 #include BOARD_FILE
 
-//////////////////////////////////////////////////////
-// Define which code should be run:
-#define USE_COLOR 0
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE))
-	#define SEND_COMMANDS 0 // 1
-	#define SEND_IMAGE 0 // 1
-	#define SEND_DISPARITY_MAP 1 // 0
-	#define SEND_MATRIX 0
-	#define SEND_DIVERGENCE 0 // 0
-#endif
+
 
 //////////////////////////////////////////////////////
 // Settings
+#define USE_COLOR 0
 #ifndef SMOOTH_DISPARITY_MAP
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #endif
@@ -50,7 +42,7 @@
 #define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
 #endif
 
-#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define LARGE_IMAGE
 
@@ -83,6 +75,9 @@
 #ifndef UsartTx
 	#define USE_USART4
 	#define UsartTx Usart4Tx
+	#define UsartRx Usart4Rx
+	#define UsartCh Usart4Ch
+
   #ifndef USART4_BAUD
 	  #define USART4_BAUD 1000000
   #endif

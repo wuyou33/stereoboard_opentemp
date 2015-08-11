@@ -46,6 +46,67 @@ uint16_t offset_crop = 0;
 /* Private functions ---------------------------------------------------------*/
 
 
+typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
+
+//////////////////////////////////////////////////////
+// Define which code should be run:
+ stereoboard_algorithm_type getBoardFunction(void){
+	#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE))
+		return SEND_MATRIX;
+	#elif defined(SEND_COMMANDS)
+		return SEND_COMMANDS;
+	#elif defined(SEND_IMAGE)
+		return SEND_IMAGE;
+	#elif defined(SEND_DISPARITY_MAP)
+		return SEND_DISPARITY_MAP;
+	#elif defined(SEND_MATRIX)
+		return SEND_MATRIX;
+	#elif defined(SEND_DIVERGENCE)
+		return SEND_DIVERGENCE;
+	#endif
+}
+ int divergence_front;
+ int divergence_rear;
+ //Element for the kalman filter divergence
+
+float coveriance_trans_x=0.;
+float coveriance_trans_y=0.;
+float coveriance_slope_x=0.;
+float coveriance_slope_y=0.;
+
+struct edge_flow_t prev_edge_flow;
+
+float Q=0.01;//motion model
+float R=1.0;//measurement model
+float new_est_x_trans,new_est_y_trans;
+float new_est_x_slope,new_est_y_slope;
+struct edge_hist_t edge_hist[MAX_HORIZON];
+struct edge_flow_t edge_flow;
+struct displacement_t displacement;
+uint8_t initialisedDivergence=0;
+
+void initialiseDivergence(){
+	    //Define arrays and pointers for edge histogram and displacements
+	 	displacement.horizontal[IMAGE_WIDTH];
+	 	displacement.vertical[IMAGE_HEIGHT];
+
+	 	//Initializing the dynamic parameters and the edge histogram structure
+	 	divergence_rear=1;
+	 	divergence_front=0;
+
+	 	//Intializing edge histogram structure
+	 	memset(&edge_hist,0,MAX_HORIZON*sizeof(struct edge_hist_t));
+
+	 	//Initializing for divergence and flow parameters
+
+
+	 	edge_flow.horizontal_slope=0.0;
+	 	edge_flow.horizontal_trans=0.0;
+	 	edge_flow.vertical_slope=0.0;
+	 	edge_flow.vertical_trans=0.0;
+
+	 	initialisedDivergence=1;
+ }
 /**
   * @brief  Main program
   * @param  None
@@ -160,6 +221,7 @@ int main(void)
 	 * MAIN LOOP
 	 ***********/
 
+	stereoboard_algorithm_type current_stereoboard_algorithm=getBoardFunction();
 	volatile int processed = 0;
 
 
@@ -192,7 +254,8 @@ int main(void)
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   while (1) {
 
-#if SEND_PROXIMITY
+  if(current_stereoboard_algorithm==SEND_PROXIMITY){
+	  /*
 	  uint8_t response[6];
 	  response[0]=10;
 	  proximity_sensor_WriteReg(REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_ALS_ENABLE);
@@ -205,8 +268,10 @@ int main(void)
 	  readRegisterProximitySensor(REGISTER_PDATA,&response[0]);
 	  readRegisterProximitySensor( REGISTER_CDATAL ,&response[2]);
 	  readRegisterProximitySensor( REGISTER_CDATAH ,&response[3]);
-	  SendArray(response,4,1);
-#else //SEND_PROXIMITY
+	  SendArray(response,4,1);*/
+	}
+	else{
+	camera_snapshot();
 
     camera_snapshot();
 #ifdef LARGE_IMAGE
@@ -239,19 +304,59 @@ int main(void)
     current_image_buffer[1] = 0;
 
 
-// Calculate the disparity map, only when we need it
-#if SEND_DISPARITY_MAP || SEND_MATRIX
-	// Determine disparities:
-	min_y = 0;
-	max_y = 96;
-	memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
+		uint8_t readChar = ' ';
+		// New frame code: Vertical blanking = ON
+		  uint8_t codeSending[4];
+		  codeSending[0] = 0xff;
+		  codeSending[1] = 0x00;
+		  codeSending[2] = 0x00;
+		  codeSending[3] = 0xAF; // 175
+		while (UsartTx(codeSending, 1) == 0) {
 
-	if ( STEREO_ALGORITHM )
-	{
-		stereo_vision_Kirk(current_image_buffer,
-				disparity_image_buffer_8bit, image_width, image_height,
-				disparity_min, disparity_range, disparity_step, thr1, thr2,
-				min_y, max_y);
+				}
+
+		while(UsartCh()){
+
+			readChar=UsartRx();
+			if(readChar==1)
+			{
+				current_stereoboard_algorithm=SEND_DISPARITY_MAP;
+			}
+			else if (readChar==2)
+			{
+				current_stereoboard_algorithm=SEND_MATRIX;
+			}
+			else if (readChar==3)
+			{
+				disparity_min-=1;
+			}
+			else if (readChar==4)
+			{
+				disparity_min+=1;
+			}
+
+		}
+
+	// Calculate the disparity map, only when we need it
+	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX){
+		// Determine disparities:
+		min_y = 0;
+		max_y = 96;
+		memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
+
+		if ( STEREO_ALGORITHM )
+		{
+			stereo_vision_Kirk(current_image_buffer,
+					disparity_image_buffer_8bit, image_width, image_height,
+					disparity_min, disparity_range, disparity_step, thr1, thr2,
+					min_y, max_y);
+		}
+		else {
+			stereo_vision_sparse_block(current_image_buffer,
+					disparity_image_buffer_8bit, image_width, image_height,
+					disparity_min, disparity_range, disparity_step, thr1, thr2,
+					min_y, max_y);
+		}
 	}
 	else {
 		stereo_vision_sparse_block_two_sided(current_image_buffer,
@@ -259,31 +364,81 @@ int main(void)
 				disparity_min, disparity_range, disparity_step, thr1, thr2,
 				min_y, max_y);
 	}
-#endif
 
 
-#if SEND_MATRIX
-	// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-	memset(matrixBuffer,0,sizeof matrixBuffer);
-	memset(toSendBuffer,0,sizeof toSendBuffer);
-	//led_clear();
-	// Create the distance matrix by summing pixels per bin
-	calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
-			pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
-#endif
+	if(current_stereoboard_algorithm==SEND_DIVERGENCE){
+			if(initialisedDivergence==0){
+				initialiseDivergence();
+			}
+			//calculate the edge flow
+			int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, divergence_front,divergence_rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+			//move the indices for the edge hist structure
+			divergence_front++;
+			divergence_rear++;
+
+			if(divergence_front>MAX_HORIZON-1)
+				divergence_front=0;
+			if(divergence_rear>MAX_HORIZON-1)
+				divergence_rear=0;
+
+			//Kalman filtering
+			if(isnan(coveriance_trans_x))
+				coveriance_trans_x=0;
+			if(isnan(coveriance_trans_y))
+				coveriance_trans_y=0;
+			if(isnan(coveriance_slope_x))
+				coveriance_slope_x=0;
+			if(isnan(coveriance_slope_y))
+				coveriance_slope_y=0;
 
 
-// Now send the data that we want to send
-#if SEND_IMAGE
-    SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
-#endif
-#if SEND_DISPARITY_MAP
-	SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
-#endif
-#if SEND_MATRIX
-	SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
-#endif
-#endif // #PROXIMITY
+			if(isnan(prev_edge_flow.horizontal_trans))
+				prev_edge_flow.horizontal_trans=0;
+			if(isnan(prev_edge_flow.vertical_trans))
+				prev_edge_flow.vertical_trans=0;
+			if(isnan(prev_edge_flow.horizontal_slope))
+				prev_edge_flow.horizontal_slope=0;
+			if(isnan(prev_edge_flow.vertical_slope))
+				prev_edge_flow.vertical_slope=0;
+
+
+			new_est_x_trans=simpleKalmanFilter(&coveriance_trans_x,prev_edge_flow.horizontal_trans,edge_flow.horizontal_trans,Q,R);
+			new_est_y_trans=simpleKalmanFilter(&coveriance_trans_y,prev_edge_flow.vertical_trans,edge_flow.vertical_trans,Q,R);
+			new_est_x_slope=simpleKalmanFilter(&coveriance_slope_x,prev_edge_flow.horizontal_slope,edge_flow.horizontal_slope,Q,R);
+			new_est_y_slope=simpleKalmanFilter(&coveriance_slope_y,prev_edge_flow.vertical_slope,edge_flow.vertical_slope,Q,R);
+
+			edge_flow.horizontal_trans=new_est_x_trans;
+			edge_flow.vertical_trans=new_est_y_trans;
+			edge_flow.horizontal_slope=new_est_x_slope;
+			edge_flow.vertical_slope=new_est_y_slope;
+
+			//send array with flow parameters
+
+			uint8_t divergencearray[5];
+			divergencearray[0]=(uint8_t)(100);//edge_flow.horizontal_slope*1000+100);
+			divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
+			divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
+			divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
+			divergencearray[4]=(uint8_t)previous_frame;
+
+			SendArray( divergencearray,5,1);
+			led_toggle();
+			memcpy(&prev_edge_flow,&edge_flow,4*sizeof(float));
+
+
+	}
+	// Now send the data that we want to send
+	if(current_stereoboard_algorithm==SEND_IMAGE){
+		SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+	}
+	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP){
+		SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
+	}
+	if(current_stereoboard_algorithm== SEND_MATRIX){
+		SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+	}
+	}
   }
 }
 
