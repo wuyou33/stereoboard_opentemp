@@ -11,7 +11,7 @@ saveImages= False
 treshold=0.3
 
 currentBuffer=[]
-#cv2.namedWindow('img',cv2.WINDOW_NORMAL)
+cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 fileToWrite=file("data.csv",'w')
 dataWriter=csv.writer(fileToWrite)
 while True:

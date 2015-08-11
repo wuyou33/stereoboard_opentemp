@@ -1,4 +1,4 @@
-#include "multigaze_commmon.h"
+#include "multigaze_common.h"
 
 #define BOARD_NUMBER 4
 #define DISPARITY_OFFSET_LEFT  2
