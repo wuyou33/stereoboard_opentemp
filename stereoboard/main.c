@@ -69,18 +69,12 @@ typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_D
  int divergence_rear;
  //Element for the kalman filter divergence
 
-float coveriance_trans_x=0.;
-float coveriance_trans_y=0.;
-float coveriance_slope_x=0.;
-float coveriance_slope_y=0.;
     struct coveriance_t coveriance;
 
 struct edge_flow_t prev_edge_flow;
 
 float Q=0.01;//motion model
 float R=1.0;//measurement model
-float new_est_x_trans,new_est_y_trans;
-float new_est_x_slope,new_est_y_slope;
 struct edge_hist_t edge_hist[MAX_HORIZON];
 struct edge_flow_t edge_flow;
 struct displacement_t displacement;
@@ -100,13 +94,7 @@ void initialiseDivergence(){
 	 	memset(&edge_hist,0,MAX_HORIZON*sizeof(struct edge_hist_t));
 
 	 	//Initializing for divergence and flow parameters
-	coveriance.trans_x=0.;
-	 coveriance.trans_y=0.;
-	 coveriance.slope_x=0.;
-	coveriance.slope_y=0.;
-
-
-	 	edge_flow.horizontal_slope=0.0;
+        edge_flow.horizontal_slope=0.0;
 	 	edge_flow.horizontal_trans=0.0;
 	 	edge_flow.vertical_slope=0.0;
 	 	edge_flow.vertical_trans=0.0;
