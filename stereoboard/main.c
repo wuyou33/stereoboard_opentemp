@@ -348,18 +348,13 @@ int main(void)
 					min_y, max_y);
 		}
 		else {
-			stereo_vision_sparse_block(current_image_buffer,
+			stereo_vision_sparse_block_two_sided(current_image_buffer,
 					disparity_image_buffer_8bit, image_width, image_height,
 					disparity_min, disparity_range, disparity_step, thr1, thr2,
 					min_y, max_y);
 		}
 	}
-	else {
-		stereo_vision_sparse_block_two_sided(current_image_buffer,
-				disparity_image_buffer_8bit, image_width, image_height,
-				disparity_min, disparity_range, disparity_step, thr1, thr2,
-				min_y, max_y);
-	}
+
 
 
 	if(current_stereoboard_algorithm==SEND_DIVERGENCE){
