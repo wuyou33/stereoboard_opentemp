@@ -17,6 +17,9 @@ AVERAGE_DATA=False
 MAX_DATA=True
 startedThreadDrawDrone=False
 drawDroneOverSonar = False
+
+stereoboardCommand = None
+
 def PrintException():
     exc_type, exc_obj, tb = sys.exc_info()
     f = tb.tb_frame
@@ -40,6 +43,23 @@ def threadmain():
     b.grid(row=0)
     t.mainloop()
 
+def changeFunctionBoardOne():
+    global v
+    v=1
+def changeFunctionBoardTwo():
+    global v
+    v=2
+def treadChooseFunction():
+    global v
+    t = tk.Tk()
+    b = tk.Button(text='test', command=changeDrawDrone)
+    c=tk.Radiobutton(t, text="One", command=changeFunctionBoardOne, value=1)
+    d=tk.Radiobutton(t, text="Two", command=changeFunctionBoardTwo, value=2)
+    b.grid(row=0)
+    c.grid(row=1)
+    d.grid(row=2)
+
+    t.mainloop()
 
 def draw_sonar_visualisation(matrix,height):
     global  startedThreadDrawDrone
@@ -119,23 +139,20 @@ def draw_sonar_visualisation(matrix,height):
 def fill_image_array(startSync, raw, width, height):
     try:
 	    line=0
-	    print 'raw: ' , raw
+
 	    # Initialise image
 	    img = np.zeros((height,width))
 
 	    # Fill the image arrays
 	    for i in range(startSync + 4, startSync+(width+8)*height):
 		if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-		    if (raw[i + 3] == 128):
+		    if (raw[i + 3] == 128): # Start Of Line
 			try:
-				# print i
-				# Start Of Line
+
 				startOfBuf = i + 4
 				endOfBuf = (i + 4 + width)
 				img[line, :] = raw[startOfBuf:endOfBuf]
 				line += 1;
-				## START MATRIX
-				# Search for the startposition
 			except Exception:
 				print 'ended before end'
 	    return img
@@ -152,6 +169,7 @@ def readDivergenceFromSerial(ser, currentBuffer):
 
     for byte in raw:
         currentBuffer.append(int(byte))
+	#print 'read: ',int(byte)
     startPosition=None
     lastResult=(-1,-1)
 
@@ -171,15 +189,24 @@ def readDivergenceFromSerial(ser, currentBuffer):
     return currentBuffer, lastResult
 
 def readPartOfImage(ser, currentBuffer):
+    import struct
+    global stereoboardCommand
+    # Send data if needed
+    if not stereoboardCommand==None:
+	ser.write(struct.pack('!B',stereoboardCommand))
+	stereoboardCommand = None
 
+    # Read all available bytes
     readSize= ser.inWaiting()
     while readSize ==0:
         readSize= ser.inWaiting()
 
     raw = bytearray(ser.read(readSize))
 
+    # Add all bytes to our total collection of bytes
     for byte in raw:
         currentBuffer.append(int(byte))
+	#print 'read: ', int(byte)
     startPosition=None
     lastResult=(-1,-1)
     endOfImagesFound=0
@@ -207,7 +234,6 @@ def determine_image_and_line_length(raw):
     for i in range(0, len(raw)):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171 and startPosition != None):# End of Image
-    #            print 'found image length: ' , i -startPosition
                 return startPosition, (i - startPosition),lineLength, lineCount
             if raw[i + 3] == 175:# Start of image
                 startPosition = i

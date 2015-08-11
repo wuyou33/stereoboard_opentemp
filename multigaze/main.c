@@ -75,7 +75,7 @@ void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine,
 						for (indexInBuffer = startOfBuf;
 								indexInBuffer < endOfBuf; indexInBuffer++) {
 							if(response[indexInBuffer]>CLOSE_BOUNDARY){
-								led_set();
+								//led_set();
 							}
 
 							Usart1Tx(&response[indexInBuffer], 1);
@@ -113,7 +113,7 @@ int main(void) {
 
 	// Initialize the LED
 	led_init();
-	led_set();
+	//led_set();
 
 #ifdef TUNNEL_NONE
 	// Initialize the serial communication (before the camera so we can print status)
@@ -151,9 +151,37 @@ int main(void) {
 		camerasReady[locationInStack] = 0;
 	}
 	int currentCamera = 0;
-
+	int currentValueSending=0;
 	while (1) {
 #ifdef TUNNEL_NONE
+
+		uint8_t c = ' ';
+
+		while(Usart1Ch()){
+			c=Usart1Rx();
+			code[0] = c;
+			while (Usart1Tx(code, 1) == 0) {
+
+			}
+		}
+
+		/*
+		if(c>0){
+			led_set();
+		}
+		else{
+			led_clear();
+		}*/
+
+		led_toggle();
+		/*
+		code[0] = currentValueSending;
+		currentValueSending=currentValueSending+1;
+		currentValueSending=currentValueSending%100;
+		while (Usart1Tx(code, 1) == 0) {
+
+		}*/
+/*
 		uint8_t c = ' ';
 		// TODO can we create an even more generic system that says what inputs
 		// have characters and read from those inputs?
@@ -256,6 +284,8 @@ int main(void) {
 			}
 		}
 
+
+
 		// Check how many of the buffers are not full yet
 
 		int camerasToComplete=0;
@@ -276,7 +306,7 @@ int main(void) {
 		if(camerasToComplete<3)
 		{
 			//led_toggle();
-			led_clear();
+			//led_clear();
 
 			for(currentCamera=0; currentCamera < STEREO_CAMERAS_COUNT; currentCamera++)
 			{
@@ -316,7 +346,7 @@ int main(void) {
 			while (Usart1Tx(code, 4) == 0) {
 
 			}
-		}
+		}*/
 #else
 		tunnel_run();
 #endif

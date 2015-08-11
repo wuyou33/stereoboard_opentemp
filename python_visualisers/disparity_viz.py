@@ -12,8 +12,6 @@ treshold=0.3
 
 currentBuffer=[]
 cv2.namedWindow('img',cv2.WINDOW_NORMAL)
-
-#cv2.namedWindow('img',cv2.WINDOW_NORMAL)
 fileToWrite=file("data.csv",'w')
 dataWriter=csv.writer(fileToWrite)
 while True:
@@ -49,6 +47,16 @@ while True:
 
 
             key=cv2.waitKey(1)
+            if 'q' == chr(key & 255):
+                break	
+            if 'a' == chr(key & 255):
+                stereoboard_tools.stereoboardCommand=1	
+            if 's' == chr(key & 255):
+                stereoboard_tools.stereoboardCommand=2
+            if 'd' == chr(key & 255):
+                stereoboard_tools.stereoboardCommand=3
+            if 'f' == chr(key & 255):
+                stereoboard_tools.stereoboardCommand=4
             if saveImages:
                 import scipy
                 fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
