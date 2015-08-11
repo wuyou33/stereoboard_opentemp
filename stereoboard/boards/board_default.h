@@ -8,4 +8,4 @@
 #define DISPARITY_OFFSET_RIGHT  0
 #define DISPARITY_BORDER  96
 
-#define CAPTURE_MODE_SNAPSHOT 0   // No-snapshot, but continuous: We want fast frames without any delay, and it does not matter if the lower half of the buffer already contains a new image
+//#define CAPTURE_MODE_SNAPSHOT 0   // No-snapshot, but continuous: We want fast frames without any delay, and it does not matter if the lower half of the buffer already contains a new image
