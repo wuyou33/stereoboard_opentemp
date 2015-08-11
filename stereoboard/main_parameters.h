@@ -15,8 +15,10 @@
 
 #include BOARD_FILE
 
+//#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
 //#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
-#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
+//#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
 
 
 //////////////////////////////////////////////////////
@@ -41,12 +43,16 @@
 #define BRIGHT_WINDOW 0 // 0
 #endif
 #ifndef STEREO_CAM_NUMBER
-#define STEREO_CAM_NUMBER 1 //  0 = DelFly Explorer cam   1 = spare camera
+#define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
 #endif
 
-#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define LARGE_IMAGE
+
+#ifndef CAPTURE_MODE_SNAPSHOT
+#define CAPTURE_MODE_SNAPSHOT 1
+#endif
 
 //////////////////////////////////////////////////////
 // Define image format

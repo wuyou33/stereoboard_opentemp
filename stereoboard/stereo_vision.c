@@ -8,6 +8,251 @@
  * Function takes input and calculates disparity using a block
  * @author Sjoerd + Roland
  */
+void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
+                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
+{
+  uint32_t image_width_bytes = image_width * 2; 					// number of bytes of 2 interlaced image lines
+  // TODO check if disparity_min is still required
+  uint32_t disparity_max = disparity_range - 1 + disparity_min;		// calculate maximum diisparity value based on minimum and range
+
+  int vertical_block_size = 5; // vertical size of SAD-window
+  int horizontal_block_size = 5; // horizontal size of SAD-window
+  int GRADIENT_THRESHOLD = 5; // defines if image gradient indicates sufficient texture
+  int PKRN_THRESHOLD = 130; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
+
+  int half_vertical_block_size = (vertical_block_size - 1)/2;
+  int half_horizontal_block_size = (horizontal_block_size - 1)/2;
+
+  int fakeShitImageWidth=128;
+  int half_imageWidth = fakeShitImageWidth/2;
+  int idx0 = 0; // line starting point index
+  int idx_SAD = -1; // SAD block index
+  int idx_line = 100; // SAD block index
+  uint32_t lineIndex = 0;
+  volatile int i = 0; // iterator
+  volatile int ii = 0; // iterator
+  int d = 0; // iterator
+  volatile int h = 0; // iterator
+  volatile int v = 0; // iterator
+
+  // parabole fitting
+  int x1 = 0;
+  int x2 = 0;
+  int x3 = 0;
+  int y1 = 0;
+  int y2 = 0;
+  int y3 = 0;
+  int32_t h31 = 0;
+  int32_t h21 = 0;
+  int32_t sub_disp;
+  int p1 = 0;
+  int p2 = 0;
+  int p3 = 0;
+
+
+  q15_t block_left[image_width*vertical_block_size]; // block that stores multiple image lines to handle SAD windows
+  q15_t block_right[image_width*vertical_block_size]; // same
+  q15_t line_gradient[fakeShitImageWidth-1]; // horizontal image gradients for a single line
+  q15_t cost[disparity_range]; // array to store pixel matching costs
+  q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
+  q15_t sum_counts[disparity_range];
+  q15_t c1;
+  q15_t c2;
+  uint32_t  c1_i;
+  uint32_t  c2_i;
+  uint8_t anyOn=0;
+
+  // set sum vector back to zero for new window
+  //arm_fill_q15(0, sum_counts, disparity_range);
+
+  // check that disparity search stays within the bounds of the input image
+	int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
+	max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
+	int superIndexInBuffer=0;
+	for (lineIndex = min_y; lineIndex < max_y; lineIndex++)
+	{
+		idx0 = lineIndex * image_width_bytes;
+
+		// update index term to store this line at the right location in the left and right blocks
+		idx_line++;
+		if ( idx_line >= vertical_block_size )
+			idx_line = 0;
+
+		idx_SAD++;
+		if ( idx_line == half_vertical_block_size )
+			idx_SAD = 0;
+
+		// de-interlace image lines and put them at right place in the image blocks
+	    separate_image_line_offset_block(&in[idx0], block_right,block_left, image_width_bytes, idx_line, fakeShitImageWidth-1);
+
+	    if ( idx_SAD > -1 )
+	    {
+
+			// calculate image gradient of left image by subtracting with one pixel offset
+			arm_sub_q15(&block_left[idx_SAD * fakeShitImageWidth], &block_left[(idx_SAD * fakeShitImageWidth) + 1], line_gradient, half_imageWidth);
+
+	//		// make image gradients absolute such that we can look for maximum values in the next step
+			arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
+
+			for ( i = half_horizontal_block_size; i < half_imageWidth; i++ )
+			{
+				// check if image gradient has a local maximum AND value of image gradient exceeds threshold.
+				if ( line_gradient[i] > line_gradient[i-1] && line_gradient[i] > line_gradient[i+1] && line_gradient[i] > GRADIENT_THRESHOLD )
+				{
+					// set sum vector back to zero for new window
+					arm_fill_q15(0, sum_cost, disparity_range);
+
+					// perform SAD calculations
+					for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++)
+					{
+						for (v = 0; v < vertical_block_size; v++)
+						{
+							// compute difference between pixel from left image with (disparity) range of pixels from right image
+							arm_offset_q15( &block_right[h + (v*image_width)], -block_left[h + (v*image_width)], cost, disparity_range  );
+							// obtain absolute difference
+							arm_abs_q15(cost, cost, disparity_range);
+							// sum results of this pixel with other pixels in this window
+							arm_add_q15(cost, sum_cost, sum_cost, disparity_range );
+
+						}
+					}
+
+					// find minimum cost
+					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
+					uint8_t disparity_value = (uint8_t) c1_i;
+					// put minimum cost much higher to find second minimum
+					sum_cost[c1_i] = 16384;
+					// find second minimum cost
+					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
+
+					if ( (c2*100)/c1 > PKRN_THRESHOLD ){
+
+						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + i;
+						if (locationInBuffer<12288){
+							out[locationInBuffer] = disparity_value*RESOLUTION_FACTOR;//c1_i;
+
+							if (disparity_value > 0 && disparity_value < disparity_max )
+							{
+								x1 = disparity_value - 1;
+								x2 = disparity_value;
+								x3 = disparity_value + 1;
+								y1 = sum_cost[x1];
+								y2 = sum_cost[x2];
+								y3 = sum_cost[x3];
+
+								h31 = (y3-y1);
+								h21 = (y2-y1)*4;
+								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
+
+								out[locationInBuffer] = sub_disp + DISPARITY_OFFSET_HORIZONTAL;
+
+							}
+							//sum_counts[disparity_value]++;
+
+						}
+	//					out[superIndexInBuffer++]=c1_i;
+		//				out[0]=20;
+					}
+
+
+				}
+			}
+
+			// calculate image gradient of left image by subtracting with one pixel offset
+			arm_sub_q15(&block_right[idx_SAD * fakeShitImageWidth]+half_imageWidth-1, &block_right[(idx_SAD * fakeShitImageWidth)+half_imageWidth], line_gradient, half_imageWidth);
+
+			// make image gradients absolute such that we can look for maximum values in the next step
+			arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
+
+			int cx_diff_compensation = DISPARITY_OFFSET_HORIZONTAL;
+
+			for ( ii = half_imageWidth + cx_diff_compensation; ii < fakeShitImageWidth-half_horizontal_block_size; ii++ )
+			{
+				i = ii - half_imageWidth + 1;
+
+				// check if image gradient has a local maximum AND value of image gradient exceeds threshold.
+				if ( line_gradient[i] > line_gradient[i-1] && line_gradient[i] > line_gradient[i+1] && line_gradient[i] > GRADIENT_THRESHOLD )
+				{
+					// set sum vector back to zero for new window
+					arm_fill_q15(0, sum_cost, disparity_range);
+
+					// perform SAD calculations
+					for (h = ii - half_horizontal_block_size; h < ii + half_horizontal_block_size + 1; h++)
+					{
+						for (v = 0; v < vertical_block_size; v++)
+						{
+							// compute difference between pixel from left image with (disparity) range of pixels from right image
+							arm_offset_q15( &block_left[h + (v*image_width) - disparity_range], -block_right[h + (v*image_width)], cost, disparity_range  );
+							// obtain absolute difference
+							arm_abs_q15(cost, cost, disparity_range);
+							// sum results of this pixel with other pixels in this window
+							arm_add_q15(cost, sum_cost, sum_cost, disparity_range );
+
+						}
+					}
+
+					// find minimum cost
+					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
+					uint8_t disparity_value = (uint8_t) c1_i;
+					// put minimum cost much higher to find second minimum
+					sum_cost[c1_i] = 16384;
+					// find second minimum cost
+					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
+
+					if ( (c2*100)/c1 > PKRN_THRESHOLD ){
+
+						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + ii - cx_diff_compensation;
+						if (locationInBuffer<12288){
+							out[locationInBuffer] = (disparity_max-disparity_value)*RESOLUTION_FACTOR;//c1_i;
+
+							if (disparity_value > 0 && disparity_value < disparity_max )
+							{
+								x1 = disparity_value - 1;
+								x2 = disparity_value;
+								x3 = disparity_value + 1;
+								y1 = sum_cost[x1];
+								y2 = sum_cost[x2];
+								y3 = sum_cost[x3];
+
+								h31 = (y3-y1);
+								h21 = (y2-y1)*4;
+								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
+
+								out[locationInBuffer] = (disparity_max*RESOLUTION_FACTOR) - sub_disp + DISPARITY_OFFSET_HORIZONTAL;
+
+							}
+
+							//sum_counts[disparity_value]++;
+
+						}
+	//					out[superIndexInBuffer++]=c1_i;
+		//				out[0]=20;
+					}
+
+
+				}
+			}
+	    }
+	}
+
+	/*
+	int sum_disparities = 0;
+	for ( d = disparity_range-1; d>CLOSE_BOUNDARY; d--)
+	{
+		sum_disparities += sum_counts[d];
+	}
+
+	if(sum_disparities>5){
+		led_set();
+	}
+	else
+	{
+		led_clear();
+	}
+	*/
+
+}
+
 void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
                         uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
