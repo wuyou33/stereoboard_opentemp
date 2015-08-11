@@ -73,6 +73,7 @@ float coveriance_trans_x=0.;
 float coveriance_trans_y=0.;
 float coveriance_slope_x=0.;
 float coveriance_slope_y=0.;
+    struct coveriance_t coveriance;
 
 struct edge_flow_t prev_edge_flow;
 
@@ -98,6 +99,10 @@ void initialiseDivergence(){
 	 	memset(&edge_hist,0,MAX_HORIZON*sizeof(struct edge_hist_t));
 
 	 	//Initializing for divergence and flow parameters
+	coveriance.trans_x=0.;
+	 coveriance.trans_y=0.;
+	 coveriance.slope_x=0.;
+	coveriance.slope_y=0.;
 
 
 	 	edge_flow.horizontal_slope=0.0;
@@ -343,35 +348,7 @@ int main(void)
 				divergence_rear=0;
 
 			//Kalman filtering
-			if(isnan(coveriance_trans_x))
-				coveriance_trans_x=0;
-			if(isnan(coveriance_trans_y))
-				coveriance_trans_y=0;
-			if(isnan(coveriance_slope_x))
-				coveriance_slope_x=0;
-			if(isnan(coveriance_slope_y))
-				coveriance_slope_y=0;
-
-
-			if(isnan(prev_edge_flow.horizontal_trans))
-				prev_edge_flow.horizontal_trans=0;
-			if(isnan(prev_edge_flow.vertical_trans))
-				prev_edge_flow.vertical_trans=0;
-			if(isnan(prev_edge_flow.horizontal_slope))
-				prev_edge_flow.horizontal_slope=0;
-			if(isnan(prev_edge_flow.vertical_slope))
-				prev_edge_flow.vertical_slope=0;
-
-
-			new_est_x_trans=simpleKalmanFilter(&coveriance_trans_x,prev_edge_flow.horizontal_trans,edge_flow.horizontal_trans,Q,R);
-			new_est_y_trans=simpleKalmanFilter(&coveriance_trans_y,prev_edge_flow.vertical_trans,edge_flow.vertical_trans,Q,R);
-			new_est_x_slope=simpleKalmanFilter(&coveriance_slope_x,prev_edge_flow.horizontal_slope,edge_flow.horizontal_slope,Q,R);
-			new_est_y_slope=simpleKalmanFilter(&coveriance_slope_y,prev_edge_flow.vertical_slope,edge_flow.vertical_slope,Q,R);
-
-			edge_flow.horizontal_trans=new_est_x_trans;
-			edge_flow.vertical_trans=new_est_y_trans;
-			edge_flow.horizontal_slope=new_est_x_slope;
-			edge_flow.vertical_slope=new_est_y_slope;
+			totalKalmanFilter(&coveriance,&prev_edge_flow, &edge_flow,Q, R);
 
 			//send array with flow parameters
 

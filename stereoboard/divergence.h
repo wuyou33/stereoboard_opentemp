@@ -33,6 +33,12 @@ struct displacement_t{
 	int  vertical[IMAGE_HEIGHT];
 };
 
+struct coveriance_t{
+	float trans_x;
+	float trans_y;
+	float slope_x;
+	float slope_y;
+};
 
 void calculate_edge_flow_simple(uint8_t* in,uint32_t* edge_histogram,uint32_t* edge_histogram_prev,int32_t* displacement,float* slope,float* yint,uint32_t image_width, uint32_t image_height);
 int calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct edge_flow_t* edge_flow, struct edge_hist_t* edge_hist,int front,int rear,int windowsize,int max_distance,int edge_threshold,uint32_t  image_width,uint32_t  image_height);
@@ -43,5 +49,6 @@ int getMinimum2(int * flow_error, int  max_ind);
 void line_fit(int* displacement, float* Slope, float* Yint,uint32_t image_width);
 void line_fit_RANSAC( int* displacement, float* Slope, float* Yint,int size,int* X);
 void visualize_divergence(uint8_t* in,int32_t* displacement,float Slope, float Yint,uint32_t image_width, uint32_t image_height);
+void totalKalmanFilter(struct coveriance_t* coveriance,struct edge_flow_t* prev_edge_flow, struct edge_flow_t* edge_flow,float Q,float R);
 float simpleKalmanFilter(float* cov,float previous_est, float current_meas,float Q,float R);
 #endif /* DIVERGENCE_H_ */

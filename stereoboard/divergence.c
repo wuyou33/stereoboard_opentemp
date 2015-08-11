@@ -367,6 +367,48 @@ void line_fit_RANSAC( int* displacement, float* Slope, float* Yint,int size,int*
 
 }
 
+void totalKalmanFilter(struct coveriance_t* coveriance,struct edge_flow_t* prev_edge_flow, struct edge_flow_t* edge_flow,float Q,float R)
+{
+
+	float new_est_x_trans,new_est_y_trans;
+	float new_est_x_slope,new_est_y_slope;
+
+	if(isnan(coveriance->trans_x))
+		coveriance->trans_x=0;
+	if(isnan(coveriance->trans_y))
+		coveriance->trans_y=0;
+	if(isnan(coveriance->slope_x))
+		coveriance->slope_x=0;
+	if(isnan(coveriance->slope_y))
+		coveriance->slope_y=0;
+
+
+	if(isnan(prev_edge_flow->horizontal_trans))
+		prev_edge_flow->horizontal_trans=0;
+	if(isnan(prev_edge_flow->vertical_trans))
+		prev_edge_flow->vertical_trans=0;
+	if(isnan(prev_edge_flow->horizontal_slope))
+		prev_edge_flow->horizontal_slope=0;
+	if(isnan(prev_edge_flow->vertical_slope))
+		prev_edge_flow->vertical_slope=0;
+
+
+
+	new_est_x_trans=simpleKalmanFilter(&(coveriance->trans_x),(prev_edge_flow->horizontal_trans),(edge_flow->horizontal_trans),Q,R);
+	new_est_y_trans=simpleKalmanFilter(&(coveriance->trans_y),(prev_edge_flow->vertical_trans),(edge_flow->vertical_trans),Q,R);
+	new_est_x_slope=simpleKalmanFilter(&(coveriance->slope_x),(prev_edge_flow->horizontal_slope),(edge_flow->horizontal_slope),Q,R);
+	new_est_y_slope=simpleKalmanFilter(&(coveriance->slope_y),(prev_edge_flow->vertical_slope),(edge_flow->vertical_slope),Q,R);
+
+	memcpy(prev_edge_flow,edge_flow,4*sizeof(float));
+
+
+	edge_flow->horizontal_trans=new_est_x_trans;
+	edge_flow->vertical_trans=new_est_y_trans;
+	edge_flow->horizontal_slope=new_est_x_slope;
+	edge_flow->vertical_slope=new_est_y_slope;
+
+}
+
 float simpleKalmanFilter(float* cov,float previous_est, float current_meas,float Q,float R)
 {
 
