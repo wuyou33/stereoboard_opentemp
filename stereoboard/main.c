@@ -184,6 +184,45 @@ int main(void)
    ***********/
   //camera_snapshot();
 
+#if SEND_DIVERGENCE
+	//Define arrays and pointers for edge histogram and displacements
+	struct displacement_t displacement;
+	displacement.horizontal[IMAGE_WIDTH];
+	displacement.vertical[IMAGE_HEIGHT];
+
+	//Initializing the dynamic parameters and the edge histogram structure
+	int rear=1;
+	int front=0;
+
+	//Intializing edge histogram structure
+	struct edge_hist_t edge_hist[MAX_HORIZON];
+	memset(&edge_hist,0,MAX_HORIZON*sizeof(struct edge_hist_t));
+
+	//Initializing for divergence and flow parameters
+	struct edge_flow_t edge_flow;
+
+	edge_flow.horizontal_slope=0.0;
+	edge_flow.horizontal_trans=0.0;
+	edge_flow.vertical_slope=0.0;
+	edge_flow.vertical_trans=0.0;
+
+	//Element for the kalman filter
+
+	float coveriance_trans_x=0.;
+	float coveriance_trans_y=0.;
+	float coveriance_slope_x=0.;
+	float coveriance_slope_y=0.;
+
+	struct edge_flow_t prev_edge_flow;
+
+	float Q=0.01;//motion model
+	float R=1.0;//measurement model
+	float new_est_x_trans,new_est_y_trans;
+	float new_est_x_slope,new_est_y_slope;
+
+#endif
+
+
 	/***********
 	 * MAIN LOOP
 	 ***********/
@@ -219,7 +258,6 @@ int main(void)
 	// Initialise matrixbuffer
 	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-
   while (1) {
 
   if(current_stereoboard_algorithm==SEND_PROXIMITY){
@@ -241,35 +279,37 @@ int main(void)
 	else{
 	camera_snapshot();
 
-	#ifdef LARGE_IMAGE
+    camera_snapshot();
+#ifdef LARGE_IMAGE
+    offset_crop += 80;
+    if (offset_crop == 480) {
+      offset_crop = 0;
+    }
+    camera_crop(offset_crop);
+#endif
+    // wait for new frame
+    while (frame_counter == processed)
+      ;
+    processed = frame_counter;
+    //led_toggle();
+
+#ifdef CROPPING
 		offset_crop += 80;
 		if (offset_crop == 480) {
-		  offset_crop = 0;
+			offset_crop = 0;
 		}
 		camera_crop(offset_crop);
-	#endif
+#endif
 		// wait for new frame
 		while (frame_counter == processed)
-		  ;
+			;
 		processed = frame_counter;
 		//led_toggle();
 
-	#ifdef CROPPING
-			offset_crop += 80;
-			if (offset_crop == 480) {
-				offset_crop = 0;
-			}
-			camera_crop(offset_crop);
-	#endif
-			// wait for new frame
-			while (frame_counter == processed)
-				;
-			processed = frame_counter;
-			//led_toggle();
+    current_image_buffer[0] = 0;
+    current_image_buffer[1] = 0;
 
-		current_image_buffer[0] = 0;
-		current_image_buffer[1] = 0;
-
+/*
 		uint8_t readChar = ' ';
 
 		while(UsartCh()){
@@ -294,7 +334,7 @@ int main(void)
 			{
 				current_stereoboard_algorithm=SEND_DIVERGENCE;
 			}
-		}
+		}*/
 
 		// New frame code: Vertical blanking = ON
 
@@ -314,12 +354,13 @@ int main(void)
 					min_y, max_y);
 		}
 		else {
-			stereo_vision_sparse_block(current_image_buffer,
+			stereo_vision_sparse_block_two_sided(current_image_buffer,
 					disparity_image_buffer_8bit, image_width, image_height,
 					disparity_min, disparity_range, disparity_step, thr1, thr2,
 					min_y, max_y);
 		}
 	}
+
 
 	if(current_stereoboard_algorithm==SEND_MATRIX){
 
@@ -331,6 +372,7 @@ int main(void)
 		calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 				pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 	}
+
 
 	if(current_stereoboard_algorithm==SEND_DIVERGENCE){
 			if(initialisedDivergence==0){

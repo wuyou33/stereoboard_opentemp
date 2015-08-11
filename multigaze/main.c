@@ -154,7 +154,7 @@ int main(void) {
 	int currentValueSending=0;
 	while (1) {
 #ifdef TUNNEL_NONE
-
+/*
 		uint8_t c = ' ';
 
 		while(Usart1Ch()){
@@ -163,7 +163,7 @@ int main(void) {
 			while (Usart1Tx(code, 1) == 0) {
 
 			}
-		}
+		}*/
 
 		/*
 		if(c>0){
@@ -181,7 +181,7 @@ int main(void) {
 		while (Usart1Tx(code, 1) == 0) {
 
 		}*/
-/*
+
 		uint8_t c = ' ';
 		// TODO can we create an even more generic system that says what inputs
 		// have characters and read from those inputs?
@@ -346,7 +346,7 @@ int main(void) {
 			while (Usart1Tx(code, 4) == 0) {
 
 			}
-		}*/
+ 		}
 #else
 		tunnel_run();
 #endif
