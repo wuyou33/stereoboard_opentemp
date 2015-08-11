@@ -85,6 +85,7 @@ struct edge_hist_t edge_hist[MAX_HORIZON];
 struct edge_flow_t edge_flow;
 struct displacement_t displacement;
 uint8_t initialisedDivergence=0;
+float height=0;
 
 void initialiseDivergence(){
 	    //Define arrays and pointers for edge histogram and displacements
@@ -336,7 +337,7 @@ int main(void)
 				initialiseDivergence();
 			}
 			//calculate the edge flow
-			int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, divergence_front,divergence_rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
+			int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, &height,divergence_front,divergence_rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
 
 			//move the indices for the edge hist structure
 			divergence_front++;
@@ -357,7 +358,7 @@ int main(void)
 			divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
 			divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
 			divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
-			divergencearray[4]=(uint8_t)previous_frame;
+			divergencearray[4]=(uint8_t)height;
 
 			SendArray( divergencearray,5,1);
 			led_toggle();

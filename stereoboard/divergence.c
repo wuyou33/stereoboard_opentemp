@@ -9,18 +9,22 @@
 
 
 
-int calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct edge_flow_t* edge_flow, struct edge_hist_t* edge_hist,int front,int rear,int windowsize,int max_distance,int edge_threshold,uint32_t  image_width,uint32_t  image_height)
+int calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct edge_flow_t* edge_flow, struct edge_hist_t* edge_hist,float* height,int front, int rear,int windowsize,int max_distance,int edge_threshold,uint32_t  image_width,uint32_t  image_height)
 {
 
 	//Define arrays and pointers for edge histogram and displacements
 	int edge_histogram_x[IMAGE_WIDTH], prev_edge_histogram_x[IMAGE_WIDTH];
+	int edge_histogram_right_x[IMAGE_WIDTH];
 
 	int * edge_histogram_x_p=edge_histogram_x;
 	int * prev_edge_histogram_x_p=prev_edge_histogram_x;
+	int * edge_histogram_right_x_p=edge_histogram_right_x;
 
 	int edge_histogram_y[IMAGE_HEIGHT],prev_edge_histogram_y[IMAGE_HEIGHT];
 	int * edge_histogram_y_p=edge_histogram_y;
 	int * prev_edge_histogram_y_p=prev_edge_histogram_y;
+
+	int displacement_fullimage;
 
 	float slope_x=0.0;
 	float trans_x=0.0;
@@ -76,16 +80,19 @@ int calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct 
 
 
 	//Calculate Edge Histogram
-	calculate_edge_histogram(in,edge_histogram_x_p,image_width,image_height,'x');
-	calculate_edge_histogram(in,edge_histogram_y_p,image_width,image_height,'y');
+	calculate_edge_histogram(in,edge_histogram_x_p,image_width,image_height,'x','l');
+	calculate_edge_histogram(in,edge_histogram_y_p,image_width,image_height,'y','l');
+	calculate_edge_histogram(in,edge_histogram_right_x_p,image_width,image_height,'x','r');
+
 
 	//Calculate displacement
 	//TODO add max distance and window size to function (is divined iin function)
 	calculate_displacement(edge_histogram_x_p,prev_edge_histogram_x_p,displacement->horizontal,image_width);
 	calculate_displacement(edge_histogram_y_p,prev_edge_histogram_y_p,displacement->vertical,image_height);
+	calculate_displacement_fullimage(edge_histogram_x_p,edge_histogram_right_x_p,&displacement_fullimage,image_width);
 
 
-
+    *height=displacement_fullimage;
 
 	//Fit a linear line
 	//TODO Fix RANSAC function from producing NAN's
@@ -118,7 +125,7 @@ int calculate_edge_flow(uint8_t* in, struct displacement_t* displacement,struct 
 
 
 //calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
-void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_width, uint32_t image_height,char direction)
+void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_width, uint32_t image_height,char direction,char side)
 {
 
 	int8_t  sobel_left;
@@ -148,14 +155,27 @@ void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_wid
 				{
 					uint32_t idx_filter = image_width*(y)*2 + (x+c)*2;
 
-					sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
-					sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);
+					if(side=='l')
+						sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
+					else{
+						if(side=='r'){
+							sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);}
+						else{}
+					}
+
+
 
 				}
-				sobel_left=abs(sobel_left);
-				edge_histogram_temp += (uint32_t)sobel_left;
-				//out[idx+1]=(uint8_t)sobel_left;
-				//out[idx]=0;
+				if(side=='l'){
+					sobel_left=abs(sobel_left);
+					edge_histogram_temp += (uint32_t)sobel_left;
+				}
+				else{
+					if(side=='r'){
+						sobel_right=abs(sobel_right);
+						edge_histogram_temp += (uint32_t)sobel_right;}
+					else{}
+				}
 
 			}
 
@@ -178,14 +198,25 @@ void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_wid
 				{
 					uint32_t idx_filter = image_width*(y+c)*2 + (x)*2;
 
-					sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
-					sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);
+					if(side=='l')
+						sobel_left += Sobel[c+1] * (int8_t)(in[idx_filter+1]);
+					else{
+						if(side=='r'){
+							sobel_right += Sobel[c+1] * (int8_t)(in[idx_filter]);}
+						else{}
+					}
 
 				}
-				sobel_left=abs(sobel_left);
-				edge_histogram_temp += (uint32_t)sobel_left;
-				//out[idx+1]=(uint8_t)sobel_left;
-				//out[idx]=0;
+				if(side=='l'){
+					sobel_left=abs(sobel_left);
+					edge_histogram_temp += (uint32_t)sobel_left;
+				}
+				else{
+					if(side=='r'){
+						sobel_right=abs(sobel_right);
+						edge_histogram_temp += (uint32_t)sobel_right;}
+					else{}
+				}
 
 			}
 
@@ -200,45 +231,69 @@ void calculate_edge_histogram(uint8_t* in,int* edge_histogram,uint32_t image_wid
 
 //Calculate_displacement calculates the displacement between two histograms
 void calculate_displacement(int* edge_histogram,int* edge_histogram_prev,int* displacement,uint32_t size)
-{volatile	int  c=0;
-volatile int r=0;
-volatile int y=0;
-volatile int x=0;
-
-volatile int W=10;
-volatile int D=10;
-volatile int SAD_temp[20];
-
-volatile int min_index=0;
-
-for(x=0; x<size;x++)
 {
+	int  c=0;
+	int r=0;
+	int y=0;
+	int x=0;
+	int W=10;
+	int D=10;
+	int SAD_temp[20];
 
-	if(x>=W+D&&x<=size-W-D)
+	int min_index=0;
+
+	for(x=0; x<size;x++)
 	{
-		for(c=-D;c<W;c++)
+
+		if(x>=W+D&&x<=size-W-D)
 		{
-			SAD_temp[D+c]=0;
+			for(c=-D;c<W;c++)
+			{
+				SAD_temp[D+c]=0;
 
-			for(r=-W;r<W;r++)
-				SAD_temp[c+D]+=abs(edge_histogram[x+r]-edge_histogram_prev[x+r+c]);
+				for(r=-W;r<W;r++)
+					SAD_temp[c+D]+=abs(edge_histogram[x+r]-edge_histogram_prev[x+r+c]);
 
 
+			}
+
+			min_index=getMinimum(SAD_temp,20);
+
+			displacement[x]=(int)(min_index-W);
+		}else{
+			displacement[x]=0;
 		}
-
-		min_index=getMinimum(SAD_temp,20);
-
-		displacement[x]=(int)(min_index-W);
-	}else{
-		displacement[x]=0;
 	}
 }
 
+//Calculate_displacement calculates the displacement between two histograms
+void calculate_displacement_fullimage(int* edge_histogram,int* edge_histogram_2,int* displacement,uint32_t size)
+{
+	int  c=0;
+	int r=0;
+	int y=0;
+	int x=0;
+	int D=16;
+	int SAD_temp[32];
 
+	int min_index=0;
 
+	for(x=-D;x<D;x++)
+	{
+		SAD_temp[x+D]=0;
 
+		for(r=D;r<size-D;r++)
+		{
+			SAD_temp[D+x]+=abs(edge_histogram[r]-edge_histogram_2[x+r]);
 
+		}
+
+	}
+	min_index=getMinimum(SAD_temp,32);
+	*displacement=(int)(min_index-D);
+	min_index=min_index-0;
 }
+
 
 //Line_fit fits a line using least squared to the histogram disparity map (displacement
 void line_fit(int* displacement, float* Slope, float* Yint,uint32_t image_width)
