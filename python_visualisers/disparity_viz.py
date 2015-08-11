@@ -57,6 +57,8 @@ while True:
                 stereoboard_tools.stereoboardCommand=3
             if 'f' == chr(key & 255):
                 stereoboard_tools.stereoboardCommand=4
+	    if 'z' == chr(key & 255):
+                stereoboard_tools.stereoboardCommand=5
             if saveImages:
                 import scipy
                 fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'

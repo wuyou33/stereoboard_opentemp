@@ -52,7 +52,7 @@ typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_D
 // Define which code should be run:
  stereoboard_algorithm_type getBoardFunction(void){
 	#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE))
-		return SEND_MATRIX;
+		return DEFAULT_BOARD_FUNCTION;
 	#elif defined(SEND_COMMANDS)
 		return SEND_COMMANDS;
 	#elif defined(SEND_IMAGE)
@@ -265,18 +265,8 @@ int main(void)
 		current_image_buffer[1] = 0;
 
 		uint8_t readChar = ' ';
-		// New frame code: Vertical blanking = ON
-		  uint8_t codeSending[4];
-		  codeSending[0] = 0xff;
-		  codeSending[1] = 0x00;
-		  codeSending[2] = 0x00;
-		  codeSending[3] = 0xAF; // 175
-		while (UsartTx(codeSending, 1) == 0) {
-
-				}
 
 		while(UsartCh()){
-
 			readChar=UsartRx();
 			if(readChar==1)
 			{
@@ -294,8 +284,14 @@ int main(void)
 			{
 				disparity_min+=1;
 			}
-
+			else if (readChar==5)
+			{
+				current_stereoboard_algorithm=SEND_DIVERGENCE;
+			}
 		}
+
+		// New frame code: Vertical blanking = ON
+
 
 	// Calculate the disparity map, only when we need it
 	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX){
