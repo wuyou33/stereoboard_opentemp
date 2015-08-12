@@ -303,7 +303,7 @@ int main(void) {
 
 		// If there are no cameras yet who need to receive data...
 		// ... send this data through the serial port
-		if(camerasToComplete<5)
+		if(camerasToComplete<3)
 		{
 			//led_toggle();
 			//led_clear();
