@@ -267,7 +267,6 @@ int main(void)
 	else{
 	camera_snapshot();
 
-    camera_snapshot();
 #ifdef LARGE_IMAGE
     offset_crop += 80;
     if (offset_crop == 480) {
@@ -275,11 +274,6 @@ int main(void)
     }
     camera_crop(offset_crop);
 #endif
-    // wait for new frame
-    while (frame_counter == processed)
-      ;
-    processed = frame_counter;
-    //led_toggle();
 
 #ifdef CROPPING
 		offset_crop += 80;
