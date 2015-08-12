@@ -246,6 +246,7 @@ int main(void)
 	// Initialise matrixbuffer
 	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+	uint8_t toSendCommand;
   while (1) {
 
   if(current_stereoboard_algorithm==SEND_PROXIMITY){
@@ -322,7 +323,7 @@ int main(void)
 
 
 	// Calculate the disparity map, only when we need it
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX){
+	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS){
 		// Determine disparities:
 		min_y = 0;
 		max_y = 96;
@@ -341,6 +342,22 @@ int main(void)
 					disparity_min, disparity_range, disparity_step, thr1, thr2,
 					min_y, max_y);
 		}
+	}
+
+	if(current_stereoboard_algorithm==SEND_COMMANDS){
+
+		int disparities_high = 0;
+		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
+		if ( disparities_high >50 )
+		{
+			toSendCommand = 1;
+		}
+		else
+		{
+			toSendCommand = 0;
+		}
+		led_toggle();
+
 	}
 
 
@@ -399,6 +416,9 @@ int main(void)
 	}
 	if(current_stereoboard_algorithm== SEND_MATRIX){
 		SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+	}
+	if(current_stereoboard_algorithm== SEND_COMMANDS){
+		SendCommand(toSendCommand);
 	}
 	}
   }

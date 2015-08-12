@@ -1226,6 +1226,25 @@ void evaluate_disparities_altitude(uint8_t *in, uint32_t image_width, uint32_t i
   }
 }
 
+uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height)
+{
+	int x,y;
+	uint32_t disparities_close = 0;
+	uint8_t maximum_disparities[640] = { 39,39,38,38,37,37,36,36,36,35,35,34,34,34,33,33,33,33,32,32,32,32,31,31,31,31,30,30,30,30,30,29,29,29,29,29,28,28,28,28,28,28,28,27,27,27,27,27,27,27,27,26,26,26,26,26,26,26,26,26,26,26,26,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,27,27,27,27,27,27,28,28,28,28,29,29,29,30,30,30,31,31};
+
+
+	for (x = 0; x < image_width; x++) {
+	    for (y = 0; y < image_height; y++) {
+	    	if ( in[x + y * image_width] > maximum_disparities[x] )
+	    		disparities_close++;
+
+	    }
+	}
+
+	return disparities_close;
+
+}
+
 void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_width, uint32_t image_height,
                           uint8_t min_y, uint8_t max_y)
 {
