@@ -384,7 +384,7 @@ int main(void)
 			//send array with flow parameters
 
 			uint8_t divergencearray[5];
-			divergencearray[0]=(uint8_t)(100);//edge_flow.horizontal_slope*1000+100);
+			divergencearray[0]=(uint8_t)(edge_flow.horizontal_slope*1000+100);
 			divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
 			divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
 			divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
