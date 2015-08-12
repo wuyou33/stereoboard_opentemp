@@ -143,8 +143,13 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 								h31 = (y3-y1);
 								h21 = (y2-y1)*4;
 								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
-
-								out[locationInBuffer] = sub_disp + DISPARITY_OFFSET_HORIZONTAL;
+								if (sub_disp >= DISPARITY_OFFSET_HORIZONTAL){
+									out[locationInBuffer] = sub_disp + DISPARITY_OFFSET_HORIZONTAL;
+								}
+								else
+								{
+									out[locationInBuffer]=0;
+								}
 
 							}
 							//sum_counts[disparity_value]++;
@@ -217,8 +222,13 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 								h31 = (y3-y1);
 								h21 = (y2-y1)*4;
 								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
-
-								out[locationInBuffer] = (disparity_max*RESOLUTION_FACTOR) - sub_disp + DISPARITY_OFFSET_HORIZONTAL;
+								if ((disparity_max*RESOLUTION_FACTOR) - sub_disp >= DISPARITY_OFFSET_HORIZONTAL){
+									out[locationInBuffer] = (disparity_max*RESOLUTION_FACTOR) - sub_disp + DISPARITY_OFFSET_HORIZONTAL;
+								}
+								else
+								{
+									out[locationInBuffer]=0;
+								}
 
 							}
 
