@@ -326,7 +326,7 @@ int main(void)
 	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS){
 		// Determine disparities:
 		min_y = 0;
-		max_y = 96;
+		max_y = 48;
 		memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
 		if ( STEREO_ALGORITHM )
@@ -344,19 +344,21 @@ int main(void)
 		}
 	}
 
-	if(current_stereoboard_algorithm==SEND_COMMANDS){
+	if(current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm==SEND_DISPARITY_MAP){
 
 		int disparities_high = 0;
 		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
-		if ( disparities_high >50 )
+		if ( disparities_high >10 )
 		{
 			toSendCommand = 1;
+			led_set();
 		}
 		else
 		{
 			toSendCommand = 0;
+			led_clear();
 		}
-		led_toggle();
+		//led_toggle();
 
 	}
 
