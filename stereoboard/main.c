@@ -32,6 +32,7 @@
 
 #include "commands.h"
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
+
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -46,12 +47,12 @@ uint16_t offset_crop = 0;
 /* Private functions ---------------------------------------------------------*/
 
 
-typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
+typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY, SEND_WINDOW} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
  stereoboard_algorithm_type getBoardFunction(void){
-	#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE))
+	#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE)) || defined(SEND_WINDOW)
 		return DEFAULT_BOARD_FUNCTION;
 	#elif defined(SEND_COMMANDS)
 		return SEND_COMMANDS;
@@ -63,6 +64,8 @@ typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_D
 		return SEND_MATRIX;
 	#elif defined(SEND_DIVERGENCE)
 		return SEND_DIVERGENCE;
+	#elif defined(SEND_WINDOW)
+		return SEND_WINDOW;
 	#endif
 }
  int divergence_front;
@@ -246,6 +249,13 @@ int main(void)
 	// Initialise matrixbuffer
 	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+	
+	// Initialise windowbuffer
+	uint8_t windowBuffer[WINDOWBUFSIZE];
+	uint8_t coordinate[2]; coordinate[0] = IMAGE_WIDTH/2; coordinate[1] = IMAGE_HEIGHT/2;
+	uint32_t integral_image[IMAGE_WIDTH*IMAGE_HEIGHT];
+	memset(integral_image,0,IMAGE_WIDTH*IMAGE_HEIGHT);
+
   while (1) {
 
   if(current_stereoboard_algorithm==SEND_PROXIMITY){
@@ -286,7 +296,7 @@ int main(void)
 		while (frame_counter == processed)
 			;
 		processed = frame_counter;
-		//led_toggle();
+		led_toggle();
 
     current_image_buffer[0] = 0;
     current_image_buffer[1] = 0;
@@ -322,7 +332,7 @@ int main(void)
 
 
 	// Calculate the disparity map, only when we need it
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX){
+	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_WINDOW){
 		// Determine disparities:
 		min_y = 0;
 		max_y = 96;
@@ -353,6 +363,12 @@ int main(void)
 		// Create the distance matrix by summing pixels per bin
 		calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 				pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+	}
+	
+	if(current_stereoboard_algorithm==SEND_WINDOW){
+		windowBuffer[0] = detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate, integral_image, 10);
+		windowBuffer[1] = coordinate[0];
+		windowBuffer[2] = coordinate[1];
 	}
 
 
@@ -399,6 +415,9 @@ int main(void)
 	}
 	if(current_stereoboard_algorithm== SEND_MATRIX){
 		SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+	}
+	if(current_stereoboard_algorithm== SEND_WINDOW){
+		SendArray(windowBuffer, WINDOWBUFSIZE, 1);
 	}
 	}
   }

@@ -15,11 +15,13 @@
 
 #include BOARD_FILE
 
+#define USART4_BAUD 921600
+
 //#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
 //#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
-#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
+//#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
 //#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
-
+#define DEFAULT_BOARD_FUNCTION SEND_WINDOW
 
 //////////////////////////////////////////////////////
 // Settings
@@ -70,6 +72,12 @@
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
 #if (FULL_IMAGE_SIZE >= (120*1024))
 #error "Config error: Image does not fit im RAM"
+#endif
+
+//////////////////////////////////////////////////////
+// Define window message size
+#if !(defined(WINDOWBUFSIZE))
+#define WINDOWBUFSIZE 3
 #endif
 
 //////////////////////////////////////////////////////

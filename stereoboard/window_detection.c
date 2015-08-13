@@ -10,7 +10,7 @@
 #include "window_detection.h"
 #include "usart.h"
 
-uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint16_t *coordinate,
+uint8_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
                              uint32_t *integral_image, uint8_t MODE)
 {
   // whether to calculate the integral image (only do once):
@@ -18,10 +18,10 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
   // whether the algorithm will determine the size of the window on the basis of the average distance to objects in view
   uint8_t determine_size = 0;
   uint16_t sizes[1];
-  uint16_t min_response[4];
+  uint8_t min_response[4];
   uint8_t min_index = 0;
-  uint8_t min_xc = 0;
-  uint8_t min_yc = 0;
+  uint8_t min_xc = image_width/2;
+  uint8_t min_yc = image_height/2;
   uint8_t s = 0;
   sizes[0] = 30; sizes[1] = 40; sizes[2] = 50; sizes[3] = 60;
   //sizes[0] = 40; //sizes[1] = 53; sizes[2] = 65;
@@ -42,11 +42,11 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
   return min_response[min_index];
 }
 
-uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height, uint16_t *coordinate,
+uint8_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
                        uint8_t determine_size, uint16_t *size, uint8_t calculate_integral_image, uint32_t *integral_image, uint8_t MODE)
 {
   /*
-   * Steps:
+   * Steps:integral_image
    * (0) filter out the bad pixels (i.e., those lower than 4) and replace them with a disparity of 6.
    * (1) get integral image (if calculate_integral_image == 1)
    * (2) get average disparity to determine probable size (if determine_size == 1)
@@ -54,7 +54,7 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
    */
 
   // output of the function:
-  uint16_t min_response = 1000;
+  uint8_t min_response = RES;
 
   // parameters:
   uint16_t image_border = 10;
@@ -80,7 +80,7 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
   if (calculate_integral_image) {
     get_integral_image(in, image_width, image_height, integral_image);
   }
-
+return 0;
   // (2) get average disparity to determine probable size (can also be given from the outside)
   if (determine_size) {
     // get average disparity:
@@ -226,10 +226,11 @@ uint32_t get_avg_disparity(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint1
 }
 
 
-uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t border, uint32_t *integral_image,
+uint8_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t border, uint32_t *integral_image,
                              uint16_t image_width, uint16_t image_height, uint16_t px_inner, uint16_t px_border)
 {
-  uint16_t whole_area, inner_area, resp;
+  uint16_t whole_area, inner_area;
+  uint8_t resp;
   whole_area = get_sum_disparities(x, y, x + feature_size, y + feature_size, integral_image, image_width, image_height);
   inner_area = get_sum_disparities(x + border, y + border, x + feature_size - border, y + feature_size - border,
                                    integral_image, image_width, image_height);
@@ -244,10 +245,11 @@ uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
   return resp;
 }
 
-uint16_t get_border_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t window_size, uint16_t border,
+uint8_t get_border_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t window_size, uint16_t border,
                              uint32_t *integral_image, uint16_t image_width, uint16_t image_height, uint16_t px_inner, uint16_t px_outer)
 {
-  uint16_t inner_area, avg_inner, left_area, right_area, up_area, down_area, darkest, avg_dark, resp;
+  uint16_t inner_area, avg_inner, left_area, right_area, up_area, down_area, darkest, avg_dark;
+  uint8_t resp;
   // inner area
   inner_area = get_sum_disparities(x + border, y + border, x + feature_size - border, y + feature_size - border,
                                    integral_image, image_width, image_height);
