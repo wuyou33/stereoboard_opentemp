@@ -366,7 +366,7 @@ int main(void)
 	}
 	
 	if(current_stereoboard_algorithm==SEND_WINDOW){
-		windowBuffer[0] = detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate, integral_image, 10);
+		windowBuffer[0] = detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate, integral_image, 10, disparity_range - disparity_min);
 		windowBuffer[1] = coordinate[0];
 		windowBuffer[2] = coordinate[1];
 	}
