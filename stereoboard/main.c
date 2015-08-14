@@ -29,7 +29,6 @@
 #include BOARD_FILE
 #include "main_parameters.h"
 #include "divergence.h"
-
 #include "commands.h"
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
