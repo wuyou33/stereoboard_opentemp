@@ -7,7 +7,6 @@
   * @brief   Main program body
   ******************************************************************************
   */
-
 /* Includes ------------------------------------------------------------------*/
 #include "../common/led.h"
 #include "dcmi.h"
@@ -29,7 +28,6 @@
 #include BOARD_FILE
 #include "main_parameters.h"
 #include "divergence.h"
-
 #include "commands.h"
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
@@ -44,8 +42,6 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
-
-
 typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
