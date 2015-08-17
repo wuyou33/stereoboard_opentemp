@@ -348,7 +348,7 @@ int main(void)
 
 		int disparities_high = 0;
 		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
-		if ( disparities_high >10 )
+		if ( disparities_high >8 )
 		{
 			toSendCommand = 1;
 			led_set();
