@@ -322,7 +322,7 @@ int main(void)
 	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS){
 		// Determine disparities:
 		min_y = 0;
-		max_y = 48;
+		max_y = 95;
 		memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
 		if ( STEREO_ALGORITHM )

@@ -83,7 +83,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 			idx_SAD = 0;
 
 		// de-interlace image lines and put them at right place in the image blocks
-	    separate_image_line_offset_block(&in[idx0], block_right,block_left, image_width_bytes, idx_line, fakeShitImageWidth-1);
+	    separate_image_line_offset_block(&in[idx0], block_right,block_left, image_width_bytes, idx_line, fakeShitImageWidth);
 
 	    if ( idx_SAD > -1 )
 	    {
@@ -129,7 +129,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 
 						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + i;
 						if (locationInBuffer<12288){
-							out[locationInBuffer] = disparity_value*RESOLUTION_FACTOR;//c1_i;
+
+							sub_disp = disparity_value*RESOLUTION_FACTOR;
+							out[locationInBuffer] = sub_disp;//c1_i;
 
 							if (disparity_value > 0 && disparity_value < disparity_max )
 							{
@@ -204,9 +206,11 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 
 					if ( (c2*100)/c1 > PKRN_THRESHOLD ){
 
-						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + ii - cx_diff_compensation;
+						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + ii;
 						if (locationInBuffer<12288){
-							out[locationInBuffer] = (disparity_max-disparity_value)*RESOLUTION_FACTOR;//c1_i;
+
+							sub_disp = (disparity_max-disparity_value)*RESOLUTION_FACTOR;
+							out[locationInBuffer] = sub_disp;//c1_i;
 
 							if (disparity_value > 0 && disparity_value < disparity_max )
 							{
@@ -310,7 +314,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 	int superIndexInBuffer=0;
 	for (lineIndex = min_y; lineIndex < max_y; lineIndex++)
 	{
-		idx0 = lineIndex * image_width_bytes;
+		idx0 = lineIndex * image_width_bytes; // starting point of line in image buffer
 
 		// update index term to store this line at the right location in the left and right blocks
 		idx_line++;
