@@ -36,15 +36,15 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   volatile int v = 0; // iterator
 
   // parabole fitting
-  int x1 = 0;
-  int x2 = 0;
-  int x3 = 0;
-  int y1 = 0;
-  int y2 = 0;
-  int y3 = 0;
-  int32_t h31 = 0;
-  int32_t h21 = 0;
-  int32_t sub_disp;
+  volatile int x1 = 0;
+  volatile int x2 = 0;
+  volatile int x3 = 0;
+  volatile int y1 = 0;
+  volatile int y2 = 0;
+  volatile int y3 = 0;
+  volatile int32_t h31 = 0;
+  volatile int32_t h21 = 0;
+  volatile int32_t sub_disp;
   int p1 = 0;
   int p2 = 0;
   int p3 = 0;
@@ -55,6 +55,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   q15_t line_gradient[fakeShitImageWidth-1]; // horizontal image gradients for a single line
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
+  q15_t sum_cost_opt[3]; // array to store sums of pixel matching costs
   q15_t sum_counts[disparity_range];
   q15_t c1;
   q15_t c2;
@@ -69,7 +70,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 	int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
 	max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
 	int superIndexInBuffer=0;
-	for (lineIndex = min_y; lineIndex < max_y; lineIndex++)
+	for (lineIndex = min_y; lineIndex < max_y; lineIndex+=1)
 	{
 		idx0 = lineIndex * image_width_bytes;
 
@@ -121,7 +122,21 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
 					uint8_t disparity_value = (uint8_t) c1_i;
 					// put minimum cost much higher to find second minimum
+					sum_cost_opt[1] = sum_cost[c1_i];
 					sum_cost[c1_i] = 16384;
+					// also do this for direct neighbors
+					if (disparity_value > 0)
+					{
+						sum_cost_opt[0] = sum_cost[c1_i-1];
+						sum_cost[c1_i-1] = 16384;
+					}
+					if (disparity_value < disparity_max)
+					{
+						sum_cost_opt[2] = sum_cost[c1_i+1];
+						sum_cost[c1_i+1] = 16384;
+					}
+
+
 					// find second minimum cost
 					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
 
@@ -138,9 +153,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 								x1 = disparity_value - 1;
 								x2 = disparity_value;
 								x3 = disparity_value + 1;
-								y1 = sum_cost[x1];
-								y2 = sum_cost[x2];
-								y3 = sum_cost[x3];
+								y1 = sum_cost_opt[0];
+								y2 = sum_cost_opt[1];
+								y3 = sum_cost_opt[2];
 
 								h31 = (y3-y1);
 								h21 = (y2-y1)*4;
@@ -169,7 +184,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 			// make image gradients absolute such that we can look for maximum values in the next step
 			arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
 
-			int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL;
+			int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
 
 			for ( ii = half_imageWidth + cx_diff_compensation; ii < fakeShitImageWidth-half_horizontal_block_size; ii++ )
 			{
@@ -200,7 +215,20 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
 					uint8_t disparity_value = (uint8_t) c1_i;
 					// put minimum cost much higher to find second minimum
+					sum_cost_opt[1] = sum_cost[c1_i];
 					sum_cost[c1_i] = 16384;
+					// also do this for direct neighbors
+					if (disparity_value > 0)
+					{
+						sum_cost_opt[0] = sum_cost[c1_i-1];
+						sum_cost[c1_i-1] = 16384;
+					}
+					if (disparity_value < disparity_max)
+					{
+						sum_cost_opt[2] = sum_cost[c1_i+1];
+						sum_cost[c1_i+1] = 16384;
+					}
+
 					// find second minimum cost
 					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
 
@@ -217,9 +245,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 								x1 = disparity_value - 1;
 								x2 = disparity_value;
 								x3 = disparity_value + 1;
-								y1 = sum_cost[x1];
-								y2 = sum_cost[x2];
-								y3 = sum_cost[x3];
+								y1 = sum_cost_opt[0];
+								y2 = sum_cost_opt[1];
+								y3 = sum_cost_opt[2];
 
 								h31 = (y3-y1);
 								h21 = (y2-y1)*4;

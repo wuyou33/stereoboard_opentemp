@@ -42,7 +42,7 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
+typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
@@ -55,6 +55,8 @@ typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_D
 		return SEND_IMAGE;
 	#elif defined(SEND_DISPARITY_MAP)
 		return SEND_DISPARITY_MAP;
+	#elif defined(SEND_FRAMERATE_STEREO)
+		return SEND_FRAMERATE_STEREO;
 	#elif defined(SEND_MATRIX)
 		return SEND_MATRIX;
 	#elif defined(SEND_DIVERGENCE)
@@ -150,6 +152,7 @@ int main(void)
 	Delay(CAMERA_CHIP_UNRESET_TIMING);
 	// Communicate with camera, setup image type and start streaming
 	camera_chip_config();
+	sys_time_init();
 
 #if USE_COLOR
 	// slight waste of memory, if color is not used:
@@ -222,7 +225,7 @@ int main(void)
 
 
 	// Stereo parameters:
-	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
+	uint32_t disparity_range = 8; // at a distance of 1m, disparity is 7-8
 	uint32_t disparity_min = 0;
 	uint32_t disparity_step = 1;
 	uint8_t thr1 = 7;
@@ -243,6 +246,9 @@ int main(void)
 	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendCommand;
+	volatile uint32_t sys_time_prev = 0;
+
+
   while (1) {
 
   if(current_stereoboard_algorithm==SEND_PROXIMITY){
@@ -319,10 +325,10 @@ int main(void)
 
 
 	// Calculate the disparity map, only when we need it
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS){
+	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm== SEND_FRAMERATE_STEREO){
 		// Determine disparities:
 		min_y = 0;
-		max_y = 95;
+		max_y = 47;
 		memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
 		if ( STEREO_ALGORITHM )
@@ -340,7 +346,7 @@ int main(void)
 		}
 	}
 
-	if(current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm==SEND_DISPARITY_MAP){
+	if(current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_FRAMERATE_STEREO){
 
 		int disparities_high = 0;
 		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
@@ -356,6 +362,13 @@ int main(void)
 		}
 		//led_toggle();
 
+	}
+
+	if(current_stereoboard_algorithm==SEND_FRAMERATE_STEREO)
+	{
+		led_toggle();
+		toSendCommand = (2000/(sys_time_get()-sys_time_prev))-15;
+		sys_time_prev = sys_time_get();
 	}
 
 
@@ -415,7 +428,7 @@ int main(void)
 	if(current_stereoboard_algorithm== SEND_MATRIX){
 		SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 	}
-	if(current_stereoboard_algorithm== SEND_COMMANDS){
+	if(current_stereoboard_algorithm== SEND_COMMANDS || current_stereoboard_algorithm==SEND_FRAMERATE_STEREO){
 		SendCommand(toSendCommand);
 	}
 	}
