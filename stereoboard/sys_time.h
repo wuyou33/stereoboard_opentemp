@@ -20,7 +20,7 @@ inline static void sys_time_init(void)
   TIM_TimeBaseInit(TIM2, &TIM_InitStruct);
   TIM_Cmd(TIM2, ENABLE);
 }
-inline static uint32_t sys_time_get(void)
+inline static uint64_t sys_time_get(void)
 {
   // timer:
   return TIM_GetCounter ( TIM2 );

@@ -85,7 +85,7 @@
 	#define UsartCh Usart4Ch
 
   #ifndef USART4_BAUD
-	  #define USART4_BAUD 9600 //1000000 //9600
+	  #define USART4_BAUD 9600 //1000000 //115200 //9600
   #endif
 #endif
 

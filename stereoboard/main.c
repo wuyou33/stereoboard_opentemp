@@ -29,6 +29,8 @@
 #include "main_parameters.h"
 #include "divergence.h"
 #include "commands.h"
+//#include "droplet_algorithm.h"
+
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
@@ -232,6 +234,9 @@ int main(void)
 	uint8_t thr2 = 4;
 	uint8_t diff_threshold = 4; // for filtering
 
+	// init droplet parameters
+	volatile uint16_t current_phase = 1;
+
 	// Settings for the depth matrix algorithm, calculated based on other settings
 	// Settings of the camera... used by the distance matrix algorithm
 	uint8_t blackBorderSize = 22;
@@ -350,7 +355,10 @@ int main(void)
 
 		int disparities_high = 0;
 		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
-		if ( disparities_high >8 )
+		current_phase = run_droplet_algorithm( disparities_high, sys_time_get() );
+
+
+		if ( current_phase == 3 )
 		{
 			toSendCommand = 1;
 			led_set();
@@ -360,7 +368,12 @@ int main(void)
 			toSendCommand = 0;
 			led_clear();
 		}
-		//led_toggle();
+
+
+
+
+
+
 
 	}
 
