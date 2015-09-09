@@ -8,10 +8,9 @@ import time
 
 class DisparityPoller:
     """Polls the stereoboard"""
-
     def pollStereoboard(self):
         # Read the image
-        currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImage(ser, currentBuffer)
+        currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImage(self.ser, self.currentBuffer)
         startPosition=location[0]
         endPosition=location[1]
         if location[0] > -1:
