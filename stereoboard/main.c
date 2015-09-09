@@ -44,7 +44,7 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
@@ -227,7 +227,7 @@ int main(void)
 
 
 	// Stereo parameters:
-	uint32_t disparity_range = 8; // at a distance of 1m, disparity is 7-8
+	uint32_t disparity_range = 16; // at a distance of 1m, disparity is 7-8
 	uint32_t disparity_min = 0;
 	uint32_t disparity_step = 1;
 	uint8_t thr1 = 7;
@@ -252,6 +252,12 @@ int main(void)
 	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 	uint8_t toSendCommand;
 	volatile uint32_t sys_time_prev = 0;
+
+
+	// Settings for SEND_TURN_COMMANDS
+	uint8_t n_disp_bins = 6;
+	uint32_t disparities[n_disp_bins];
+	uint8_t RESOLUTION = 100;
 
 
   while (1) {
@@ -330,10 +336,10 @@ int main(void)
 
 
 	// Calculate the disparity map, only when we need it
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm== SEND_FRAMERATE_STEREO){
+	if( current_stereoboard_algorithm == SEND_TURN_COMMANDS || current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm== SEND_FRAMERATE_STEREO){
 		// Determine disparities:
 		min_y = 0;
-		max_y = 47;
+		max_y = 60;
 		memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
 		if ( STEREO_ALGORITHM )
@@ -357,21 +363,47 @@ int main(void)
 		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
 		current_phase = run_droplet_algorithm( disparities_high, sys_time_get() );
 
-
-		if ( current_phase == 3 )
-		{
-			toSendCommand = 1;
-			led_set();
-		}
-		else
+		if ( current_phase == 1 )
 		{
 			toSendCommand = 0;
-			led_clear();
+			//led_set();
+		}
+		if ( current_phase == 2 )
+		{
+			toSendCommand = 1;
+			//led_set();
+		}
+		if ( current_phase == 3 )
+		{
+			toSendCommand = 2;
+			//led_set();
+		}
+		if ( current_phase == 4 )
+		{
+			toSendCommand = 3;
+			//led_set();
 		}
 
 
 
 
+	}
+
+	if (current_stereoboard_algorithm == SEND_TURN_COMMANDS)
+	{
+		uint8_t border = 0;
+		uint8_t disp_threshold = 5*RESOLUTION_FACTOR;
+		evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y, max_y, disp_threshold, border);
+		disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width));
+		disparities[1] = (disparities[1] * RESOLUTION) / image_width;
+
+		// Send commands
+		// send 0xff
+		SendStartComm();
+		// percentage of close pixels
+		SendCommandNumber((uint8_t) disparities[0]);
+		// percentage of x-location
+		SendCommandNumber((uint8_t) disparities[1]);
 
 
 
