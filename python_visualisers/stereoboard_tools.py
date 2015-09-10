@@ -1,17 +1,16 @@
 import numpy as np
 import sys
 import linecache
-import matplotlib.pyplot as plt
-import matplotlib.colors as matcol
-import Tkinter as tk
+#import matplotlib.pyplot as plt
+#import matplotlib.colors as matcol
+#import Tkinter as tk
 import thread
 from time import sleep
-from matplotlib.widgets import Button
+#from matplotlib.widgets import Button
 
-from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, \
-     AnnotationBbox
-from matplotlib._png import read_png
-from matplotlib.cbook import get_sample_data
+#from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
+#from matplotlib._png import read_png
+#from matplotlib.cbook import get_sample_data
 SONAR_DISTANCES={0:15,1:10,2:9,3:8,4:7,5:2,6:1.8,7:1.7,8:1.4,9:1.2,10:1.0,11:0.8,12:0.5,13:0.3,14:0.2,15:0.1,16:0,17:0,18:0,19:0,20:0,21:0,22:0}
 AVERAGE_DATA=False
 MAX_DATA=True

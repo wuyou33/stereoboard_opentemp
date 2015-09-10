@@ -1,7 +1,6 @@
 import cv2
 import serial
 import stereoboard_tools
-import Tkinter as tk
 import numpy as np
 import csv
 import time
