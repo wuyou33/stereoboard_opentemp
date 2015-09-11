@@ -12,13 +12,14 @@
 /*****************
  * MAIN PARAMETERS
  *****************/
-
+#define BOARD_FILE "boards/board_7.h"
 #include BOARD_FILE
 
-#define USART4_BAUD 921600
+#define USART4_BAUD 38400 //230400 //921600 //38400
 
 //#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
 //#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
+//#define DEFAULT_BOARD_FUNCTION SEND_FRAMERATE_STEREO
 //#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
 //#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
 #define DEFAULT_BOARD_FUNCTION SEND_WINDOW
@@ -48,7 +49,7 @@
 #define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
 #endif
 
-#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define LARGE_IMAGE
 
@@ -72,12 +73,6 @@
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
 #if (FULL_IMAGE_SIZE >= (120*1024))
 #error "Config error: Image does not fit im RAM"
-#endif
-
-//////////////////////////////////////////////////////
-// Define window message size
-#if !(defined(WINDOWBUFSIZE))
-#define WINDOWBUFSIZE 3
 #endif
 
 //////////////////////////////////////////////////////

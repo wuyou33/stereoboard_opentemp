@@ -17,7 +17,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 
   int vertical_block_size = 5; // vertical size of SAD-window
   int horizontal_block_size = 5; // horizontal size of SAD-window
-  int GRADIENT_THRESHOLD = 5; // defines if image gradient indicates sufficient texture
+  int GRADIENT_THRESHOLD = 10; // defines if image gradient indicates sufficient texture
   int PKRN_THRESHOLD = 130; // defines if best match is significantly better than second best match [in % to deal with fixed point (120 means a difference of 20%)]
 
   int half_vertical_block_size = (vertical_block_size - 1)/2;
@@ -36,15 +36,15 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   volatile int v = 0; // iterator
 
   // parabole fitting
-  int x1 = 0;
-  int x2 = 0;
-  int x3 = 0;
-  int y1 = 0;
-  int y2 = 0;
-  int y3 = 0;
-  int32_t h31 = 0;
-  int32_t h21 = 0;
-  int32_t sub_disp;
+  volatile int x1 = 0;
+  volatile int x2 = 0;
+  volatile int x3 = 0;
+  volatile int y1 = 0;
+  volatile int y2 = 0;
+  volatile int y3 = 0;
+  volatile int32_t h31 = 0;
+  volatile int32_t h21 = 0;
+  volatile int32_t sub_disp;
   int p1 = 0;
   int p2 = 0;
   int p3 = 0;
@@ -55,6 +55,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   q15_t line_gradient[fakeShitImageWidth-1]; // horizontal image gradients for a single line
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
+  q15_t sum_cost_opt[3]; // array to store sums of pixel matching costs
   q15_t sum_counts[disparity_range];
   q15_t c1;
   q15_t c2;
@@ -69,7 +70,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 	int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
 	max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
 	int superIndexInBuffer=0;
-	for (lineIndex = min_y; lineIndex < max_y; lineIndex++)
+	for (lineIndex = min_y; lineIndex < max_y; lineIndex+=1)
 	{
 		idx0 = lineIndex * image_width_bytes;
 
@@ -83,7 +84,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 			idx_SAD = 0;
 
 		// de-interlace image lines and put them at right place in the image blocks
-	    separate_image_line_offset_block(&in[idx0], block_right,block_left, image_width_bytes, idx_line, fakeShitImageWidth-1);
+	    separate_image_line_offset_block(&in[idx0], block_right,block_left, image_width_bytes, idx_line, fakeShitImageWidth);
 
 	    if ( idx_SAD > -1 )
 	    {
@@ -121,7 +122,21 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
 					uint8_t disparity_value = (uint8_t) c1_i;
 					// put minimum cost much higher to find second minimum
+					sum_cost_opt[1] = sum_cost[c1_i];
 					sum_cost[c1_i] = 16384;
+					// also do this for direct neighbors
+					if (disparity_value > 0)
+					{
+						sum_cost_opt[0] = sum_cost[c1_i-1];
+						sum_cost[c1_i-1] = 16384;
+					}
+					if (disparity_value < disparity_max)
+					{
+						sum_cost_opt[2] = sum_cost[c1_i+1];
+						sum_cost[c1_i+1] = 16384;
+					}
+
+
 					// find second minimum cost
 					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
 
@@ -129,29 +144,29 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 
 						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + i;
 						if (locationInBuffer<12288){
-							out[locationInBuffer] = disparity_value*RESOLUTION_FACTOR;//c1_i;
+
+							sub_disp = disparity_value*RESOLUTION_FACTOR;
+							out[locationInBuffer] = sub_disp;//c1_i;
 
 							if (disparity_value > 0 && disparity_value < disparity_max )
 							{
 								x1 = disparity_value - 1;
 								x2 = disparity_value;
 								x3 = disparity_value + 1;
-								y1 = sum_cost[x1];
-								y2 = sum_cost[x2];
-								y3 = sum_cost[x3];
+								y1 = sum_cost_opt[0];
+								y2 = sum_cost_opt[1];
+								y3 = sum_cost_opt[2];
 
 								h31 = (y3-y1);
 								h21 = (y2-y1)*4;
 								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
-								if (sub_disp >= DISPARITY_OFFSET_HORIZONTAL){
-									out[locationInBuffer] = sub_disp + DISPARITY_OFFSET_HORIZONTAL;
-								}
-								else
-								{
-									out[locationInBuffer]=0;
-								}
-
 							}
+
+							sub_disp += DISPARITY_OFFSET_HORIZONTAL;
+							if (sub_disp < 0)
+								out[locationInBuffer]=0;
+							else
+								out[locationInBuffer] = sub_disp;
 							//sum_counts[disparity_value]++;
 
 						}
@@ -169,7 +184,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 			// make image gradients absolute such that we can look for maximum values in the next step
 			arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
 
-			int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL;
+			int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
 
 			for ( ii = half_imageWidth + cx_diff_compensation; ii < fakeShitImageWidth-half_horizontal_block_size; ii++ )
 			{
@@ -187,7 +202,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 						for (v = 0; v < vertical_block_size; v++)
 						{
 							// compute difference between pixel from left image with (disparity) range of pixels from right image
-							arm_offset_q15( &block_left[h + (v*image_width) - disparity_range], -block_right[h + (v*image_width)], cost, disparity_range  );
+							arm_offset_q15( &block_left[h + (v*image_width) - disparity_max], -block_right[h + (v*image_width)], cost, disparity_range  );
 							// obtain absolute difference
 							arm_abs_q15(cost, cost, disparity_range);
 							// sum results of this pixel with other pixels in this window
@@ -200,37 +215,54 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
 					arm_min_q15( sum_cost, disparity_range, &c1, &c1_i );
 					uint8_t disparity_value = (uint8_t) c1_i;
 					// put minimum cost much higher to find second minimum
+					sum_cost_opt[1] = sum_cost[c1_i];
 					sum_cost[c1_i] = 16384;
+					// also do this for direct neighbors
+					if (disparity_value > 0)
+					{
+						sum_cost_opt[0] = sum_cost[c1_i-1];
+						sum_cost[c1_i-1] = 16384;
+					}
+					if (disparity_value < disparity_max)
+					{
+						sum_cost_opt[2] = sum_cost[c1_i+1];
+						sum_cost[c1_i+1] = 16384;
+					}
+
 					// find second minimum cost
 					arm_min_q15( sum_cost, disparity_range, &c2, &c2_i );
 
 					if ( (c2*100)/c1 > PKRN_THRESHOLD ){
 
-						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + ii - cx_diff_compensation;
+						uint32_t locationInBuffer=(uint32_t)(fakeShitImageWidth*(lineIndex-half_vertical_block_size)) + ii;
 						if (locationInBuffer<12288){
-							out[locationInBuffer] = (disparity_max-disparity_value)*RESOLUTION_FACTOR;//c1_i;
+
+							sub_disp = (disparity_max-disparity_value)*RESOLUTION_FACTOR;
+							out[locationInBuffer] = sub_disp;//c1_i;
 
 							if (disparity_value > 0 && disparity_value < disparity_max )
 							{
 								x1 = disparity_value - 1;
 								x2 = disparity_value;
 								x3 = disparity_value + 1;
-								y1 = sum_cost[x1];
-								y2 = sum_cost[x2];
-								y3 = sum_cost[x3];
+								y1 = sum_cost_opt[0];
+								y2 = sum_cost_opt[1];
+								y3 = sum_cost_opt[2];
 
 								h31 = (y3-y1);
 								h21 = (y2-y1)*4;
 								sub_disp = ((h21-h31)*RESOLUTION_FACTOR*10)/(h21-h31*2)/10 + (x1*RESOLUTION_FACTOR);
-								if ((disparity_max*RESOLUTION_FACTOR) - sub_disp >= DISPARITY_OFFSET_HORIZONTAL){
-									out[locationInBuffer] = (disparity_max*RESOLUTION_FACTOR) - sub_disp + DISPARITY_OFFSET_HORIZONTAL;
-								}
-								else
-								{
-									out[locationInBuffer]=0;
-								}
-
+								sub_disp = (disparity_max*RESOLUTION_FACTOR) - sub_disp;
 							}
+
+							sub_disp += DISPARITY_OFFSET_HORIZONTAL;
+
+							if (sub_disp < 0)
+								out[locationInBuffer]=0;
+							else
+								out[locationInBuffer] = sub_disp;
+
+
 
 							//sum_counts[disparity_value]++;
 
@@ -310,7 +342,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
 	int superIndexInBuffer=0;
 	for (lineIndex = min_y; lineIndex < max_y; lineIndex++)
 	{
-		idx0 = lineIndex * image_width_bytes;
+		idx0 = lineIndex * image_width_bytes; // starting point of line in image buffer
 
 		// update index term to store this line at the right location in the left and right blocks
 		idx_line++;
@@ -526,13 +558,11 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
     arm_fill_q7(disparity_range, upd_disps1 + disparity_max, image_width - 2 * disparity_max); // set to disparity_max
 
     for (i = disparity_max; i < image_width - disparity_max; i++) { // for each pixel of the image line
-      if (upd_disps1[i + max_disps2[i]] ==
-          disparity_range) { // project the disparity map of the second image using initial disparities on the first image
+      if (upd_disps1[i + max_disps2[i]] == disparity_range) { // project the disparity map of the second image using initial disparities on the first image
         upd_disps1[i + max_disps2[i]] = max_disps2[i];
       }
 
-      if (max_disps1[i] <
-          upd_disps1[i]) { // compare the initial disparity map of the first image to the projection of the second image, choose smalles disparity
+      if (max_disps1[i] < upd_disps1[i]) { // compare the initial disparity map of the first image to the projection of the second image, choose smalles disparity
         upd_disps1[i] = max_disps1[i];
       }
     }
@@ -1234,6 +1264,25 @@ void evaluate_disparities_altitude(uint8_t *in, uint32_t image_width, uint32_t i
     disparities[i] -= min_d * RESOLUTION;
 
   }
+}
+
+uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height)
+{
+	int x,y;
+	uint32_t disparities_close = 0;
+	//uint8_t maximum_disparities[640] = { 29,28,28,28,27,27,26,26,25,25,25,24,24,24,23,23,23,22,22,22,22,21,21,21,21,20,20,20,20,20,19,19,19,19,19,18,18,18,18,18,18,18,17,17,17,17,17,17,17,17,16,16,16,16,16,16,16,16,16,16,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,17,17,17,17,17,18,18,18,19,19,19,19,20,20,20,21 };
+	//uint8_t maximum_disparities[640] = { 25,24,24,23,23,23,22,22,22,21,21,21,20,20,20,20,19,19,19,19,19,18,18,18,18,18,18,18,17,17,17,17,17,17,17,17,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,17,17,17,17,17,17,17,17,18,18,18,18,18,18,18,19,19,19,19,19,20,20,20,20,21,21,21,22,22,22,23,23,23,24,24,25,25};
+	uint8_t maximum_disparities[640] = { 31,30,30,29,29,29,28,28,28,27,27,27,26,26,26,26,25,25,25,25,25,24,24,24,24,24,24,24,23,23,23,23,23,23,23,23,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,25,25,25,25,25,26,26,26,26,27,27,27,28,28,28,29,29,29,30,30,31,31};
+	for (x = 0; x < image_width; x++) {
+	    for (y = 0; y < image_height; y++) {
+	    	if ( in[x + y * image_width] >= maximum_disparities[x]-2 )
+	    		disparities_close++;
+
+	    }
+	}
+
+	return disparities_close;
+
 }
 
 void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_width, uint32_t image_height,

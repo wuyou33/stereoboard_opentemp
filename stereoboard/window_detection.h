@@ -14,7 +14,7 @@
 #define MODE_ILLUMINANCE 1
 #define MODE_FILTER 2
 
-uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
+uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate, uint8_t *window_size,
                              uint32_t *integral_image, uint8_t MODE, uint8_t disparity_max);
 uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
                        uint8_t determine_size, uint16_t *size, uint8_t calculate_integral_image, uint32_t *integral_image, uint8_t MODE, uint8_t disparity_max);

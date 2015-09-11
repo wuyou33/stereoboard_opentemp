@@ -165,6 +165,7 @@ hmc5883.c \
 ../common/utils.c \
 divergence.h \
 divergence.c \
+droplet_algorithm.c \
 distance_matrix.c
 
 

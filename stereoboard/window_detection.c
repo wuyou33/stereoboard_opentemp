@@ -10,7 +10,7 @@
 #include "window_detection.h"
 #include "usart.h"
 
-uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
+uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate, uint8_t* window_size,
                              uint32_t *integral_image, uint8_t MODE, uint8_t disparity_max)
 {
   // whether to calculate the integral image (only do once):
@@ -29,7 +29,7 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
     // coordinate will contain the coordinate, min_response will be the best match * 100
     calculate_integral_image = (s == 0); // only calculate the integal image for the first window size
     min_response[s] = detect_window(in, image_width, image_height, coordinate, determine_size, &sizes[s], calculate_integral_image, integral_image, MODE, disparity_max);
-    if (s == 0 || min_response[s] < min_response[s - 1]) {
+    if (s == 0 || min_response[s] < min_response[min_index]) {
       min_index = s;
       min_xc = coordinate[0];
       min_yc = coordinate[1];
@@ -40,11 +40,13 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
   {
   	coordinate[0] = image_width/2;
 	coordinate[1] = image_height/2;
+	*window_size = 0;
   }
   else
   {
   	coordinate[0] = min_xc;
   	coordinate[1] = min_yc;
+  	*window_size = sizes[min_index];
   }
   return min_response[min_index];
 }
@@ -135,7 +137,8 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
           coordinate[1] = y;
           min_response = response;
         }
-      } else {
+      }
+      else {
         //in[x+y*image_width] = 255;
       }
     }
@@ -238,11 +241,10 @@ uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
   whole_area = get_sum_disparities(x, y, x + feature_size, y + feature_size, integral_image, image_width, image_height);
   inner_area = get_sum_disparities(x + border, y + border, x + feature_size - border, y + feature_size - border,
                                    integral_image, image_width, image_height);
-  //resp = (RES * ((inner_area * RES) / px_inner)) / (((whole_area - inner_area) * RES) / px_border);
   
   if ((whole_area - inner_area) > 0)
-		resp =  (inner_area * RES * px_border) / ((whole_area - inner_area) * px_inner  );
-	else resp = RES;
+		resp =  (RES * inner_area * px_border) / ((whole_area - inner_area) * px_inner);
+  else resp = RES;
 
   /*print_number(whole_area, 0);
   print_space();
@@ -266,10 +268,8 @@ uint16_t get_border_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
                                   image_height);
   right_area = get_sum_disparities(x + border + window_size, y + border, x + 2 * border + window_size,
                                    y + border + window_size, integral_image, image_width, image_height);
-  down_area = get_sum_disparities(x + border, y, x + border + window_size, y + border, integral_image, image_width,
-                                image_height);
-  up_area = get_sum_disparities(x + border, y + border + window_size, x + border + window_size,
-                                  y + 2 * border + window_size, integral_image, image_width, image_height);
+  up_area = get_sum_disparities(x+border, y, x+border+window_size, y+border, integral_image, image_width, image_height);
+  down_area = get_sum_disparities(x+border, y+border+window_size, x+border+window_size, y+2*border+window_size, integral_image, image_width, image_height);
   // darkest outer area:
   darkest = (left_area < right_area) ? left_area : right_area;
   darkest = (darkest < up_area) ? darkest : up_area;
