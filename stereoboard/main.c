@@ -7,7 +7,6 @@
   * @brief   Main program body
   ******************************************************************************
   */
-
 /* Includes ------------------------------------------------------------------*/
 #include "../common/led.h"
 #include "dcmi.h"
@@ -29,8 +28,9 @@
 #include BOARD_FILE
 #include "main_parameters.h"
 #include "divergence.h"
-
 #include "commands.h"
+//#include "droplet_algorithm.h"
+
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
@@ -44,9 +44,7 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
-
-
-typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY,SEND_FRAMERATE_STEREO,SEND_WINDOW} stereoboard_algorithm_type;
+typedef enum {SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY,SEND_WINDOW} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
@@ -228,6 +226,8 @@ int main(void)
 	//uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
 	memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
 
+
+
 	// Stereo parameters:
 	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
 	uint32_t disparity_min = 0;
@@ -256,13 +256,12 @@ int main(void)
 	volatile uint64_t sys_time_prev = sys_time_get();
 	uint32_t freq_counter = 0;
 
-	// Initialise windowbuffer
-	uint8_t WINDOWBUFSIZE = 8;
-	uint8_t windowBuffer[WINDOWBUFSIZE];
-	uint8_t coordinate[2]; coordinate[0] = IMAGE_WIDTH/2; coordinate[1] = IMAGE_HEIGHT/2;
-	uint8_t window_size;
-	uint32_t integral_image[IMAGE_WIDTH*IMAGE_HEIGHT];
-	memset(integral_image,0,IMAGE_WIDTH*IMAGE_HEIGHT);
+
+	// Settings for SEND_TURN_COMMANDS
+	uint8_t n_disp_bins = 6;
+	uint32_t disparities[n_disp_bins];
+	uint8_t RESOLUTION = 100;
+
 
   while (1) {
 
@@ -306,10 +305,10 @@ int main(void)
 		processed = frame_counter;
 		led_toggle();
 
-		current_image_buffer[0] = 0;
-		current_image_buffer[1] = 0;
-/*
+    current_image_buffer[0] = 0;
+    current_image_buffer[1] = 0;
 
+/*
 		uint8_t readChar = ' ';
 
 		while(UsartCh()){
@@ -332,7 +331,7 @@ int main(void)
 			}
 			else if (readChar==5)
 			{
-				current_stereoboard_algorithm=SEND_IMAGE;
+				current_stereoboard_algorithm=SEND_DIVERGENCE;
 			}
 		}*/
 
@@ -340,7 +339,7 @@ int main(void)
 
 
 	// Calculate the disparity map, only when we need it
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX ||
+	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
 			current_stereoboard_algorithm==SEND_FRAMERATE_STEREO || current_stereoboard_algorithm==SEND_WINDOW){
 		// Determine disparities:
 		min_y = 0;
@@ -368,20 +367,46 @@ int main(void)
 		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
 		current_phase = run_droplet_algorithm( disparities_high, sys_time_get() );
 
-
-		if ( current_phase == 3 )
-		{
-			toSendCommand = 1;
-			led_set();
-		}
-		else
+		if ( current_phase == 1 )
 		{
 			toSendCommand = 0;
-			led_clear();
+			//led_set();
+		}
+		if ( current_phase == 2 )
+		{
+			toSendCommand = 1;
+			//led_set();
+		}
+		if ( current_phase == 3 )
+		{
+			toSendCommand = 2;
+			//led_set();
+		}
+		if ( current_phase == 4 )
+		{
+			toSendCommand = 3;
+			//led_set();
 		}
 	}
 
-	if(current_stereoboard_algorithm==SEND_FRAMERATE_STEREO || current_stereoboard_algorithm==SEND_WINDOW)
+	if (current_stereoboard_algorithm == SEND_TURN_COMMANDS)
+	{
+		uint8_t border = 0;
+		uint8_t disp_threshold = 5*RESOLUTION_FACTOR;
+		evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y, max_y, disp_threshold, border);
+		disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width));
+		disparities[1] = (disparities[1] * RESOLUTION) / image_width;
+
+		// Send commands
+		// send 0xff
+		SendStartComm();
+		// percentage of close pixels
+		SendCommandNumber((uint8_t) disparities[0]);
+		// percentage of x-location
+		SendCommandNumber((uint8_t) disparities[1]);
+	}
+
+    if(current_stereoboard_algorithm==SEND_FRAMERATE_STEREO || current_stereoboard_algorithm==SEND_WINDOW)
 	{
 		//led_toggle();
 		freq_counter++;
@@ -421,36 +446,38 @@ int main(void)
 	}
 
 	if(current_stereoboard_algorithm==SEND_DIVERGENCE){
-		if(initialisedDivergence==0){
-			initialiseDivergence();
-		}
-		//calculate the edge flow
-		int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, &height,divergence_front,divergence_rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
+			if(initialisedDivergence==0){
+				initialiseDivergence();
+			}
+			//calculate the edge flow
+			int previous_frame=calculate_edge_flow(current_image_buffer, &displacement,&edge_flow, edge_hist, &height,divergence_front,divergence_rear,10,10,10, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-		//move the indices for the edge hist structure
-		divergence_front++;
-		divergence_rear++;
+			//move the indices for the edge hist structure
+			divergence_front++;
+			divergence_rear++;
 
-		if(divergence_front>MAX_HORIZON-1)
-			divergence_front=0;
-		if(divergence_rear>MAX_HORIZON-1)
-			divergence_rear=0;
+			if(divergence_front>MAX_HORIZON-1)
+				divergence_front=0;
+			if(divergence_rear>MAX_HORIZON-1)
+				divergence_rear=0;
 
-		//Kalman filtering
-		totalKalmanFilter(&coveriance,&prev_edge_flow, &edge_flow,Q, R);
+			//Kalman filtering
+			totalKalmanFilter(&coveriance,&prev_edge_flow, &edge_flow,Q, R);
 
-		//send array with flow parameters
+			//send array with flow parameters
 
-		uint8_t divergencearray[5];
-		divergencearray[0]=(uint8_t)(edge_flow.horizontal_slope*1000+100);
-		divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
-		divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
-		divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
-		divergencearray[4]=(uint8_t)height;
+			uint8_t divergencearray[5];
+			divergencearray[0]=(uint8_t)(edge_flow.horizontal_slope*1000+100);
+			divergencearray[1]=(uint8_t)(edge_flow.horizontal_trans*100+100);
+			divergencearray[2]=(uint8_t)(edge_flow.vertical_slope*1000+100);
+			divergencearray[3]=(uint8_t)(edge_flow.vertical_trans*100+100);
+			divergencearray[4]=(uint8_t)height;
 
-		SendArray( divergencearray,5,1);
-		//led_toggle();
-		memcpy(&prev_edge_flow,&edge_flow,4*sizeof(float));
+			SendArray( divergencearray,5,1);
+			led_toggle();
+			memcpy(&prev_edge_flow,&edge_flow,4*sizeof(float));
+
+
 	}
 	// Now send the data that we want to send
 	if(current_stereoboard_algorithm==SEND_IMAGE){
@@ -465,11 +492,11 @@ int main(void)
 	if(current_stereoboard_algorithm==SEND_WINDOW){
 		SendArray(windowBuffer, WINDOWBUFSIZE, 1);
 	}
-	if(current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm==SEND_FRAMERATE_STEREO){
+	if(current_stereoboard_algorithm== SEND_COMMANDS || current_stereoboard_algorithm==SEND_FRAMERATE_STEREO){
 		SendCommand(toSendCommand);
 	}
+	}
   }
-}
 }
 
 #ifdef  USE_FULL_ASSERT
