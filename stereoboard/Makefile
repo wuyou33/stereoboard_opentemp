@@ -25,12 +25,12 @@ CFLAGS       += -Wl,-T,stm32_flash.ld
 
 SUBMODULE     = ../libs/README.md
 
-STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/
-STDPH_PATH    = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver/
-CMSIS_PATH    = ${STMLIB_PATH}/Libraries/CMSIS/
-DEVSUP_PATH   = ${CMSIS_PATH}/Device/ST/STM32F4xx/Include/
-CORESUP_PATH  = ${CMSIS_PATH}/Include/
-DSP_LIB_PATH  = ${CMSIS_PATH}/DSP_Lib/Source/
+STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
+STDPH_PATH    = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
+CMSIS_PATH    = ${STMLIB_PATH}/Libraries/CMSIS
+DEVSUP_PATH   = ${CMSIS_PATH}/Device/ST/STM32F4xx/Include
+CORESUP_PATH  = ${CMSIS_PATH}/Include
+DSP_LIB_PATH  = ${CMSIS_PATH}/DSP_Lib/Source
 
 CFLAGS+=-I./
 CFLAGS+=-I${STDPH_PATH}/inc

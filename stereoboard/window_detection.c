@@ -27,7 +27,7 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
   //sizes[0] = 40; //sizes[1] = 53; sizes[2] = 65;
   for (s = 0; s < 4; s++) {
     // coordinate will contain the coordinate, min_response will be the best match * 100
-    calculate_integral_image = (s == 0); // only calculate the integal image for the first window size
+    calculate_integral_image = (s == 0); // only calculate the integral image for the first window size
     min_response[s] = detect_window(in, image_width, image_height, coordinate, determine_size, &sizes[s], calculate_integral_image, integral_image, MODE, disparity_max);
     if (s == 0 || min_response[s] < min_response[min_index]) {
       min_index = s;
@@ -77,7 +77,7 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
 
   if (MODE == MODE_DISPARITY) {
     // (0) filter the bad pixels out, replacing them with 6:
-    filter_bad_pixels(in, image_width, image_height);
+    // filter_bad_pixels(in, image_width, image_height);
   }
   /*else if(MODE == MODE_ILLUMINANCE)
   {
@@ -243,7 +243,7 @@ uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
                                    integral_image, image_width, image_height);
   
   if ((whole_area - inner_area) > 0)
-		resp =  (RES * inner_area * px_border) / ((whole_area - inner_area) * px_inner);
+	resp =  (RES * inner_area * px_border) / ((whole_area - inner_area) * px_inner);
   else resp = RES;
 
   /*print_number(whole_area, 0);
