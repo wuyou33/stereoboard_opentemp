@@ -30,12 +30,12 @@ int32_t calculate_edge_flow(uint8_t* in, struct displacement_t* displacement, st
 		edge_flow_y = abs(edge_flow->vertical_trans);
 
 		if(edge_flow_x * (MAX_HORIZON-1) > RES)
-			previous_frame_offset_x = (uint8_t)( RES/edge_flow_x ) + 1;
+			previous_frame_offset_x = RES/edge_flow_x + 1;
 		else
 			previous_frame_offset_x = MAX_HORIZON-1;
 
 		if(edge_flow_y * (MAX_HORIZON-1) > RES)
-			previous_frame_offset_y = (uint8_t)( RES/edge_flow_y ) + 1;
+			previous_frame_offset_y = RES/edge_flow_y + 1;
 		else
 			previous_frame_offset_y = MAX_HORIZON-1;
 	}
@@ -80,38 +80,31 @@ int32_t calculate_edge_flow(uint8_t* in, struct displacement_t* displacement, st
 //calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
 void calculate_edge_histogram(uint8_t* in, int32_t* edge_histogram, uint16_t image_width, uint16_t image_height, char direction, char side)
 {
-	int32_t  sobel_left = 0;
-	int32_t  sobel_right = 0;
+	int32_t  sobel_sum = 0;
 	int32_t  Sobel[3] = {-1, 0, 1};
 
 	uint16_t y = 0, x = 0;
 	int8_t  c = 0;
 
-	if(direction=='x')
+	if(direction == 'x')
 	{
 		for( x = 0; x < image_width; x++)
 		{
 			edge_histogram[x] = 0;
 			for( y = 0; y < image_height; y++)
 			{
-				sobel_left=0;
-				sobel_right=0;
+				sobel_sum = 0;
 
 				for(c = -1; c <=1; c++)
 				{
-					uint32_t idx = image_width*(y)*2 + (x+c)*2;
+					uint32_t idx = image_width*y*2 + (x+c)*2;
 
 					if(side=='l')
-						sobel_left += Sobel[c+1] * in[idx];
+						sobel_sum += Sobel[c+1] * in[idx];
 					else // default (side=='r')
-						sobel_right += Sobel[c+1] * in[idx];
+						sobel_sum += Sobel[c+1] * in[idx+1];
 				}
-				if(side=='l'){
-					edge_histogram[x] += abs(sobel_left);
-				}
-				else{ // default (side=='r')
-					edge_histogram[x] += abs(sobel_right);
-				}
+				edge_histogram[x] += abs(sobel_sum);
 			}
 		}
 	}
@@ -122,25 +115,19 @@ void calculate_edge_histogram(uint8_t* in, int32_t* edge_histogram, uint16_t ima
 			edge_histogram[y] = 0;
 			for( x = 0; x < image_width; x++)
 			{
-				sobel_left=0;
-				sobel_right=0;
+				sobel_sum = 0;
 
 				for(c = -1; c <=1; c++)
 				{
 					uint32_t idx = image_width*(y+c)*2 + (x)*2;
 
 					if(side=='l')
-						sobel_left += Sobel[c+1] * (int8_t)(in[idx]);
+						sobel_sum += Sobel[c+1] * (int8_t)(in[idx]);
 					else{ // default (side=='r')
-						sobel_right += Sobel[c+1] * (int8_t)(in[idx + 1]);
+						sobel_sum += Sobel[c+1] * (int8_t)(in[idx + 1]);
 					}
 				}
-				if(side=='l'){
-					edge_histogram[y] += abs(sobel_left);
-				}
-				else{ // (side=='r')
-					edge_histogram[y] += abs(sobel_right);
-				}
+				edge_histogram[y] += abs(sobel_sum);
 			}
 		}
 	}

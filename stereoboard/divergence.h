@@ -11,7 +11,7 @@
 #include "arm_math.h"
 #include "main_parameters.h"
 
-#define MAX_HORIZON 10
+#define MAX_HORIZON 5
 // #define MAX_FLOW 1.0
 // #define RANSAC 1
 // #define ADAPTIVE_THRES_EDGE 0
