@@ -12,10 +12,19 @@
 /*****************
  * MAIN PARAMETERS
  *****************/
+#ifndef BOARD_FILE
+#define BOARD_FILE "boards/board_default.h"
+#endif
+#ifndef PROJECT_FILE
+#define PROJECT_FILE "projects/example.h"
+#endif
+
+#pragma message("Including=" PROJECT_FILE)
+#include PROJECT_FILE
 #include BOARD_FILE
 
-#define USART4_BAUD 38400 //230400 //921600 //38400
 
+/*
 //#define DEFAULT_BOARD_FUNCTION SEND_COMMANDS
 //#define DEFAULT_BOARD_FUNCTION SEND_TURN_COMMANDS
 //#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
@@ -60,6 +69,11 @@
 
 //////////////////////////////////////////////////////
 // Define image format
+//#define CAMERA_CPLD_STEREO camera_cpld_stereo_left
+//#define CAMERA_CPLD_STEREO camera_cpld_stereo_right
+//#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
+//#define CAMERA_CPLD_STEREO camera_cpld_stereo_linemux
+
 #if !(defined(IMAGE_WIDTH) || defined(IMAGE_HEIGHT))
 #define IMAGE_WIDTH 128
 #define IMAGE_HEIGHT 96
@@ -108,6 +122,6 @@
 #ifndef CAMERA_CPLD_STEREO
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #endif
-
+*/
 
 #endif /* MAIN_PARAMETERS_H_ */

@@ -237,4 +237,8 @@ lst: $(MAIN_LST)
 %.lst: %.c
 	$(CC) -c -g -Wa,-a,-ad $(CFLAGS) $< > $@
 
+roland: CFLAGS += -DPROJECT_FILE=\"./projects/roland.h\"
+roland: all
+
+
 .PHONY: all clean style cleanspaces
