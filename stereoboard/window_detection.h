@@ -34,11 +34,4 @@ void filter_bad_pixels(uint8_t *in, uint32_t image_width, uint32_t image_height)
 void transform_illuminance_image(uint8_t *in, uint8_t *out, uint32_t image_width, uint32_t image_height, uint8_t n_bits,
                                  uint8_t bright_win);
 
-#define WINDOWBUFSIZE 13  // 8 for window and 5 for divergence
-
-extern uint8_t windowMsgBuf[];   // stores window message
-extern uint8_t coordinate[];     // Coordinate of estimated center of window
-extern uint8_t window_size;     // Estimated size of the window
-extern uint32_t integral_image[];  // contains integral image
-
 #endif /* WINDOW_DETECTION_H_ */

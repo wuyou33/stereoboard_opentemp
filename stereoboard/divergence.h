@@ -66,25 +66,4 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
 
 int32_t getMinimum2(uint32_t *flow_error, uint32_t  max_ind);
 
-
-//Element for the kalman filter divergence
-extern const uint32_t RES;    // resolution scaling for integer math
-
-extern struct coveriance_t coveriance;
-extern const uint32_t Q;    // motion model; 0.25*RES
-extern const uint32_t R;    // measurement model  1*RES
-
-extern uint8_t current_frame_nr;
-
-extern struct edge_hist_t edge_hist[MAX_HORIZON];
-extern struct edge_flow_t edge_flow;
-extern struct edge_flow_t prev_edge_flow;
-
-extern struct displacement_t displacement;
-extern uint8_t initialisedDivergence;
-extern int16_t height;
-
-//send array with flow parameters
-extern uint8_t divergencearray[5];
-
 #endif /* DIVERGENCE_H_ */

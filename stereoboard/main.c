@@ -88,6 +88,68 @@ stereoboard_algorithm_type getBoardFunction(void)
 #endif
 }
 
+//Element for the kalman filter divergence
+const uint32_t RES = 100;   // resolution scaling for integer math
+
+struct coveriance_t coveriance;
+const uint32_t Q = 10;    // motion model; 0.25*RES
+const uint32_t R = 100;   // measurement model  1*RES
+
+uint8_t current_frame_nr = 0;
+
+struct edge_hist_t edge_hist[MAX_HORIZON];
+struct edge_flow_t edge_flow;
+struct edge_flow_t prev_edge_flow;
+
+struct displacement_t displacement;
+uint8_t initialisedDivergence = 0;
+int16_t height = 0;
+
+//send array with flow parameters
+uint8_t divergencearray[5];
+
+void divergence_init()
+{
+  //Define arrays and pointers for edge histogram and displacements
+  memset(displacement.horizontal, 0, IMAGE_WIDTH);
+  memset(displacement.vertical, 0, IMAGE_WIDTH);
+
+  //Initializing the dynamic parameters and the edge histogram structure
+  current_frame_nr = 0;
+
+  //Intializing edge histogram structure
+  memset(edge_hist, 0, MAX_HORIZON * sizeof(struct edge_hist_t));
+
+  //Initializing for divergence and flow parameters
+  edge_flow.horizontal_slope = prev_edge_flow.horizontal_slope = 0;
+  edge_flow.horizontal_trans = prev_edge_flow.horizontal_trans = 0;
+  edge_flow.vertical_slope = prev_edge_flow.vertical_trans = 0;
+  edge_flow.vertical_trans = prev_edge_flow.vertical_trans = 0;
+
+  coveriance.slope_x = 20;
+  coveriance.slope_y = 20;
+  coveriance.trans_x = 20;
+  coveriance.trans_y = 20;
+
+  height = 0;
+
+  initialisedDivergence = 1;
+}
+
+#define WINDOWBUFSIZE 13  // 8 for window and 5 for divergence
+
+uint8_t windowMsgBuf[WINDOWBUFSIZE];
+uint8_t coordinate[2];
+uint8_t window_size;
+uint32_t integral_image[IMAGE_WIDTH *IMAGE_HEIGHT];
+
+void window_init()
+{
+  coordinate[0] = IMAGE_WIDTH / 2;
+  coordinate[1] = IMAGE_HEIGHT / 2;
+  memset(integral_image, 0, IMAGE_WIDTH * IMAGE_HEIGHT);
+}
+
 /**
   * @brief  Main program
   * @param  None
@@ -392,15 +454,14 @@ int main(void)
         memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
       }
 
-
       // compute and send window detection parameters
       if (current_stereoboard_algorithm == SEND_WINDOW) {
         // XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
-        windowMsgBuf[0] = coordinate[0];
+
         windowMsgBuf[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate,
                           &window_size, integral_image, MODE_DISPARITY, (uint8_t)(disparity_range - disparity_min));
+        windowMsgBuf[0] = coordinate[0];
         windowMsgBuf[1] = coordinate[1];
-
 
         windowMsgBuf[3] = (uint8_t)(get_sum_disparities(0, 0, 127, 95, integral_image, 128, 96) / 512);
         windowMsgBuf[4] = (uint8_t)((get_sum_disparities(0, 0, 63, 95, integral_image, 128, 96) - get_sum_disparities(64, 0,

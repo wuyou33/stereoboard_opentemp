@@ -11,54 +11,6 @@
 
 #include <stdlib.h>
 
-//Element for the kalman filter divergence
-const uint32_t RES = 100;   // resolution scaling for integer math
-
-struct coveriance_t coveriance;
-const uint32_t Q = 10;    // motion model; 0.25*RES
-const uint32_t R = 100;   // measurement model  1*RES
-
-uint8_t current_frame_nr = 0;
-
-struct edge_hist_t edge_hist[MAX_HORIZON];
-struct edge_flow_t edge_flow;
-struct edge_flow_t prev_edge_flow;
-
-struct displacement_t displacement;
-uint8_t initialisedDivergence = 0;
-int16_t height = 0;
-
-//send array with flow parameters
-uint8_t divergencearray[5];
-
-void divergence_init()
-{
-  //Define arrays and pointers for edge histogram and displacements
-  memset(displacement.horizontal, 0, IMAGE_WIDTH);
-  memset(displacement.vertical, 0, IMAGE_WIDTH);
-
-  //Initializing the dynamic parameters and the edge histogram structure
-  current_frame_nr = 0;
-
-  //Intializing edge histogram structure
-  memset(edge_hist, 0, MAX_HORIZON * sizeof(struct edge_hist_t));
-
-  //Initializing for divergence and flow parameters
-  edge_flow.horizontal_slope = prev_edge_flow.horizontal_slope = 0;
-  edge_flow.horizontal_trans = prev_edge_flow.horizontal_trans = 0;
-  edge_flow.vertical_slope = prev_edge_flow.vertical_trans = 0;
-  edge_flow.vertical_trans = prev_edge_flow.vertical_trans = 0;
-
-  coveriance.slope_x = 20;
-  coveriance.slope_y = 20;
-  coveriance.trans_x = 20;
-  coveriance.trans_y = 20;
-
-  height = 0;
-
-  initialisedDivergence = 1;
-}
-
 int32_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
                             struct edge_hist_t edge_hist[], uint16_t *height, uint8_t current_frame_nr, int16_t windowsize, int16_t max_distance,
                             int16_t edge_threshold, uint16_t image_width, uint16_t image_height, uint16_t RES)

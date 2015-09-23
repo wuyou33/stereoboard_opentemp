@@ -8,19 +8,7 @@
 #include "window_detection.h"
 #include "usart.h"
 
-const uint8_t RES = 100;
-
-uint8_t windowMsgBuf[WINDOWBUFSIZE];
-uint8_t coordinate[2];
-uint8_t window_size;
-uint32_t integral_image[IMAGE_WIDTH *IMAGE_HEIGHT];
-
-void window_init()
-{
-  coordinate[0] = IMAGE_WIDTH / 2;
-  coordinate[1] = IMAGE_HEIGHT / 2;
-  memset(integral_image, 0, IMAGE_WIDTH * IMAGE_HEIGHT);
-}
+static const uint8_t RES = 100;
 
 uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
                              uint8_t *window_size,
