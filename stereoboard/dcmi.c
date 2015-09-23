@@ -136,9 +136,9 @@ void camera_dcmi_bus_init(void)
 
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_11
 #ifdef DCMI_TEN_BITS
-      | GPIO_Pin_10 | GPIO_Pin_12
+                                | GPIO_Pin_10 | GPIO_Pin_12
 #endif
-      ;
+                                ;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 

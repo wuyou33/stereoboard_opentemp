@@ -80,7 +80,7 @@ void radar_run(void)
   for(bufferIndex=0;bufferIndex < horizontalBins*verticalBins; bufferIndex++)
   {
     //toSendBuffer[bufferIndex]=matrixBuffer[bufferIndex]/(widthPerBin*heightPerBin);
-	  toSendBuffer[bufferIndex]=1;//matrixBuffer[bufferIndex]/265;
+    toSendBuffer[bufferIndex]=1;//matrixBuffer[bufferIndex]/265;
   }
 
   // Send the matrix

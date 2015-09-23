@@ -243,79 +243,79 @@ int droplet(void)
 
 
 #ifdef DELFLY
-      if (SEND_COMMANDS) {
-        // Control logic
-        if (phase == 1) { // unobstructed flight
-          if (disparities_high > obst_thr1) { //|| entropy < obst_entr) // if true, obstacle in sight
-            obst_dect++;
-          } else {
-            obst_dect = 0;
-          }
-
-          if (obst_dect > obst_thr2) { // if true, obstacle is consistent
-            phase = 2;
-            obst_dect = 0; // set zero for later
-          }
-        } else if (phase == 2) { // obstacle detected, wait for action
-          if (obst_time == 0) { // when entering phase, set start time
-            obst_time = TIM_GetCounter(TIM2);
-          }
-
-          if ((TIM_GetCounter(TIM2) - obst_time) > obst_wait * 2) {  // wait (2 clocks per ms)
-            phase = 3;
-            obst_time = 0; // set zero for later
-          }
-        } else if (phase == 3) { // avoid
-          // Turn command signal for AutoPilot ???
-          if (disparities_high < obst_thr3) { // if true, flight direction is safe
-            obst_free++;
-          } else {
-            obst_free = 0;
-          }
-
-          if (obst_free > obst_thr4) { // if true, consistently no obstacles
-            if (entropy > obst_entr) { // do the entropy check
-              phase = 4;
-              obst_free = 0; // set zero for later
-            }
-          }
-        } else if (phase == 4) { // fly straight, but be aware of undetected obstacles
-          if (obst_time2 == 0) { // when entering phase, set start time
-            obst_time2 =  TIM_GetCounter(TIM2);
-          }
-
-          if (disparities_high > obst_thr1) { // if true, obstacle in sight
-            obst_dect2++;
-          } else {
-            obst_dect2 = 0;
-          }
-
-          if (obst_dect2 > obst_thr5) { // if true, obstacle is consistent
-            phase = 3; // go back to phase 3
-            obst_time2 = 0; // set zero for later
-            obst_dect2 = 0; // set zero for later
-
-          } else if ((TIM_GetCounter(TIM2) - obst_time2) > obst_wait2 * 2) {  // wait (2 clocks per ms)
-            phase = 1;
-            obst_time2 = 0; // set zero for later
-            obst_dect2 = 0;
-          }
-        }
-
-        // turn command:
-        if (phase == 3) {
-          SendCommand(1);
+    if (SEND_COMMANDS) {
+      // Control logic
+      if (phase == 1) { // unobstructed flight
+        if (disparities_high > obst_thr1) { //|| entropy < obst_entr) // if true, obstacle in sight
+          obst_dect++;
         } else {
-          SendCommand(0);
+          obst_dect = 0;
         }
 
-        if (phase == 2 || phase == 3) {
-          led_set();
+        if (obst_dect > obst_thr2) { // if true, obstacle is consistent
+          phase = 2;
+          obst_dect = 0; // set zero for later
+        }
+      } else if (phase == 2) { // obstacle detected, wait for action
+        if (obst_time == 0) { // when entering phase, set start time
+          obst_time = TIM_GetCounter(TIM2);
+        }
+
+        if ((TIM_GetCounter(TIM2) - obst_time) > obst_wait * 2) {  // wait (2 clocks per ms)
+          phase = 3;
+          obst_time = 0; // set zero for later
+        }
+      } else if (phase == 3) { // avoid
+        // Turn command signal for AutoPilot ???
+        if (disparities_high < obst_thr3) { // if true, flight direction is safe
+          obst_free++;
         } else {
-          led_clear();
+          obst_free = 0;
         }
 
+        if (obst_free > obst_thr4) { // if true, consistently no obstacles
+          if (entropy > obst_entr) { // do the entropy check
+            phase = 4;
+            obst_free = 0; // set zero for later
+          }
+        }
+      } else if (phase == 4) { // fly straight, but be aware of undetected obstacles
+        if (obst_time2 == 0) { // when entering phase, set start time
+          obst_time2 =  TIM_GetCounter(TIM2);
+        }
+
+        if (disparities_high > obst_thr1) { // if true, obstacle in sight
+          obst_dect2++;
+        } else {
+          obst_dect2 = 0;
+        }
+
+        if (obst_dect2 > obst_thr5) { // if true, obstacle is consistent
+          phase = 3; // go back to phase 3
+          obst_time2 = 0; // set zero for later
+          obst_dect2 = 0; // set zero for later
+
+        } else if ((TIM_GetCounter(TIM2) - obst_time2) > obst_wait2 * 2) {  // wait (2 clocks per ms)
+          phase = 1;
+          obst_time2 = 0; // set zero for later
+          obst_dect2 = 0;
+        }
       }
+
+      // turn command:
+      if (phase == 3) {
+        SendCommand(1);
+      } else {
+        SendCommand(0);
+      }
+
+      if (phase == 2 || phase == 3) {
+        led_set();
+      } else {
+        led_clear();
+      }
+
+    }
 #else
     if (SEND_COMMANDS) {
       // Determine disparities:

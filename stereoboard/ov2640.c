@@ -18,12 +18,12 @@ static int ov2640_reset(void)
 {
   int ret;
   const struct regval_list reset_seq[] = {
-          {BANK_SEL, BANK_SEL_SENS},
-          {COM7, COM7_SRST},
-          ENDMARKER,
+    {BANK_SEL, BANK_SEL_SENS},
+    {COM7, COM7_SRST},
+    ENDMARKER,
   };
 
-  ret = SCCB_WriteArray( OV2640_ADDR, reset_seq);
+  ret = SCCB_WriteArray(OV2640_ADDR, reset_seq);
 
   Delay(0x07FFFF);
   //msleep(5);
@@ -35,41 +35,45 @@ void camera_ov2640_config(void)
 {
   int ret;
 #ifdef USE_RGB565
-  #error RGB565 not supported in OV2640
+#error RGB565 not supported in OV2640
 #endif
 
   // Reset
   ov2640_reset();
 
   // Init
-  ret = SCCB_WriteArray( OV2640_ADDR,ov2640_init_regs);
-  if (ret < 0)
+  ret = SCCB_WriteArray(OV2640_ADDR, ov2640_init_regs);
+  if (ret < 0) {
     goto err;
+  }
 
   // select preamble
-  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_size_change_preamble_regs);
-  if (ret < 0)
-          goto err;
+  ret = SCCB_WriteArray(OV2640_ADDR, ov2640_size_change_preamble_regs);
+  if (ret < 0) {
+    goto err;
+  }
 
   // set size win
-  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_qcif_regs);
-  if (ret < 0)
-          goto err;
+  ret = SCCB_WriteArray(OV2640_ADDR, ov2640_qcif_regs);
+  if (ret < 0) {
+    goto err;
+  }
 
   // cfmt preamble
-  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_format_change_preamble_regs);
-  if (ret < 0)
-          goto err;
+  ret = SCCB_WriteArray(OV2640_ADDR, ov2640_format_change_preamble_regs);
+  if (ret < 0) {
+    goto err;
+  }
 
   // set cfmt
-  ret = SCCB_WriteArray( OV2640_ADDR, ov2640_yuv422_regs);
-  if (ret < 0)
-          goto err;
+  ret = SCCB_WriteArray(OV2640_ADDR, ov2640_yuv422_regs);
+  if (ret < 0) {
+    goto err;
+  }
 
   return;
 err:
-  for (;;)
-  {
+  for (;;) {
     led_toggle();
     Delay(0x07FFFF);
   }

@@ -179,7 +179,6 @@ $(EXECUTABLE): 	\
 		$(MAIN_OBJS) \
 		${USB_SRCS} \
 		${STDP_LIB}
-		print
 	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
 
 print:

@@ -154,21 +154,21 @@ static void setlightfreq( int32_t freq)
 
 void camera_ov9712_config(void)
 {
-        uint16_t sensor_id;
+  uint16_t sensor_id;
 
-        Delay(0x07FFFF);
-
-
-        camera_ov9712_read();
-        for (;;);
-
-        // reset sensor
-        SCCB_WriteReg(OV9712_ADDR, 0x12, 0x80);
-
-        Delay(0x07FFFF);
+  Delay(0x07FFFF);
 
 
-        SCCB_WriteArray(OV9712_ADDR, ov971x_init);
+  camera_ov9712_read();
+  for (;;);
+
+  // reset sensor
+  SCCB_WriteReg(OV9712_ADDR, 0x12, 0x80);
+
+  Delay(0x07FFFF);
+
+
+  SCCB_WriteArray(OV9712_ADDR, ov971x_init);
 
 }
 

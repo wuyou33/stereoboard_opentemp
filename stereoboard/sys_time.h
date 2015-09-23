@@ -23,7 +23,7 @@ inline static void sys_time_init(void)
 inline static uint32_t sys_time_get(void)
 {
   // timer:
-  return TIM_GetCounter ( TIM2 );
+  return TIM_GetCounter(TIM2);
 }
 
 

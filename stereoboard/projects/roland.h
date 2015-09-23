@@ -1,7 +1,7 @@
 /*
  * project parameters
  *
- *  This file contains the board configuration defaults for this project 
+ *  This file contains the board configuration defaults for this project
  *
  */
 

@@ -10,14 +10,15 @@
 
 #include <arm_math.h>
 
-#define MODE_DISPARITY 0
-#define MODE_ILLUMINANCE 1
-#define MODE_FILTER 2
+enum MODE_t {MODE_DISPARITY, MODE_ILLUMINANCE, MODE_FILTER} MODE;
 
-uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate, uint8_t *window_size,
+void window_init();
+uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
+                             uint8_t *window_size,
                              uint32_t *integral_image, uint8_t MODE, uint8_t disparity_max);
 uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
-                       uint8_t determine_size, uint16_t *size, uint8_t calculate_integral_image, uint32_t *integral_image, uint8_t MODE, uint8_t disparity_max);
+                       uint8_t determine_size, uint16_t *size, uint8_t calculate_integral_image, uint32_t *integral_image, uint8_t MODE,
+                       uint8_t disparity_max);
 uint16_t detect_escape(uint8_t *in, uint32_t image_width, uint32_t image_height, uint16_t *escape_coordinate,
                        uint32_t *integral_image, uint8_t n_cells);
 void get_integral_image(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t *integral_image);
@@ -32,5 +33,11 @@ uint16_t get_border_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
 void filter_bad_pixels(uint8_t *in, uint32_t image_width, uint32_t image_height);
 void transform_illuminance_image(uint8_t *in, uint8_t *out, uint32_t image_width, uint32_t image_height, uint8_t n_bits,
                                  uint8_t bright_win);
+
+extern uint8_t WINDOWBUFSIZE;   // 8 for window and 5 for divergence
+extern uint8_t *windowMsgBuf;   // stores window message
+extern uint8_t *coordinate;     // Coordinate of estimated center of window
+extern uint8_t window_size;     // Estimated size of the window
+extern uint32_t *integral_image;  // contains integral image
 
 #endif /* WINDOW_DETECTION_H_ */

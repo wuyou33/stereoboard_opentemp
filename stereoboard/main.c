@@ -51,7 +51,7 @@
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
-uint8_t* disparity_image_buffer_8bit = ((uint8_t*) 0x10000000);
+uint8_t *disparity_image_buffer_8bit = ((uint8_t *) 0x10000000);
 
 uint16_t offset_crop = 0;
 
@@ -60,79 +60,34 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE,SEND_PROXIMITY,SEND_WINDOW} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
- stereoboard_algorithm_type getBoardFunction(void){
-	#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW))
-		return DEFAULT_BOARD_FUNCTION;
-	#elif defined(SEND_COMMANDS)
-		return SEND_COMMANDS;
-	#elif defined(SEND_IMAGE)
-		return SEND_IMAGE;
-	#elif defined(SEND_DISPARITY_MAP)
-		return SEND_DISPARITY_MAP;
-	#elif defined(SEND_FRAMERATE_STEREO)
-		return SEND_FRAMERATE_STEREO;
-	#elif defined(SEND_MATRIX)
-		return SEND_MATRIX;
-	#elif defined(SEND_DIVERGENCE)
-		return SEND_DIVERGENCE;
-	#elif defined(SEND_WINDOW)
-		return SEND_WINDOW;
-		//Initializing the dynamic parameters and the edge histogram structure
-		int rear=1;
-		int front=0;
-	#endif
+stereoboard_algorithm_type getBoardFunction(void)
+{
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW))
+  return DEFAULT_BOARD_FUNCTION;
+#elif defined(SEND_COMMANDS)
+  return SEND_COMMANDS;
+#elif defined(SEND_IMAGE)
+  return SEND_IMAGE;
+#elif defined(SEND_DISPARITY_MAP)
+  return SEND_DISPARITY_MAP;
+#elif defined(SEND_FRAMERATE_STEREO)
+  return SEND_FRAMERATE_STEREO;
+#elif defined(SEND_MATRIX)
+  return SEND_MATRIX;
+#elif defined(SEND_DIVERGENCE)
+  return SEND_DIVERGENCE;
+#elif defined(SEND_WINDOW)
+  return SEND_WINDOW;
+  //Initializing the dynamic parameters and the edge histogram structure
+  int rear = 1;
+  int front = 0;
+#endif
 }
 
-//Element for the kalman filter divergence
-const uint32_t RES = 100;		// resolution scaling for integer math
-
-struct coveriance_t coveriance;
-const uint32_t Q = 10;		// motion model; 0.25*RES
-const uint32_t R = 100;		// measurement model	1*RES
-
-uint8_t current_frame_nr = 0;
-
-struct edge_hist_t edge_hist[MAX_HORIZON];
-struct edge_flow_t edge_flow;
-struct edge_flow_t prev_edge_flow;
-
-struct displacement_t displacement;
-uint8_t initialisedDivergence = 0;
-int16_t height = 0;
-
-//send array with flow parameters
-uint8_t divergencearray[5];
-
-void initialiseDivergence(){
-	//Define arrays and pointers for edge histogram and displacements
-	memset(displacement.horizontal, 0, IMAGE_WIDTH);
-	memset(displacement.vertical, 0, IMAGE_WIDTH);
-
-	//Initializing the dynamic parameters and the edge histogram structure
-	current_frame_nr = 0;
-
-	//Intializing edge histogram structure
-	memset(edge_hist,0,MAX_HORIZON*sizeof(struct edge_hist_t));
-
-	//Initializing for divergence and flow parameters
-	edge_flow.horizontal_slope = prev_edge_flow.horizontal_slope = 0;
-	edge_flow.horizontal_trans = prev_edge_flow.horizontal_trans = 0;
-	edge_flow.vertical_slope = prev_edge_flow.vertical_trans = 0;
-	edge_flow.vertical_trans = prev_edge_flow.vertical_trans = 0;
-
-	coveriance.slope_x = 20;
-	coveriance.slope_y = 20;
-	coveriance.trans_x = 20;
-	coveriance.trans_y = 20;
-
-	height = 0;
-
-	initialisedDivergence = 1;
- }
 /**
   * @brief  Main program
   * @param  None
@@ -188,305 +143,296 @@ int main(void)
   sys_time_init();
 
 #if USE_COLOR
-	// slight waste of memory, if color is not used:
-	uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
-	for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
-		filtered_image[ind] = 0;
-	}
+  // slight waste of memory, if color is not used:
+  uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
+  for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
+    filtered_image[ind] = 0;
+  }
 #endif
-	uint8_t min_y, max_y;
-	uint32_t image_width = IMAGE_WIDTH;
-	uint32_t image_height = IMAGE_HEIGHT;
-	uint32_t start, stop;
+  uint8_t min_y, max_y;
+  uint32_t image_width = IMAGE_WIDTH;
+  uint32_t image_height = IMAGE_HEIGHT;
+  uint32_t start, stop;
 
-	/***********
-	 * MAIN LOOP
-	 ***********/
+  /***********
+   * MAIN LOOP
+   ***********/
 
-	stereoboard_algorithm_type current_stereoboard_algorithm=getBoardFunction();
-	volatile int processed = 0;
+  stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
+  volatile int processed = 0;
 
-	// Disparity image buffer, initialised with zeros
-	//uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-	memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
+  // Disparity image buffer, initialised with zeros
+  //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
+  memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
-	// Stereo parameters:
-	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
-	uint32_t disparity_min = 0;
-	uint32_t disparity_step = 1;
-	uint8_t thr1 = 7;
-	uint8_t thr2 = 4;
-	uint8_t diff_threshold = 4; // for filtering
+  // Stereo parameters:
+  uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
+  uint32_t disparity_min = 0;
+  uint32_t disparity_step = 1;
+  uint8_t thr1 = 7;
+  uint8_t thr2 = 4;
+  uint8_t diff_threshold = 4; // for filtering
 
-	// init droplet parameters
-	volatile uint16_t current_phase = 1;
+  // init droplet parameters
+  volatile uint16_t current_phase = 1;
 
-	// Settings for the depth matrix algorithm, calculated based on other settings
-	// Settings of the camera... used by the distance matrix algorithm
-	uint8_t blackBorderSize = 22;
-	uint8_t pixelsPerLine = 128;
-	uint8_t pixelsPerColumn = 96;
+  // Settings for the depth matrix algorithm, calculated based on other settings
+  // Settings of the camera... used by the distance matrix algorithm
+  uint8_t blackBorderSize = 22;
+  uint8_t pixelsPerLine = 128;
+  uint8_t pixelsPerColumn = 96;
 
-	uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
-			/ MATRIX_WIDTH_BINS;
-	uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
+  uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
+                        / MATRIX_WIDTH_BINS;
+  uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
-	// Initialise matrixbuffer
-	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-	uint8_t toSendCommand;
-	volatile uint64_t sys_time_prev = sys_time_get();
-	uint32_t freq_counter = 0;
+  // Initialise matrixbuffer
+  int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+  uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+  uint8_t toSendCommand;
+  volatile uint64_t sys_time_prev = sys_time_get();
+  uint32_t freq_counter = 0;
 
-	// Initialise windowbuffer
-	uint8_t WINDOWBUFSIZE = 8 + 5;	// 8 for window and 5 for divergence
-	uint8_t windowBuffer[WINDOWBUFSIZE];
-	uint8_t coordinate[2]; coordinate[0] = IMAGE_WIDTH/2; coordinate[1] = IMAGE_HEIGHT/2;
-	uint8_t window_size;
-	uint32_t integral_image[IMAGE_WIDTH*IMAGE_HEIGHT];
-	memset(integral_image,0,IMAGE_WIDTH*IMAGE_HEIGHT);
+  // Initialise window
+  window_init();
 
-	// Settings for SEND_TURN_COMMANDS
-	uint8_t n_disp_bins = 6;
-	uint32_t disparities[n_disp_bins];
-	uint8_t RESOLUTION = 100;
+  // Settings for SEND_TURN_COMMANDS
+  uint8_t n_disp_bins = 6;
+  uint32_t disparities[n_disp_bins];
+  uint8_t RESOLUTION = 100;
 
-	// initialize divergence
-	initialiseDivergence();
+  // initialize divergence
+  divergence_init();
 
   while (1) {
 
-  if(current_stereoboard_algorithm==SEND_PROXIMITY){
-	  /*
-	  uint8_t response[6];
-	  response[0]=10;
-	  proximity_sensor_WriteReg(REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_ALS_ENABLE);
-	  proximity_sensor_WriteReg(REGISTER_CONTROL,COMMAND_AGAIN_64);
-	  proximity_sensor_WriteReg(REGISTER_PPULSE,COMMAND_32us_63p);
-	  proximity_sensor_WriteReg(REGISTER_CONFIG2,COMMAND_BOOST_150);
+    if (current_stereoboard_algorithm == SEND_PROXIMITY) {
+      /*
+      uint8_t response[6];
+      response[0]=10;
+      proximity_sensor_WriteReg(REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_ALS_ENABLE);
+      proximity_sensor_WriteReg(REGISTER_CONTROL,COMMAND_AGAIN_64);
+      proximity_sensor_WriteReg(REGISTER_PPULSE,COMMAND_32us_63p);
+      proximity_sensor_WriteReg(REGISTER_CONFIG2,COMMAND_BOOST_150);
 
 
 
-	  readRegisterProximitySensor(REGISTER_PDATA,&response[0]);
-	  readRegisterProximitySensor( REGISTER_CDATAL ,&response[2]);
-	  readRegisterProximitySensor( REGISTER_CDATAH ,&response[3]);
-	  SendArray(response,4,1);*/
-	}
-	else{
-	camera_snapshot();
+      readRegisterProximitySensor(REGISTER_PDATA,&response[0]);
+      readRegisterProximitySensor( REGISTER_CDATAL ,&response[2]);
+      readRegisterProximitySensor( REGISTER_CDATAH ,&response[3]);
+      SendArray(response,4,1);*/
+    } else {
+      camera_snapshot();
 
 #ifdef LARGE_IMAGE
-    offset_crop += 80;
-    if (offset_crop == 480) {
-      offset_crop = 0;
-    }
-    camera_crop(offset_crop);
+      offset_crop += 80;
+      if (offset_crop == 480) {
+        offset_crop = 0;
+      }
+      camera_crop(offset_crop);
 #endif
 
 #ifdef CROPPING
-		offset_crop += 80;
-		if (offset_crop == 480) {
-			offset_crop = 0;
-		}
-		camera_crop(offset_crop);
+      offset_crop += 80;
+      if (offset_crop == 480) {
+        offset_crop = 0;
+      }
+      camera_crop(offset_crop);
 #endif
-		// wait for new frame
-		while (frame_counter == processed)
-			;
-		processed = frame_counter;
-		led_toggle();
+      // wait for new frame
+      while (frame_counter == processed)
+        ;
+      processed = frame_counter;
+      led_toggle();
 
-    current_image_buffer[0] = 0;
-    current_image_buffer[1] = 0;
+      current_image_buffer[0] = 0;
+      current_image_buffer[1] = 0;
 
-/*
-		uint8_t readChar = ' ';
+      /*
+          uint8_t readChar = ' ';
 
-		while(UsartCh()){
-			readChar=UsartRx();
-			if(readChar==1)
-			{
-				current_stereoboard_algorithm=SEND_DISPARITY_MAP;
-			}
-			else if (readChar==2)
-			{
-				current_stereoboard_algorithm=SEND_MATRIX;
-			}
-			else if (readChar==3)
-			{
-				disparity_min-=1;
-			}
-			else if (readChar==4)
-			{
-				disparity_min+=1;
-			}
-			else if (readChar==5)
-			{
-				current_stereoboard_algorithm=SEND_DIVERGENCE;
-			}
-		}*/
+          while(UsartCh()){
+            readChar=UsartRx();
+            if(readChar==1)
+            {
+              current_stereoboard_algorithm=SEND_DISPARITY_MAP;
+            }
+            else if (readChar==2)
+            {
+              current_stereoboard_algorithm=SEND_MATRIX;
+            }
+            else if (readChar==3)
+            {
+              disparity_min-=1;
+            }
+            else if (readChar==4)
+            {
+              disparity_min+=1;
+            }
+            else if (readChar==5)
+            {
+              current_stereoboard_algorithm=SEND_DIVERGENCE;
+            }
+          }*/
 
-		// New frame code: Vertical blanking = ON
-
-
-	// Calculate the disparity map, only when we need it
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MATRIX || current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
-			current_stereoboard_algorithm==SEND_FRAMERATE_STEREO || current_stereoboard_algorithm==SEND_WINDOW){
-		// Determine disparities:
-		min_y = 0;
-		max_y = 96;
-		memset(disparity_image_buffer_8bit,0,FULL_IMAGE_SIZE / 2);
-
-		if ( STEREO_ALGORITHM )
-		{
-			stereo_vision_Kirk(current_image_buffer,
-					disparity_image_buffer_8bit, image_width, image_height,
-					disparity_min, disparity_range, disparity_step, thr1, thr2,
-					min_y, max_y);
-		}
-		else {
-			stereo_vision_sparse_block_two_sided(current_image_buffer,
-					disparity_image_buffer_8bit, image_width, image_height,
-					disparity_min, disparity_range, disparity_step, thr1, thr2,
-					min_y, max_y);
-		}
-	}
-
-	// determine phase of flight
-	if(current_stereoboard_algorithm==SEND_COMMANDS || current_stereoboard_algorithm==SEND_DISPARITY_MAP ||
-			current_stereoboard_algorithm==SEND_FRAMERATE_STEREO){
-
-		int disparities_high = 0;
-		disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
-		current_phase = run_droplet_algorithm( disparities_high, sys_time_get() );
-
-		if ( current_phase == 1 )
-		{
-			toSendCommand = 0;
-			//led_set();
-		}
-		if ( current_phase == 2 )
-		{
-			toSendCommand = 1;
-			//led_set();
-		}
-		if ( current_phase == 3 )
-		{
-			toSendCommand = 2;
-			//led_set();
-		}
-		if ( current_phase == 4 )
-		{
-			toSendCommand = 3;
-			//led_set();
-		}
-	}
-
-	if (current_stereoboard_algorithm == SEND_TURN_COMMANDS)
-	{
-		uint8_t border = 0;
-		uint8_t disp_threshold = 5*RESOLUTION_FACTOR;
-		evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y, max_y, disp_threshold, border);
-		disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width));
-		disparities[1] = (disparities[1] * RESOLUTION) / image_width;
-
-		// Send commands
-		// send 0xff
-		SendStartComm();
-		// percentage of close pixels
-		SendCommandNumber((uint8_t) disparities[0]);
-		// percentage of x-location
-		SendCommandNumber((uint8_t) disparities[1]);
-	}
-
-	// compute run frequency
-    if(current_stereoboard_algorithm==SEND_FRAMERATE_STEREO || current_stereoboard_algorithm==SEND_WINDOW)
-	{
-		//led_toggle();
-		freq_counter++;
-		if ((sys_time_get() - sys_time_prev) >= 2000) // clock at 2kHz
-		{
-			toSendCommand = (uint8_t)((freq_counter * (sys_time_get() - sys_time_prev)) / 2000);
-			freq_counter = 0;
-			sys_time_prev = sys_time_get();
-		}
-		//toSendCommand = (2000/(sys_time_get()-sys_time_prev))-15;
-	}
-
-    // send matrix buffer
-	if(current_stereoboard_algorithm==SEND_MATRIX){
-
-		// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-		memset(matrixBuffer,0,sizeof matrixBuffer);
-		memset(toSendBuffer,0,sizeof toSendBuffer);
-		//led_clear();
-		// Create the distance matrix by summing pixels per bin
-		calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
-				pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
-	}
-
-	// compute and send divergence
-	if(current_stereoboard_algorithm==SEND_DIVERGENCE || current_stereoboard_algorithm==SEND_WINDOW){
-		if(initialisedDivergence==0){
-			initialiseDivergence();
-		}
-
-		//calculate the edge flow
-		calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &height, current_frame_nr , 10, 10, 10, IMAGE_WIDTH, IMAGE_HEIGHT, RES);
-
-		//move the indices for the edge hist structure
-		current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
-
-		//Kalman filtering
-		totalKalmanFilter(&coveriance, &prev_edge_flow, &edge_flow, Q, R, RES);
-
-		// TODO: find a better way to scale the data
-		divergencearray[0] = (uint8_t)(edge_flow.horizontal_slope+127);
-		divergencearray[1] = (uint8_t)(edge_flow.horizontal_trans/4+127);
-		divergencearray[2] = (uint8_t)(edge_flow.vertical_slope+127);
-		divergencearray[3] = (uint8_t)(edge_flow.vertical_trans/4+127);
-		divergencearray[4] = (uint8_t) height;
-
-		memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
-	}
+      // New frame code: Vertical blanking = ON
 
 
-	// compute and send window detection parameters
-	if(current_stereoboard_algorithm==SEND_WINDOW){
-		// XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
-		windowBuffer[0] = coordinate[0];
-		windowBuffer[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate, &window_size, integral_image, MODE_DISPARITY, (uint8_t)(disparity_range - disparity_min));
-		windowBuffer[1] = coordinate[1];
+      // Calculate the disparity map, only when we need it
+      if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm == SEND_MATRIX
+          || current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
+          current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW) {
+        // Determine disparities:
+        min_y = 0;
+        max_y = 96;
+        memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
+
+        if (STEREO_ALGORITHM) {
+          stereo_vision_Kirk(current_image_buffer,
+                             disparity_image_buffer_8bit, image_width, image_height,
+                             disparity_min, disparity_range, disparity_step, thr1, thr2,
+                             min_y, max_y);
+        } else {
+          stereo_vision_sparse_block_two_sided(current_image_buffer,
+                                               disparity_image_buffer_8bit, image_width, image_height,
+                                               disparity_min, disparity_range, disparity_step, thr1, thr2,
+                                               min_y, max_y);
+        }
+      }
+
+      // determine phase of flight
+      if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_DISPARITY_MAP ||
+          current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
+
+        int disparities_high = 0;
+        disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
+        current_phase = run_droplet_algorithm(disparities_high, sys_time_get());
+
+        if (current_phase == 1) {
+          toSendCommand = 0;
+          //led_set();
+        }
+        if (current_phase == 2) {
+          toSendCommand = 1;
+          //led_set();
+        }
+        if (current_phase == 3) {
+          toSendCommand = 2;
+          //led_set();
+        }
+        if (current_phase == 4) {
+          toSendCommand = 3;
+          //led_set();
+        }
+      }
+
+      if (current_stereoboard_algorithm == SEND_TURN_COMMANDS) {
+        uint8_t border = 0;
+        uint8_t disp_threshold = 5 * RESOLUTION_FACTOR;
+        evaluate_central_disparities2(disparity_image_buffer_8bit, image_width, image_height, disparities, n_disp_bins, min_y,
+                                      max_y, disp_threshold, border);
+        disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width));
+        disparities[1] = (disparities[1] * RESOLUTION) / image_width;
+
+        // Send commands
+        // send 0xff
+        SendStartComm();
+        // percentage of close pixels
+        SendCommandNumber((uint8_t) disparities[0]);
+        // percentage of x-location
+        SendCommandNumber((uint8_t) disparities[1]);
+      }
+
+      // compute run frequency
+      if (current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW) {
+        //led_toggle();
+        freq_counter++;
+        if ((sys_time_get() - sys_time_prev) >= 2000) { // clock at 2kHz
+          toSendCommand = (uint8_t)((freq_counter * (sys_time_get() - sys_time_prev)) / 2000);
+          freq_counter = 0;
+          sys_time_prev = sys_time_get();
+        }
+        //toSendCommand = (2000/(sys_time_get()-sys_time_prev))-15;
+      }
+
+      // send matrix buffer
+      if (current_stereoboard_algorithm == SEND_MATRIX) {
+
+        // Initialise matrixbuffer and sendbuffer by setting all values back to zero.
+        memset(matrixBuffer, 0, sizeof matrixBuffer);
+        memset(toSendBuffer, 0, sizeof toSendBuffer);
+        //led_clear();
+        // Create the distance matrix by summing pixels per bin
+        calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
+                                pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+      }
+
+      // compute and send divergence
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == SEND_WINDOW) {
+        if (initialisedDivergence == 0) {
+          initialiseDivergence();
+        }
+
+        //calculate the edge flow
+        calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &height, current_frame_nr , 10, 10, 10,
+                            IMAGE_WIDTH, IMAGE_HEIGHT, RES);
+
+        //move the indices for the edge hist structure
+        current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
+
+        //Kalman filtering
+        totalKalmanFilter(&coveriance, &prev_edge_flow, &edge_flow, Q, R, RES);
+
+        // TODO: find a better way to scale the data
+        divergencearray[0] = (uint8_t)(edge_flow.horizontal_slope + 127);
+        divergencearray[1] = (uint8_t)(edge_flow.horizontal_trans / 4 + 127);
+        divergencearray[2] = (uint8_t)(edge_flow.vertical_slope + 127);
+        divergencearray[3] = (uint8_t)(edge_flow.vertical_trans / 4 + 127);
+        divergencearray[4] = (uint8_t) height;
+
+        memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+      }
 
 
-		windowBuffer[3] = (uint8_t)(get_sum_disparities(0, 0, 127, 95, integral_image, 128, 96)/512);
-		windowBuffer[4] = (uint8_t)((get_sum_disparities(0, 0, 63, 95, integral_image, 128, 96) - get_sum_disparities(64, 0, 127, 95, integral_image, 128, 96))/windowBuffer[3]) + 128;
-		windowBuffer[5] = (uint8_t)((get_sum_disparities(0, 0, 127, 47, integral_image, 128, 96) - get_sum_disparities(0, 48, 127, 95, integral_image, 128, 96))/windowBuffer[3]) + 128;
-		windowBuffer[6] = window_size;
-		windowBuffer[7] = toSendCommand; // frequency
+      // compute and send window detection parameters
+      if (current_stereoboard_algorithm == SEND_WINDOW) {
+        // XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
+        windowBuffer[0] = coordinate[0];
+        windowBuffer[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate,
+                          &window_size, integral_image, MODE_DISPARITY, (uint8_t)(disparity_range - disparity_min));
+        windowBuffer[1] = coordinate[1];
 
-		memcpy(windowBuffer+8, divergencearray, 5);
-	}
-	// Now send the data that we want to send
-	if(current_stereoboard_algorithm==SEND_IMAGE){
-		SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
-	}
-	if(current_stereoboard_algorithm==SEND_DISPARITY_MAP){
-		SendArray(disparity_image_buffer_8bit,IMAGE_WIDTH,IMAGE_HEIGHT);
-	}
-	if(current_stereoboard_algorithm==SEND_MATRIX){
-		SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
-	}
-	if(current_stereoboard_algorithm==SEND_WINDOW){
-		SendArray(windowBuffer, WINDOWBUFSIZE, 1);
-	}
-	if(current_stereoboard_algorithm==SEND_DIVERGENCE){
-		SendArray(divergencearray,5,1);
-	}
-	if(current_stereoboard_algorithm== SEND_COMMANDS || current_stereoboard_algorithm==SEND_FRAMERATE_STEREO){
-		SendCommand(toSendCommand);
-	}
-	}
+
+        windowBuffer[3] = (uint8_t)(get_sum_disparities(0, 0, 127, 95, integral_image, 128, 96) / 512);
+        windowBuffer[4] = (uint8_t)((get_sum_disparities(0, 0, 63, 95, integral_image, 128, 96) - get_sum_disparities(64, 0,
+                                     127, 95, integral_image, 128, 96)) / windowBuffer[3]) + 128;
+        windowBuffer[5] = (uint8_t)((get_sum_disparities(0, 0, 127, 47, integral_image, 128, 96) - get_sum_disparities(0, 48,
+                                     127, 95, integral_image, 128, 96)) / windowBuffer[3]) + 128;
+        windowBuffer[6] = window_size;
+        windowBuffer[7] = toSendCommand; // frequency
+
+        memcpy(windowBuffer + 8, divergencearray, 5);
+      }
+      // Now send the data that we want to send
+      if (current_stereoboard_algorithm == SEND_IMAGE) {
+        SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+      }
+      if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
+        SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
+      }
+      if (current_stereoboard_algorithm == SEND_MATRIX) {
+        SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+      }
+      if (current_stereoboard_algorithm == SEND_WINDOW) {
+        SendArray(windowBuffer, WINDOWBUFSIZE, 1);
+      }
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
+        SendArray(divergencearray, 5, 1);
+      }
+      if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
+        SendCommand(toSendCommand);
+      }
+    }
   }
 }
 

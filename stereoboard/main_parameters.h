@@ -94,13 +94,13 @@
 // Stereoboard bottom = Usart1
 // Stereoboard top(cpld) = Usart4
 #ifndef UsartTx
-	#define USE_USART4
-	#define UsartTx Usart4Tx
-	#define UsartRx Usart4Rx
-	#define UsartCh Usart4Ch
+  #define USE_USART4
+  #define UsartTx Usart4Tx
+  #define UsartRx Usart4Rx
+  #define UsartCh Usart4Ch
 
   #ifndef USART4_BAUD
-	  #define USART4_BAUD 1000000
+    #define USART4_BAUD 1000000
   #endif
 #endif
 

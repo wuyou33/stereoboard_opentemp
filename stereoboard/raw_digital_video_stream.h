@@ -117,31 +117,32 @@ void SendDisparityMap(uint8_t *b)
     ;
 }*/
 
-void SendArray(uint8_t* b, uint8_t array_width, uint8_t array_height) {
-	  uint8_t code[4];
-	  code[0] = 0xff;
-	  code[1] = 0x00;
-	  code[2] = 0x00;
-	  code[3] = 0xAF; // 175
-	  while (UsartTx(code, 4) == 0)
-	    ;
+void SendArray(uint8_t *b, uint8_t array_width, uint8_t array_height)
+{
+  uint8_t code[4];
+  code[0] = 0xff;
+  code[1] = 0x00;
+  code[2] = 0x00;
+  code[3] = 0xAF; // 175
+  while (UsartTx(code, 4) == 0)
+    ;
 
-	int horizontalLine = 0;
-	for (horizontalLine = 0; horizontalLine < array_height; horizontalLine++) {
-		code[3] = 0x80;//128
-		while (UsartTx(code, 4) == 0)
-			;
-		while (UsartTx(b + array_width * horizontalLine, array_width) == 0)
-			;
+  int horizontalLine = 0;
+  for (horizontalLine = 0; horizontalLine < array_height; horizontalLine++) {
+    code[3] = 0x80;//128
+    while (UsartTx(code, 4) == 0)
+      ;
+    while (UsartTx(b + array_width * horizontalLine, array_width) == 0)
+      ;
 
-		code[3] = 0xDA;//218
-		while (UsartTx(code, 4) == 0)
-			;
-	}
+    code[3] = 0xDA;//218
+    while (UsartTx(code, 4) == 0)
+      ;
+  }
 
-	code[3] = 0xAB;
-	while (UsartTx(code, 4) == 0)
-		;
+  code[3] = 0xAB;
+  while (UsartTx(code, 4) == 0)
+    ;
 }
 
 

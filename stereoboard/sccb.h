@@ -11,8 +11,8 @@
 #include <stdint.h>
 
 struct regval_list {
-        uint8_t reg_num;
-        uint8_t value;
+  uint8_t reg_num;
+  uint8_t value;
 };
 
 void SCCB_Init(void);

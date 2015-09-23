@@ -7,10 +7,12 @@
 #include "../multigaze/stereoboard_parameters.h"
 
 // Stereo vision header file
-void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
-                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
-void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
-                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
+void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
+    uint32_t disparity_min,
+    uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
+void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
+                                uint32_t disparity_min,
+                                uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
 void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
                         uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
 void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
@@ -25,7 +27,8 @@ uint32_t evaluate_disparities_control2(uint8_t *in, uint32_t image_width, uint32
 
 void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes);
 
-void separate_image_line_offset_block(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes, uint8_t idx, uint32_t image_width);
+void separate_image_line_offset_block(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes, uint8_t idx,
+                                      uint32_t image_width);
 
 uint32_t evaluate_disparities(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t disparity_threshold,
                               uint32_t disparities_high);

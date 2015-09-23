@@ -209,8 +209,9 @@ uint8_t SCCB_WriteArray(uint8_t ChipID,  const struct regval_list *vals)
 
   while ((vals->reg_num != 0xff) || (vals->value != 0xff)) {
     ret = SCCB_WriteReg(ChipID, vals->reg_num, vals->value);
-    if (ret != 0)
+    if (ret != 0) {
       return ret;
+    }
     vals++;
   }
   return 0;

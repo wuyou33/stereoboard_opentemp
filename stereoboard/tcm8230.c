@@ -124,17 +124,17 @@ void camera_tcm8230_config(void)
 
   // Supported Image sized
 #if (IMAGE_WIDTH==128) && (IMAGE_HEIGHT==96)
-  #define IMAGE_SIZE IMG_SIZE_subQCIF
+#define IMAGE_SIZE IMG_SIZE_subQCIF
 #elif (IMAGE_WIDTH==176) && (IMAGE_HEIGHT==144)
-  #define IMAGE_SIZE IMG_SIZE_QCIF
+#define IMAGE_SIZE IMG_SIZE_QCIF
 #elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==180)
-  #define IMAGE_SIZE IMG_SIZE_VGA
+#define IMAGE_SIZE IMG_SIZE_VGA
 #else
-  #ifdef USE_TCM8230
-    #error "TCM8230 camera chip does not support this resolution"
-  #else
-    #define IMAGE_SIZE 0
-  #endif
+#ifdef USE_TCM8230
+#error "TCM8230 camera chip does not support this resolution"
+#else
+#define IMAGE_SIZE 0
+#endif
 #endif
 
   tcm8230_WriteReg(TCM_FPS, TCM_FPS_FAST);
