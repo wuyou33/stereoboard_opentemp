@@ -205,7 +205,6 @@ int main(void)
   divergence_init();
 
   while (1) {
-
     if (current_stereoboard_algorithm == SEND_PROXIMITY) {
       /*
       uint8_t response[6];
@@ -369,9 +368,9 @@ int main(void)
 
       // compute and send divergence
       if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == SEND_WINDOW) {
-        if (initialisedDivergence == 0) {
-          initialiseDivergence();
-        }
+        //if (initialisedDivergence == 0) {
+        //  initialiseDivergence();
+        //}
 
         //calculate the edge flow
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &height, current_frame_nr , 10, 10, 10,
@@ -397,21 +396,21 @@ int main(void)
       // compute and send window detection parameters
       if (current_stereoboard_algorithm == SEND_WINDOW) {
         // XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
-        windowBuffer[0] = coordinate[0];
-        windowBuffer[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate,
+        windowMsgBuf[0] = coordinate[0];
+        windowMsgBuf[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate,
                           &window_size, integral_image, MODE_DISPARITY, (uint8_t)(disparity_range - disparity_min));
-        windowBuffer[1] = coordinate[1];
+        windowMsgBuf[1] = coordinate[1];
 
 
-        windowBuffer[3] = (uint8_t)(get_sum_disparities(0, 0, 127, 95, integral_image, 128, 96) / 512);
-        windowBuffer[4] = (uint8_t)((get_sum_disparities(0, 0, 63, 95, integral_image, 128, 96) - get_sum_disparities(64, 0,
-                                     127, 95, integral_image, 128, 96)) / windowBuffer[3]) + 128;
-        windowBuffer[5] = (uint8_t)((get_sum_disparities(0, 0, 127, 47, integral_image, 128, 96) - get_sum_disparities(0, 48,
-                                     127, 95, integral_image, 128, 96)) / windowBuffer[3]) + 128;
-        windowBuffer[6] = window_size;
-        windowBuffer[7] = toSendCommand; // frequency
+        windowMsgBuf[3] = (uint8_t)(get_sum_disparities(0, 0, 127, 95, integral_image, 128, 96) / 512);
+        windowMsgBuf[4] = (uint8_t)((get_sum_disparities(0, 0, 63, 95, integral_image, 128, 96) - get_sum_disparities(64, 0,
+                                     127, 95, integral_image, 128, 96)) / windowMsgBuf[3]) + 128;
+        windowMsgBuf[5] = (uint8_t)((get_sum_disparities(0, 0, 127, 47, integral_image, 128, 96) - get_sum_disparities(0, 48,
+                                     127, 95, integral_image, 128, 96)) / windowMsgBuf[3]) + 128;
+        windowMsgBuf[6] = window_size;
+        windowMsgBuf[7] = toSendCommand; // frequency
 
-        memcpy(windowBuffer + 8, divergencearray, 5);
+        memcpy(windowMsgBuf + 8, divergencearray, 5);
       }
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
@@ -424,7 +423,7 @@ int main(void)
         SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
       }
       if (current_stereoboard_algorithm == SEND_WINDOW) {
-        SendArray(windowBuffer, WINDOWBUFSIZE, 1);
+        SendArray(windowMsgBuf, WINDOWBUFSIZE, 1);
       }
       if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
         SendArray(divergencearray, 5, 1);

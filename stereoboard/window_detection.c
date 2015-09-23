@@ -10,7 +10,6 @@
 
 const uint8_t RES = 100;
 
-uint8_t WINDOWBUFSIZE = 8 + 5;  // 8 for window and 5 for divergence
 uint8_t windowMsgBuf[WINDOWBUFSIZE];
 uint8_t coordinate[2];
 uint8_t window_size;
@@ -43,7 +42,7 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
     // coordinate will contain the coordinate, min_response will be the best match * 100
     calculate_integral_image = (s == 0); // only calculate the integral image for the first window size
     min_response[s] = detect_window(in, image_width, image_height, coordinate, determine_size, &sizes[s],
-                                    calculate_integral_image, integral_image, MODE, disparity_max);
+                                    calculate_integral_image, integral_image, mode, disparity_max);
     if (s == 0 || min_response[s] < min_response[min_index]) {
       min_index = s;
       min_xc = coordinate[0];
