@@ -111,7 +111,7 @@ USB_SRCS = \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd.c      \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
 
-all: $(SUBMODULE) $(BIN_IMAGE)
+all: $(SUBMODULE) print $(BIN_IMAGE)
 
 $(BIN_IMAGE): $(EXECUTABLE)
 	$(OBJCOPY) -O binary $^ $@
@@ -174,13 +174,13 @@ distance_matrix.c
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 MAIN_LST = $(MAIN_SRCS:.c=.lst)
 
-$(EXECUTABLE): 	print \
+$(EXECUTABLE): 	\
 		startup_stm32f4xx.s \
 		$(MAIN_OBJS) \
 		${USB_SRCS} \
 		${STDP_LIB}
+		print
 	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
-
 
 print:
 	$(info )
