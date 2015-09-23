@@ -1,10 +1,11 @@
 TARGET        = StereoBoard
 BOARD        ?= default
+PROJECT      ?= example
 
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
 
-CROSS        ?= arm-none-eabi-
+CROSS        ?= @arm-none-eabi-
 
 CC            = $(CROSS)gcc
 GDB           = $(CROSS)gdb
@@ -13,12 +14,13 @@ RANLIB        = $(CROSS)ranlib
 AR            = $(CROSS)ar
 GDB           = $(CROSS)gdb
 
-#BOARD_FUNCTION    ?= -DSEND_COMMANDS=1
 CFLAGS        = -g -O3 -mlittle-endian -mthumb -DHSE_VALUE=12000000
 CFLAGS       += -mcpu=cortex-m4	-DARM_MATH_CM4
 CFLAGS       += -ffreestanding -nostdlib
 CFLAGS       += -DBOARD_FILE=\"./boards/board_$(BOARD).h\"
-CFLAGS       += $(BOARD_FUNCTION) 
+CFLAGS       += -DPROJECT_FILE=\"./projects/$(PROJECT).h\"
+# https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+CFLAGS       += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress
 
 # to run from FLASH
 CFLAGS       += -Wl,-T,stm32_flash.ld
@@ -172,12 +174,19 @@ distance_matrix.c
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 MAIN_LST = $(MAIN_SRCS:.c=.lst)
 
-$(EXECUTABLE): 	\
+$(EXECUTABLE): 	print \
 		startup_stm32f4xx.s \
 		$(MAIN_OBJS) \
 		${USB_SRCS} \
 		${STDP_LIB}
 	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
+
+
+print:
+	$(info )
+	$(info Including boards/board_$(BOARD).h)
+	$(info Including projects/$(PROJECT).h)
+	$(info )
 
 clean:
 	rm -rf $(EXECUTABLE)
@@ -237,7 +246,7 @@ lst: $(MAIN_LST)
 %.lst: %.c
 	$(CC) -c -g -Wa,-a,-ad $(CFLAGS) $< > $@
 
-roland: CFLAGS += -DPROJECT_FILE=\"./projects/roland.h\"
+roland: PROJECT=roland
 roland: all
 
 

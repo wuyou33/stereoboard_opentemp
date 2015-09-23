@@ -9,6 +9,7 @@
 void camera_clock_init(void);
 void camera_reset_init(void);
 void camera_dcmi_bus_init(void);
+void camera_dcmi_init(void);
 
 // Handle the camera reset
 void camera_unreset(void);

@@ -6,21 +6,21 @@
  */
 
 #include "distance_matrix.h"
-
+#include "../common/led.h"
 
 void calculateDistanceMatrix(uint8_t* disparity_image,
 		int* matrixBuffer,
 		uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
 		uint8_t heightPerBin,uint8_t *toSendBuffer, uint32_t disparity_range) {
 
-	int indexBuffer;
+	//int indexBuffer;
 
 	uint8_t y;
 	uint8_t valueInImageBuffer=0;
 	uint16_t positionInImageBuffer=0;
 	uint8_t positionInMatrix=0;
 	uint8_t x;
-	uint8_t z;
+	//uint8_t z;
 	uint8_t highestValues[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][5];
 	uint16_t sumDisparities[MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS][disparity_range*RESOLUTION_FACTOR];
 	for (x = 0; x < MATRIX_WIDTH_BINS*MATRIX_HEIGHT_BINS; x++) {

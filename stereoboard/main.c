@@ -8,28 +8,44 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include "../common/led.h"
-#include "dcmi.h"
-#include "cpld.h"
-#include "usart.h"
-#include "camera_type.h"
-#include "hmc5883.h"
-#include "stm32f4xx_conf.h"
-#include "jpeg.h"
+
+// include system files
 #include "arm_math.h"
+#include "stm32f4xx_conf.h"
+#include "sys_time.h"
+
+// include utility headers
+#include "../common/led.h"
+#include "../common/utils.h"
+
+// include camera headers
+#include "camera_type.h"
+#include "cpld.h"
+#include "dcmi.h"
+
+// Other sensors
+//#include "hmc5883.h"
+
+// include setttings
+#include "main_parameters.h"
+#include "../multigaze/stereoboard_parameters.h"
+
+// include coms
+#include "usart.h"
+#include "usb.h"
+
+#include "commands.h"
+#include "jpeg.h"
+#include "raw_digital_video_stream.h"
+
+// include functions headers
+#include "divergence.h"
+#include "droplet_algorithm.h"
+#include "filter_color.h"
 #include "stereo_vision.h"
 #include "window_detection.h"
-#include "filter_color.h"
-#include "../common/utils.h"
-#include "usb.h"
-#include "sys_time.h"
-#include "raw_digital_video_stream.h"
-#include "../multigaze/stereoboard_parameters.h"
-#include BOARD_FILE
-#include "main_parameters.h"
-#include "divergence.h"
-#include "commands.h"
-//#include "droplet_algorithm.h"
+
+/********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex

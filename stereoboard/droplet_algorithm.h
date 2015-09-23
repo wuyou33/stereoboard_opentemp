@@ -9,35 +9,29 @@
 #define DROPLET_ALGORITHM_H_
 
 #include <arm_math.h>
-//#include "../multigaze/stereoboard_parameters.h"
-//#include "main_parameters.h"
 
+/* parameter setting
+extern int obst_thr_1; 			// obstacle threshold for phase 1
+extern uint32_t obst_wait_2; 	// wait time for phase 2
+extern int obst_thr_3;			// obstacle threshold for phase 3
+extern int obst_thr_4;			// obstacle threshold for phase 4
+extern int obst_wait_4;			// wait time for phase 4
 
-// parameter setting
-int obst_thr_1 = 7; 			// obstacle threshold for phase 1
-uint32_t obst_wait_2 = 1800; 	// wait time for phase 2
-int obst_thr_3 = 10;			// obstacle threshold for phase 3
-int obst_thr_4 = 10;			// obstacle threshold for phase 4
-int obst_wait_4 = 500;			// wait time for phase 4
-
-int obst_cons_1 = 3;		// obstacle consistency threshold for phase 1
-int obst_cons_3 = 1;		// no-obstacle consistency threshold for phase 3
-int obst_cons_5 = 2;		// obstacle consistency threshold for phase 4
+extern int obst_cons_1;			// obstacle consistency threshold for phase 1
+extern int obst_cons_3;			// no-obstacle consistency threshold for phase 3
+extern int obst_cons_5;			// obstacle consistency threshold for phase 4
 
 // init
-int obst_count_1 = 0;		// counter for sequential obstacle detections in phase 1
-int obst_free_3 = 0;		// counter for sequential no-obstacle detections in phase 3
-int obst_dect_4 = 0;			// counter for sequential obstacle detections in phase 4
-uint32_t obst_time = 0; 			// timer for phase 2 and 4
+extern int obst_count_1;		// counter for sequential obstacle detections in phase 1
+extern int obst_free_3;			// counter for sequential no-obstacle detections in phase 3
+extern int obst_dect_4;			// counter for sequential obstacle detections in phase 4
+extern uint32_t obst_time; 		// timer for phase 2 and 4
 
-int phase = 1;
-uint32_t prev_time = 0;
-uint32_t passed_time = 0;
-uint32_t clock_period = 20000;
-
-
+extern int phase;
+extern uint32_t prev_tim;
+extern uint32_t passed_time;
+extern uint32_t clock_period;
+*/
 uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time );
-
-
 
 #endif /* DROPLET_ALGORITHM_H_ */

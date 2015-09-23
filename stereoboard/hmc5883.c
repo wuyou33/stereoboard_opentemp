@@ -134,11 +134,11 @@ int hmc5883_config(void)
   // Check Identification: 0x48 0x34 0x33
   {
     uint8_t a;
-    uint8_t res = hmc5883_ReadRegSingle(10, &a);
+    hmc5883_ReadRegSingle(10, &a);
     if (a != 0x48) {
       return -1;
     }
-    res = hmc5883_ReadRegSingle(11, &a);
+    hmc5883_ReadRegSingle(11, &a);
     if (a != 0x34) {
       return -1;
     }
@@ -153,21 +153,19 @@ void hmc5883_read(void)
   // TODO Replace with other text
   //char buff[128] = "MAG .... .... .... \n\r";
 
-  uint8_t status, i;
-  uint8_t r = hmc5883_ReadRegSingle(HMC_STATUS, &status);
+  uint8_t status;
+  hmc5883_ReadRegSingle(HMC_STATUS, &status);
 
   if (!(status & 0x01)) {
     return;
   }
 
-  i = 0;
   //for (r=3;r<9;r+=2)
   {
     uint8_t *p = (uint8_t *) &magneticfield[0];
-    uint8_t res;
     uint8_t a, b, c, d, e, f;
     //myhex(r,buff+9);
-    res = hmc5883_ReadReg(HMC_X, &a, &b, &c, &d, &e, &f);
+    hmc5883_ReadReg(HMC_X, &a, &b, &c, &d, &e, &f);
     /*
     myhex(a,buff+4);
     myhex(b,buff+6);
@@ -261,8 +259,6 @@ uint8_t hmc5883_WriteReg(uint8_t Addr, uint8_t Data)
 uint8_t hmc5883_ReadReg(uint8_t Addr, uint8_t *a, uint8_t *b, uint8_t *c, uint8_t *d, uint8_t *e, uint8_t *f)
 {
   uint32_t timeout = TIMEOUT_MAX;
-  uint8_t Data1 = 0;
-  uint8_t Data2 = 0;
 
   /* Generate the Start Condition */
   I2C_GenerateSTART(I2C2, ENABLE);

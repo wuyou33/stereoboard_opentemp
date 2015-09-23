@@ -19,7 +19,6 @@
 #define PROJECT_FILE "projects/example.h"
 #endif
 
-#pragma message("Including=" PROJECT_FILE)
 #include PROJECT_FILE
 #include BOARD_FILE
 
