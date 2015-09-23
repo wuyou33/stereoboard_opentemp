@@ -22,48 +22,59 @@
 #include PROJECT_FILE
 #include BOARD_FILE
 
-
-/*
-//#define DEFAULT_BOARD_FUNCTION SEND_COMMANDS
-//#define DEFAULT_BOARD_FUNCTION SEND_TURN_COMMANDS
-//#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
-//#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
-//#define DEFAULT_BOARD_FUNCTION SEND_FRAMERATE_STEREO
-//#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
-//#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
-#define DEFAULT_BOARD_FUNCTION SEND_WINDOW
+#ifndef DEFAULT_BOARD_FUNCTION
+#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#endif
 
 //////////////////////////////////////////////////////
 // Settings
+#ifndef USE_COLOR
 #define USE_COLOR 0
+#endif
+
 #ifndef SMOOTH_DISPARITY_MAP
-#define SMOOTH_DISPARITY_MAP 0 // 0
+#define SMOOTH_DISPARITY_MAP 0
 #endif
+
 #ifndef SEND_ILLUMINANCE
-#define SEND_ILLUMINANCE 0 // 0
+#define SEND_ILLUMINANCE 0
 #endif
+
 #ifndef SEND_FILTER
-#define SEND_FILTER 0 // 0
+#define SEND_FILTER
 #endif
+
 #ifndef COLOR_RATIO
-#define COLOR_RATIO 0 // 0
+#define COLOR_RATIO 0
 #endif
-#ifndef MAX_RATIO
-#define MAX_RATIO 10 // 10
-#endif
+
 #ifndef BRIGHT_WINDOW
-#define BRIGHT_WINDOW 0 // 0
+#define BRIGHT_WINDOW 0
 #endif
+
 #ifndef STEREO_CAM_NUMBER
 #define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
 #endif
 
+#ifndef STEREO_ALGORITHM
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
-#define SMALL_IMAGE
-//#define LARGE_IMAGE
+#endif
+
+#if !(defined(SMALL_IMAGE) || defined(LARGE_IMAGE))
+#define SMALL_IMAGE //#define LARGE_IMAGE
+#endif
+
+#if !(defined(IMAGE_WIDTH) || defined(IMAGE_HEIGHT))
+#ifdef SMALL_IMAGE
+#define IMAGE_WIDTH 128
+#define IMAGE_HEIGHT 96
+#else
+#define IMAGE_WIDTH 128
+#define IMAGE_HEIGHT 96
+#endif
 
 #ifndef CAPTURE_MODE_SNAPSHOT
-#define CAPTURE_MODE_SNAPSHOT 1
+#define CAPTURE_MODE_SNAPSHOT 0
 #endif
 
 //////////////////////////////////////////////////////
@@ -73,9 +84,11 @@
 //#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 //#define CAMERA_CPLD_STEREO camera_cpld_stereo_linemux
 
-#if !(defined(IMAGE_WIDTH) || defined(IMAGE_HEIGHT))
-#define IMAGE_WIDTH 128
-#define IMAGE_HEIGHT 96
+//////////////////////////////////////////////////////
+// Stereoboard: camera merging type
+
+#ifndef CAMERA_CPLD_STEREO
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #endif
 
 #if (DCMI_TEN_BITS == 1)
@@ -114,13 +127,5 @@
 #ifndef TCM8230_EXTRA_SATURATION
 #define TCM8230_EXTRA_SATURATION 0
 #endif
-
-//////////////////////////////////////////////////////
-// Stereoboard: camera merging type
-
-#ifndef CAMERA_CPLD_STEREO
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#endif
-*/
 
 #endif /* MAIN_PARAMETERS_H_ */

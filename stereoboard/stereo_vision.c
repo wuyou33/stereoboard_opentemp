@@ -34,7 +34,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   uint32_t lineIndex = 0;
   volatile int i = 0; // iterator
   volatile int ii = 0; // iterator
-  int d = 0; // iterator
+  // int d = 0; // iterator
   volatile int h = 0; // iterator
   volatile int v = 0; // iterator
 
@@ -48,10 +48,6 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   volatile int32_t h31 = 0;
   volatile int32_t h21 = 0;
   volatile int32_t sub_disp;
-  int p1 = 0;
-  int p2 = 0;
-  int p3 = 0;
-
 
   q15_t block_left[image_width * vertical_block_size]; // block that stores multiple image lines to handle SAD windows
   q15_t block_right[image_width * vertical_block_size]; // same
@@ -59,12 +55,11 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
   q15_t sum_cost_opt[3]; // array to store sums of pixel matching costs
-  q15_t sum_counts[disparity_range];
+  //q15_t sum_counts[disparity_range];
   q15_t c1;
   q15_t c2;
   uint32_t  c1_i;
   uint32_t  c2_i;
-  uint8_t anyOn = 0;
 
   // set sum vector back to zero for new window
   //arm_fill_q15(0, sum_counts, disparity_range);
@@ -72,7 +67,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
   // check that disparity search stays within the bounds of the input image
   int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
   max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
-  int superIndexInBuffer = 0;
+  //int superIndexInBuffer = 0;
   for (lineIndex = min_y; lineIndex < max_y; lineIndex += 1) {
     idx0 = lineIndex * image_width_bytes;
 
@@ -315,7 +310,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   int idx_line = 100; // SAD block index
   uint32_t lineIndex = 0;
   volatile int i = 0; // iterator
-  int d = 0; // iterator
+  // int d = 0; // iterator
   volatile int h = 0; // iterator
   volatile int v = 0; // iterator
 
@@ -325,12 +320,11 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   q15_t line_gradient[fakeShitImageWidth - 1]; // horizontal image gradients for a single line
   q15_t cost[disparity_range]; // array to store pixel matching costs
   q15_t sum_cost[disparity_range]; // array to store sums of pixel matching costs
-  q15_t sum_counts[disparity_range];
+  //q15_t sum_counts[disparity_range];
   q15_t c1;
   q15_t c2;
   uint32_t  c1_i;
   uint32_t  c2_i;
-  uint8_t anyOn = 0;
 
   // set sum vector back to zero for new window
   //arm_fill_q15(0, sum_counts, disparity_range);
@@ -338,7 +332,7 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
   // check that disparity search stays within the bounds of the input image
   int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
   max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
-  int superIndexInBuffer = 0;
+  //int superIndexInBuffer = 0;
   for (lineIndex = min_y; lineIndex < max_y; lineIndex++) {
     idx0 = lineIndex * image_width_bytes; // starting point of line in image buffer
 
@@ -438,15 +432,12 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
  * parameters:
  * image_width
  * image_height
- * disparity_range (20 is a reasonable value)
+ * disparity_range (20 is a reasonable value, should be multiple of 4 for efficiency)
  * thr1: threshold for 1st check (4)
  * thr2: threshold for 2nd check (5)
  * */
-
-
-
 void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
-                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
+                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2 __attribute__ ((unused)), uint8_t min_y, uint8_t max_y)
 {
   uint32_t image_width_bytes = image_width * 2;
   uint32_t disparity_max = disparity_range - 1 + disparity_min;
@@ -464,61 +455,44 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
 
   q7_t *upd_disps1;
 
-  q7_t max_length1;
-  q7_t max_length2;
+  q7_t max_length1 = 0;
+  q7_t max_length2 = 0;
 
-  //uint32_t c = 0;
   uint32_t d = 0;
-  //uint32_t e = 0;
-  uint32_t i;
-  uint32_t i2;
-  //uint32_t j;
-  //uint32_t k;
-  uint32_t l;
-  //uint32_t t;
-  uint32_t cnt0;
-  uint32_t cnt1;
-  //int test_times;
+  uint32_t i = 0;
+  uint32_t i2 = 0;
+  uint32_t l = 0;
+  uint32_t cnt0 = 0;
+  uint32_t cnt1 = 0;
 
   q7_t check_temp[disparity_range];
-  q7_t seqLength;
+  q7_t seqLength = 0;
 
   // check that disparity search stays within the bounds of the input image
   int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
   max_y = max_y + offset < image_height ? max_y : image_height - offset;
 
+  // run through each line of image
   for (l = min_y; l < max_y; l++) {
     cnt0 = l * image_width_bytes;
 
-    // TODO what does image_height -5 do? Expected: something with not being able to go to the next line when there is an offset.
-    // TODO on the same note, only start when the line is bigger than the start offset?
-    // Kirk: don't need to check start location as offset always look to next line of either left or right image
-    //if (l < image_height - 5) {
-    // separate the image line into a left and right one (line1, lin2 respectively):
     separate_image_line_offset(&in[cnt0], line1, line2, image_width_bytes);
-    //}
 
     // the disparities will be put in upd_disps1:
     upd_disps1 = &out[l * image_width];
 
-    // for all 'l' image lines
-    arm_fill_q7(0, check1, image_width * disparity_range); // set to zero
-    arm_fill_q7(0, check2, image_width * disparity_range); // set to zero
-    arm_fill_q7(0, check_temp, disparity_range);  // set to zero
+    // reinitialize temp arrays
+    arm_fill_q7(0, check1, image_width * disparity_range);
+    arm_fill_q7(0, check2, image_width * disparity_range);
+    arm_fill_q7(0, check_temp, disparity_range);
 
-    for (i = disparity_max; i < image_width; i++) { // for each pixel of the image line
-      // compute cost
-      arm_offset_q15(&line2[i - disparity_max], -line1[i], cost_per_pixel,
-                     disparity_range);  // disparity_range should be multiple of 4 for efficiency
+    for (i = disparity_max; i < image_width; i++) {
+      arm_offset_q15(&line2[i - disparity_max], -line1[i], cost_per_pixel, disparity_range);  // compute cost
       arm_abs_q15(cost_per_pixel, cost_per_pixel, disparity_range);   // convert to absolute error
 
-      // arm_min_q15( cost_per_pixel, disparity_range, &min_cost, &min_index ); // get minimum error for this pixel
-
-      //if ( min_cost < thr2 ) // check if min_cost for pixel is not too high
-      //{
       cnt1 = 0;
       for (d = disparity_min; d <= disparity_max; d += disparity_step) {
-        if (i == image_width - 1 || cost_per_pixel[disparity_max - d] > thr1) { // check if pixel cost exceeds error threshold
+        if (cost_per_pixel[disparity_max - d] > thr1 || i == image_width - 1) { // check if pixel cost exceeds error threshold
           seqLength = check_temp[d];
           // increment sequence length of all previous pixels in sequence
           while (check_temp[d] > 0) {
@@ -530,13 +504,13 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
         check_temp[d]++;
         cnt1 += image_width;
       }
-      //}
-    }
+    } // go to next pixel
 
-    arm_fill_q7(0, max_disps1, image_width);  // set to zero
-    arm_fill_q7(0, max_disps2, image_width);  // set to zero
+    // reinitialize max disparity temp arrays
+    arm_fill_q7(0, max_disps1, image_width);
+    arm_fill_q7(0, max_disps2, image_width);
 
-    for (i = disparity_max, i2 = 0; i < image_width; i++, i2++) { // for each pixel of the image line
+    for (i = disparity_max, i2 = 0; i < image_width; i++, i2++) {
       max_length1 = 0; max_length2 = 0;
       cnt1 = 0;
       for (d = disparity_min; d <= disparity_max; d += disparity_step) {
@@ -550,23 +524,24 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
           max_disps2[i2] = d;       // this is done for matching the left to the right image, and also vice-versa
         }
         cnt1 += image_width;
-      }
-    }
+      } // check next disparity value
+    } // go to next pixel
 
-    arm_fill_q7(disparity_range, upd_disps1 + disparity_max, image_width - 2 * disparity_max); // set to disparity_max
+    // set output to disparity_max
+    arm_fill_q7(disparity_max, upd_disps1 + disparity_max, image_width - 2 * disparity_max);
 
-    for (i = disparity_max; i < image_width - disparity_max; i++) { // for each pixel of the image line
-      if (upd_disps1[i + max_disps2[i]] ==
-          disparity_range) { // project the disparity map of the second image using initial disparities on the first image
+    for (i = disparity_max; i < image_width - disparity_max; i++) {
+        // project the disparity map of the second image using initial disparities on the first image
+        if (upd_disps1[i + max_disps2[i]] == disparity_max) {
         upd_disps1[i + max_disps2[i]] = max_disps2[i];
       }
 
-      if (max_disps1[i] <
-          upd_disps1[i]) { // compare the initial disparity map of the first image to the projection of the second image, choose smalles disparity
+      // compare the initial disparity map of the first image to the projection of the second image, choose smallest disparity
+      if (max_disps1[i] < upd_disps1[i]) {
         upd_disps1[i] = max_disps1[i];
       }
-    }
-  } // for all image lines
+    } // go to next pixel
+  } // go to next line
 
 
 #if SMOOTH_DISPARITY_MAP
@@ -599,7 +574,6 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
 void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_range,
                    uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
-  uint32_t image_size = image_width * image_height;
   uint32_t image_width_bytes = image_width * 2;
   uint32_t disparity_max = disparity_range - 1;
 
@@ -615,7 +589,6 @@ void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_
   q7_t max_disps2[image_width];
 
   q7_t *upd_disps1;
-  q7_t upd_disps2[image_width];
 
   q7_t max_length1;
   q7_t max_length2;
@@ -631,20 +604,12 @@ void stereo_vision(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_
   q7_t length2;
   q7_t disp2;
 
-  uint32_t c = 0;
   uint32_t d = 0;
-  uint32_t e = 0;
   uint32_t i;
   uint32_t i2;
-  uint32_t j;
-  uint32_t k;
   uint32_t l;
-  uint32_t t;
   uint32_t cnt0;
   uint32_t cnt1;
-  int test_times;
-
-
 
   cnt0 = min_y * image_width_bytes;
   for (l = min_y; l < max_y; l++) {
@@ -1106,9 +1071,9 @@ void evaluate_central_disparities2(uint8_t *in, uint32_t image_width, uint32_t i
 {
   uint16_t b, y, x;
   //uint8_t border = 10;
-  uint16_t bin_size = (image_width - 2 * border) / n_disp_bins + 1;
-  uint32_t n_pixels[n_disp_bins];
-  uint16_t RESOLUTION = 100;
+  // uint16_t bin_size = (image_width - 2 * border) / n_disp_bins + 1;
+  //uint32_t n_pixels[n_disp_bins];
+  //uint16_t RESOLUTION = 100;
   uint32_t mean_x = 0;
 
   for (b = 0; b < n_disp_bins; b++) {
@@ -1138,15 +1103,13 @@ void evaluate_central_disparities_bins(uint8_t *in, uint32_t image_width, uint32
   //uint8_t border = 10;
   uint16_t bin_size = (image_width - 2 * border) / n_disp_bins + 1;
   uint32_t n_disps[disparity_range * n_disp_bins];
-  uint16_t RESOLUTION = 100;
+  // uint16_t RESOLUTION = 100;
   for (b = 0; b < n_disp_bins; b++) {
     disparities[b] = (uint8_t) 0;
   }
   for (d = 0; d < disparity_range * n_disp_bins; d++) {
     n_disps[d] = 0;
   }
-
-
 
   for (x = border; x < image_width - border; x++) {
     // determine the bin index
@@ -1169,10 +1132,8 @@ void evaluate_central_disparities_bins(uint8_t *in, uint32_t image_width, uint32
     }
   }
 
-
   for (b = 0; b < n_disp_bins; b++) {
     //disparities[b] +=  (uint8_t) 48;
-
   }
 
 }

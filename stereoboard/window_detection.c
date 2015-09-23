@@ -11,8 +11,7 @@
 static const uint8_t RES = 100;
 
 uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
-                             uint8_t *window_size,
-                             uint32_t *integral_image, MODE mode, uint8_t disparity_max)
+                             uint8_t *window_size, uint32_t *integral_image, MODE mode, uint8_t disparity_max)
 {
   // whether to calculate the integral image (only do once):
   uint8_t calculate_integral_image = 1;
@@ -25,7 +24,6 @@ uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_h
   uint8_t min_yc = 0;
   uint8_t s = 0;
   sizes[0] = 30; sizes[1] = 40; sizes[2] = 50; sizes[3] = 60;
-  //sizes[0] = 40; //sizes[1] = 53; sizes[2] = 65;
   for (s = 0; s < 4; s++) {
     // coordinate will contain the coordinate, min_response will be the best match * 100
     calculate_integral_image = (s == 0); // only calculate the integral image for the first window size
@@ -79,12 +77,12 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
     // (0) filter the bad pixels out, replacing them with 6:
     // filter_bad_pixels(in, image_width, image_height);
   }
-  /*else if(mode == MODE_ILLUMINANCE)
+  else if(mode == MODE_ILLUMINANCE)
   {
     // reduce the range of illuminance
     uint8_t n_bits = 2;
-    transform_illuminance_image(in, image_width, image_height, n_bits);
-  }*/
+    transform_illuminance_image(in, in, image_width, image_height, n_bits, 1);
+  }
 
   // (1) get integral image (if calculate_integral_image == 1)
   if (calculate_integral_image) {
@@ -118,8 +116,6 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
   px_border = px_whole - px_inner;
   px_outer = border_size * window_size;
 
-  //print_number(px_inner, 0); print_space();
-
   // (3) determine a response map for that size
   for (x = disparity_max; x < image_width - disparity_max - feature_size; x++) {
     for (y = 0; y < image_height - feature_size; y++) {
@@ -131,20 +127,16 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
         response = get_border_response(x, y, feature_size, window_size, border_size, integral_image, image_width, image_height,
                                        px_inner, px_outer);
 
-        //in[x+y*image_width] = response;
-
         if (response < min_response) {
           coordinate[0] = x;
           coordinate[1] = y;
           min_response = response;
         }
       } else {
-        //in[x+y*image_width] = 255;
+        y++;  // avg_inner was not less than avg_border so window not likely in the nearby area, advance 2 steps
       }
     }
   }
-
-  //in[coordinate[0]+coordinate[1]*image_width] = 255;
 
   // the coordinate is at the top left corner of the feature,
   // the center of the window is then at:
@@ -158,7 +150,7 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
 uint16_t detect_escape(uint8_t *in, uint32_t image_width, uint32_t image_height, uint16_t *escape_coordinate,
                        uint32_t *integral_image, uint8_t n_cells)
 {
-  uint8_t c, r, min_c, min_r;
+  uint8_t c, r, min_c = 0, min_r = 0;
   uint16_t cell_width, cell_height;
   uint32_t min_avg = 10000;
   uint32_t avg;
@@ -218,21 +210,12 @@ uint32_t get_sum_disparities(uint16_t min_x, uint16_t min_y, uint16_t max_x, uin
 uint32_t get_avg_disparity(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y, uint32_t *integral_image,
                            uint32_t image_width, uint32_t image_height)
 {
-  uint16_t w, h;
-  uint32_t sum, avg, n_pix;
-
   // width and height of the window
-  w = max_x - min_x + 1;
-  h = max_y - min_y + 1;
-  n_pix = w * h;
-  // sum over the area:
-  sum = integral_image[min_x + min_y * image_width] + integral_image[max_x + max_y * image_width] -
-        integral_image[max_x + min_y * image_width] - integral_image[min_x + max_y * image_width];
-  // take the average, scaled by RES:
-  avg = (sum * RES) / n_pix;
-  return avg;
-}
+  uint32_t w = max_x - min_x + 1;
+  uint32_t h = max_y - min_y + 1;
 
+  return RES*get_sum_disparities(min_x, min_y, max_x, max_y, integral_image, image_width, image_height)/(w * h);
+}
 
 uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t border, uint32_t *integral_image,
                              uint16_t image_width, uint16_t image_height, uint16_t px_inner, uint16_t px_border)
@@ -246,23 +229,16 @@ uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
     resp = (RES * inner_area * px_border) / ((whole_area - inner_area) * px_inner);
   } else { resp = RES; }
 
-  /*print_number(whole_area, 0);
-  print_space();
-  print_number(inner_area, 0);
-  print_space();
-  print_number(resp, 1);*/
-
   return resp;
 }
 
 uint16_t get_border_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t window_size, uint16_t border,
                              uint32_t *integral_image, uint16_t image_width, uint16_t image_height, uint16_t px_inner, uint16_t px_outer)
 {
-  uint16_t inner_area, avg_inner, left_area, right_area, up_area, down_area, darkest, avg_dark, resp;
+  uint16_t inner_area, left_area, right_area, up_area, down_area, darkest, resp;
   // inner area
   inner_area = get_sum_disparities(x + border, y + border, x + feature_size - border, y + feature_size - border,
                                    integral_image, image_width, image_height);
-  avg_inner = (RES * inner_area) / px_inner;
   // outer areas:
   left_area = get_sum_disparities(x, y + border, x + border, y + border + window_size, integral_image, image_width,
                                   image_height);
@@ -276,20 +252,14 @@ uint16_t get_border_response(uint16_t x, uint16_t y, uint16_t feature_size, uint
   darkest = (left_area < right_area) ? left_area : right_area;
   darkest = (darkest < up_area) ? darkest : up_area;
   darkest = (darkest < down_area) ? darkest : down_area;
-  avg_dark = (RES * darkest) / px_outer;
-  if (avg_dark < avg_inner || avg_dark == 0) {
-    resp = RES;
+
+  // TODO: (Kirk) searching for the darkest will typically not work for shapes other than windows eg. doors
+  if (darkest > 0) {
+    resp = (RES * inner_area * px_outer) / (darkest * px_inner);    // ratio avg_inner / avg_darkest;
   } else {
-    resp = (RES * avg_inner) / avg_dark;
+    resp = RES;
   }
 
-  /*
-  print_number(avg_inner, 0);
-  print_space();
-  print_number(avg_dark, 0);
-  print_space();
-  print_number(resp, 1);
-   */
   return resp;
 }
 
@@ -304,7 +274,6 @@ void filter_bad_pixels(uint8_t *in, uint32_t image_width, uint32_t image_height)
     }
   }
 }
-
 
 void transform_illuminance_image(uint8_t *in, uint8_t *out, uint32_t image_width, uint32_t image_height, uint8_t n_bits,
                                  uint8_t bright_win)

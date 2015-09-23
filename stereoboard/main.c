@@ -39,6 +39,7 @@
 #include "raw_digital_video_stream.h"
 
 // include functions headers
+#include "distance_matrix.h"
 #include "divergence.h"
 #include "droplet_algorithm.h"
 #include "filter_color.h"
@@ -214,7 +215,6 @@ int main(void)
   uint8_t min_y, max_y;
   uint32_t image_width = IMAGE_WIDTH;
   uint32_t image_height = IMAGE_HEIGHT;
-  uint32_t start, stop;
 
   /***********
    * MAIN LOOP
@@ -227,13 +227,13 @@ int main(void)
   //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
-  // Stereo parameters:
-  uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
+  /*// Stereo parameters:
+  uint32_t disparity_range = 16; // at a distance of 1m, disparity is 7-8
   uint32_t disparity_min = 0;
-  uint32_t disparity_step = 1;
+  uint32_t disparity_step = 2;
   uint8_t thr1 = 7;
-  uint8_t thr2 = 4;
-  uint8_t diff_threshold = 4; // for filtering
+  uint8_t thr2 = 4;*/
+  // uint8_t diff_threshold = 4; // for filtering
 
   // init droplet parameters
   volatile uint16_t current_phase = 1;
@@ -248,14 +248,14 @@ int main(void)
                         / MATRIX_WIDTH_BINS;
   uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
-  // Initialise matrixbuffer
+  // Initialize matrixbuffer
   int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-  uint8_t toSendCommand;
+  uint8_t toSendCommand = 0;
   volatile uint64_t sys_time_prev = sys_time_get();
   uint32_t freq_counter = 0;
 
-  // Initialise window
+  // Initialize window
   window_init();
 
   // Settings for SEND_TURN_COMMANDS
@@ -285,7 +285,7 @@ int main(void)
     } else {
       camera_snapshot();
 
-#ifdef LARGE_IMAGE
+#if defined(LARGE_IMAGE) || defined(CROPPING)
       offset_crop += 80;
       if (offset_crop == 480) {
         offset_crop = 0;
@@ -293,13 +293,6 @@ int main(void)
       camera_crop(offset_crop);
 #endif
 
-#ifdef CROPPING
-      offset_crop += 80;
-      if (offset_crop == 480) {
-        offset_crop = 0;
-      }
-      camera_crop(offset_crop);
-#endif
       // wait for new frame
       while (frame_counter == processed)
         ;
@@ -429,7 +422,7 @@ int main(void)
       }
 
       // compute and send divergence
-      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == SEND_WINDOW) {
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE){// || current_stereoboard_algorithm == SEND_WINDOW) {
         //if (initialisedDivergence == 0) {
         //  initialiseDivergence();
         //}
