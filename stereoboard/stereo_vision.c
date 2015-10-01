@@ -437,7 +437,8 @@ void stereo_vision_sparse_block(uint8_t *in, q7_t *out, uint32_t image_width, ui
  * thr2: threshold for 2nd check (5)
  * */
 void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height, uint32_t disparity_min,
-                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2 __attribute__ ((unused)), uint8_t min_y, uint8_t max_y)
+                        uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2 __attribute__((unused)), uint8_t min_y,
+                        uint8_t max_y)
 {
   uint32_t image_width_bytes = image_width * 2;
   uint32_t disparity_max = disparity_range - 1 + disparity_min;
@@ -531,8 +532,8 @@ void stereo_vision_Kirk(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t i
     arm_fill_q7(disparity_max, upd_disps1 + disparity_max, image_width - 2 * disparity_max);
 
     for (i = disparity_max; i < image_width - disparity_max; i++) {
-        // project the disparity map of the second image using initial disparities on the first image
-        if (upd_disps1[i + max_disps2[i]] == disparity_max) {
+      // project the disparity map of the second image using initial disparities on the first image
+      if (upd_disps1[i + max_disps2[i]] == disparity_max) {
         upd_disps1[i + max_disps2[i]] = max_disps2[i];
       }
 

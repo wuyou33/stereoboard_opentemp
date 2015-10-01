@@ -92,7 +92,7 @@ stereoboard_algorithm_type getBoardFunction(void)
 //Element for the kalman filter divergence
 const uint32_t RES = 100;   // resolution scaling for integer math
 
-struct coveriance_t coveriance;
+struct covariance_t covariance;
 const uint32_t Q = 10;    // motion model; 0.25*RES
 const uint32_t R = 100;   // measurement model  1*RES
 
@@ -104,7 +104,9 @@ struct edge_flow_t prev_edge_flow;
 
 struct displacement_t displacement;
 uint8_t initialisedDivergence = 0;
-int16_t height = 0;
+int32_t avg_disp = 0;
+uint32_t avg_dist = 0;
+uint8_t frame_searched = 0;
 
 //send array with flow parameters
 uint8_t divergencearray[5];
@@ -112,14 +114,14 @@ uint8_t divergencearray[5];
 void divergence_init()
 {
   //Define arrays and pointers for edge histogram and displacements
-  memset(displacement.horizontal, 0, IMAGE_WIDTH);
-  memset(displacement.vertical, 0, IMAGE_WIDTH);
+  // memset(displacement.horizontal, 0, IMAGE_WIDTH);
+  // memset(displacement.vertical, 0, IMAGE_WIDTH);
 
   //Initializing the dynamic parameters and the edge histogram structure
   current_frame_nr = 0;
 
-  //Intializing edge histogram structure
-  memset(edge_hist, 0, MAX_HORIZON * sizeof(struct edge_hist_t));
+  // Intializing edge histogram structure
+  // memset(edge_hist, 0, MAX_HORIZON * sizeof(struct edge_hist_t));
 
   //Initializing for divergence and flow parameters
   edge_flow.horizontal_slope = prev_edge_flow.horizontal_slope = 0;
@@ -127,12 +129,14 @@ void divergence_init()
   edge_flow.vertical_slope = prev_edge_flow.vertical_trans = 0;
   edge_flow.vertical_trans = prev_edge_flow.vertical_trans = 0;
 
-  coveriance.slope_x = 20;
-  coveriance.slope_y = 20;
-  coveriance.trans_x = 20;
-  coveriance.trans_y = 20;
+  covariance.slope_x = 20;
+  covariance.slope_y = 20;
+  covariance.trans_x = 20;
+  covariance.trans_y = 20;
 
-  height = 0;
+  avg_dist = 0;
+  avg_disp = 0;
+  frame_searched = 0;
 
   initialisedDivergence = 1;
 }
@@ -227,13 +231,13 @@ int main(void)
   //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
-  /*// Stereo parameters:
+  // Stereo parameters:
   uint32_t disparity_range = 16; // at a distance of 1m, disparity is 7-8
   uint32_t disparity_min = 0;
-  uint32_t disparity_step = 2;
+  uint32_t disparity_step = 1;
   uint8_t thr1 = 7;
-  uint8_t thr2 = 4;*/
-  // uint8_t diff_threshold = 4; // for filtering
+  uint8_t thr2 = 4;
+  uint8_t diff_threshold = 4; // for filtering
 
   // init droplet parameters
   volatile uint16_t current_phase = 1;
@@ -252,8 +256,9 @@ int main(void)
   int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendCommand = 0;
-  volatile uint64_t sys_time_prev = sys_time_get();
+  uint32_t sys_time_prev = sys_time_get();
   uint32_t freq_counter = 0;
+  uint32_t frameRate = 0;
 
   // Initialize window
   window_init();
@@ -301,6 +306,14 @@ int main(void)
 
       current_image_buffer[0] = 0;
       current_image_buffer[1] = 0;
+
+      // compute run frequency
+      freq_counter++;
+      if ((sys_time_get() - sys_time_prev) >= 2000) { // clock at 2kHz
+        frameRate = RES * freq_counter * (sys_time_get() - sys_time_prev) / 2000;
+        freq_counter = 0;
+        sys_time_prev = sys_time_get();
+      }
 
       /*
           uint8_t readChar = ' ';
@@ -380,6 +393,12 @@ int main(void)
         }
       }
 
+      // compute run frequency
+      if (current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
+        toSendCommand = (uint8_t) frameRate / RES;
+        // toSendCommand = (2000/(sys_time_get()-sys_time_prev))-15;
+      }
+
       if (current_stereoboard_algorithm == SEND_TURN_COMMANDS) {
         uint8_t border = 0;
         uint8_t disp_threshold = 5 * RESOLUTION_FACTOR;
@@ -397,18 +416,6 @@ int main(void)
         SendCommandNumber((uint8_t) disparities[1]);
       }
 
-      // compute run frequency
-      if (current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW) {
-        //led_toggle();
-        freq_counter++;
-        if ((sys_time_get() - sys_time_prev) >= 2000) { // clock at 2kHz
-          toSendCommand = (uint8_t)((freq_counter * (sys_time_get() - sys_time_prev)) / 2000);
-          freq_counter = 0;
-          sys_time_prev = sys_time_get();
-        }
-        //toSendCommand = (2000/(sys_time_get()-sys_time_prev))-15;
-      }
-
       // send matrix buffer
       if (current_stereoboard_algorithm == SEND_MATRIX) {
 
@@ -422,27 +429,44 @@ int main(void)
       }
 
       // compute and send divergence
-      if (current_stereoboard_algorithm == SEND_DIVERGENCE){// || current_stereoboard_algorithm == SEND_WINDOW) {
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == SEND_WINDOW) {
         //if (initialisedDivergence == 0) {
         //  initialiseDivergence();
         //}
 
         //calculate the edge flow
-        calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &height, current_frame_nr , 10, 10, 10,
-                            IMAGE_WIDTH, IMAGE_HEIGHT, RES);
+        frame_searched = calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
+                                             current_frame_nr , 6, 12, 0,
+                                             IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
         //move the indices for the edge hist structure
         current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
 
-        //Kalman filtering
-        totalKalmanFilter(&coveriance, &prev_edge_flow, &edge_flow, Q, R, RES);
+        // Filter flow
+        // totalKalmanFilter(&covariance, &prev_edge_flow, &edge_flow, Q, R, RES);
 
         // TODO: find a better way to scale the data
-        divergencearray[0] = (uint8_t)(edge_flow.horizontal_slope + 127);
-        divergencearray[1] = (uint8_t)(edge_flow.horizontal_trans / 4 + 127);
-        divergencearray[2] = (uint8_t)(edge_flow.vertical_slope + 127);
-        divergencearray[3] = (uint8_t)(edge_flow.vertical_trans / 4 + 127);
-        divergencearray[4] = (uint8_t) height;
+        // scale pixel disparity to flow by scaling by image frame rate
+        divergencearray[0] = (uint8_t)((edge_flow.horizontal_slope * frameRate / RES) / RES + 127);
+        divergencearray[1] = (uint8_t)((edge_flow.horizontal_trans * frameRate / RES) / RES + 127);
+        divergencearray[2] = (uint8_t)((edge_flow.vertical_slope * frameRate / RES) / RES + 127);
+        divergencearray[3] = (uint8_t)((edge_flow.vertical_trans * frameRate / RES) / RES + 127);
+
+        // disparity to distance in cm given 7cm dist between cams and Field of View (FOV) of 60deg
+        // d = dist_between_cam / (2*sin((disparity/2) * FOV_X/px_total))
+        // d = 7 / (2*sin(disp*1.042/128/2))
+        // d = 7 / (2*disp*1.042/128/2)
+        // d = RES*7 / (disp*RES*1.042/128)
+
+        divergencearray[4] = (uint8_t)avg_disp;
+
+        if (!avg_disp) {
+          avg_disp = 1;
+        }
+
+        avg_dist = RES * 7 / (abs(avg_disp) * 104 / 128);
+
+        //divergencearray[4] = (uint8_t)frame_searched;
 
         memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
       }
@@ -462,7 +486,7 @@ int main(void)
         windowMsgBuf[5] = (uint8_t)((get_sum_disparities(0, 0, 127, 47, integral_image, 128, 96) - get_sum_disparities(0, 48,
                                      127, 95, integral_image, 128, 96)) / windowMsgBuf[3]) + 128;
         windowMsgBuf[6] = window_size;
-        windowMsgBuf[7] = toSendCommand; // frequency
+        windowMsgBuf[7] = (uint8_t)(frameRate / RES);
 
         memcpy(windowMsgBuf + 8, divergencearray, 5);
       }

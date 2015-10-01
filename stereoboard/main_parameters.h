@@ -41,7 +41,7 @@
 #endif
 
 #ifndef SEND_FILTER
-#define SEND_FILTER
+#define SEND_FILTER 0
 #endif
 
 #ifndef COLOR_RATIO
@@ -71,6 +71,7 @@
 #else
 #define IMAGE_WIDTH 128
 #define IMAGE_HEIGHT 96
+#endif
 #endif
 
 #ifndef CAPTURE_MODE_SNAPSHOT
@@ -107,14 +108,14 @@
 // Stereoboard bottom = Usart1
 // Stereoboard top(cpld) = Usart4
 #ifndef UsartTx
-  #define USE_USART4
-  #define UsartTx Usart4Tx
-  #define UsartRx Usart4Rx
-  #define UsartCh Usart4Ch
+#define USE_USART4
+#define UsartTx Usart4Tx
+#define UsartRx Usart4Rx
+#define UsartCh Usart4Ch
 
-  #ifndef USART4_BAUD
-    #define USART4_BAUD 1000000
-  #endif
+#ifndef USART4_BAUD
+#define USART4_BAUD 1000000
+#endif
 #endif
 
 //////////////////////////////////////////////////////

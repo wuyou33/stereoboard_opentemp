@@ -28,9 +28,12 @@ void optic_flow_horizontal(uint8_t *prev_im, uint8_t *curr_im, uint32_t image_wi
   * 3) Fit linear model
   */
 
+  if (max_flow > IM_WIDTH/2)
+    max_flow = IM_WIDTH/2;
+
   uint8_t histogram1[IM_WIDTH];
   uint8_t histogram2[IM_WIDTH];
-  uint32_t flow_error[IM_WIDTH]; // maximal max flow is half the image
+  uint32_t flow_error[IM_WIDTH+1]; // maximal max flow is half the image
   uint8_t avg_h1;
   uint8_t avg_h2;
   uint32_t x, f, flow_ind;
@@ -50,12 +53,12 @@ void optic_flow_horizontal(uint8_t *prev_im, uint8_t *curr_im, uint32_t image_wi
     // only start matching if it is a peak:
     if (histogram1[x] > avg_h1) {
       // determine errors for different flows (now only integer)
-      for (f = -max_flow; f < max_flow; f++) {
+      for (f = -max_flow; f <= max_flow; f++) {
         flow_error[f + max_flow] = abs(histogram1[x] - histogram2[x + f]);
       }
 
       // search minimum:
-      flow_ind = getMinimum(flow_error, 2 * max_flow);
+      flow_ind = getMinimum(flow_error, 2 * max_flow + 1);
 
       // store the point plus its flow:
       X[n_entries] = x;
@@ -100,6 +103,10 @@ void fitLinearModel(uint32_t *X, int *FLOW, uint32_t n_entries, int *divergence,
     dx = X[ind2] - X[ind1];
     dflow = FLOW[ind2] - FLOW[ind1];
     // a and b both in resolution RESOLUTION:
+
+    if (dx == 0)
+      dx = 1;
+
     a[it] = dflow * RESOLUTION / dx;
     b[it] = FLOW[ind1] * RESOLUTION - (a[it] * (X[ind1] - HALF_WIDTH));
 
@@ -112,8 +119,8 @@ void fitLinearModel(uint32_t *X, int *FLOW, uint32_t n_entries, int *divergence,
   }
 
   // select best fit:
-  best_ind = getMinimum(errors, n_entries);
-  (*divergence) = a[best_ind] - 100;
+  best_ind = getMinimum(errors, RANSAC_ITERATIONS);
+  (*divergence) = a[best_ind] - 100;    // Why is there a -100 here?
   (*displacement) = b[best_ind];
 }
 
@@ -121,9 +128,9 @@ uint32_t getMinimum(uint32_t *flow_error, uint32_t max_ind)
 {
   uint32_t i;
   uint32_t min_ind = 0;
-  uint32_t min_err = flow_error[0];
+  uint32_t min_err = flow_error[min_ind];
   for (i = 1; i < max_ind; i++) {
-    if (flow_error[i] < min_err) {
+    if (flow_error[i] <= min_err) {  // TODO: if multiple indices contain the minimum error value, the lowest is chosen which may not be ideal
       min_ind = i;
       min_err = flow_error[i];
     }
@@ -136,17 +143,16 @@ uint8_t createHistogramSobel(uint8_t *histogram, uint8_t *im, uint32_t image_wid
 {
   uint8_t Sobel[3][3] = { { -1, 0, 1}, { -2, 0, 2}, { -1, 0, 1} };
   uint32_t sobel_threshold = 15;
-  uint32_t x, y, r, c;
+  uint32_t x, y;
+  int32_t r, c;
   int32_t sobel;
   uint32_t avg_hist = 0;
 
-  // entries will not be filled:
-  histogram[0] = 0; histogram[image_width - 1] = 0;
+  // set default values of array
+  memset(histogram, 0, image_width);
 
   // make histogram:
   for (x = 1; x < image_width - 1; x++) {
-    histogram[x] = 0;
-
     for (y = min_y + 1; y < max_y - 1; y++) {
       // Convolution:
       sobel = 0;

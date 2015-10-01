@@ -14,7 +14,7 @@ RANLIB        = $(CROSS)ranlib
 AR            = $(CROSS)ar
 GDB           = $(CROSS)gdb
 
-CFLAGS        = -g -O3 -mlittle-endian -mthumb -DHSE_VALUE=12000000
+CFLAGS        = -g -Og -mlittle-endian -mthumb -DHSE_VALUE=12000000
 CFLAGS       += -mcpu=cortex-m4	-DARM_MATH_CM4
 CFLAGS       += -ffreestanding -nostdlib
 CFLAGS       += -DBOARD_FILE=\"./boards/board_$(BOARD).h\"
@@ -111,8 +111,21 @@ USB_SRCS = \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd.c      \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
 
-all: $(SUBMODULE) print $(BIN_IMAGE)
+all: check_user_inputs $(SUBMODULE) print $(BIN_IMAGE)
 
+check_user_inputs:
+ifeq (,$(wildcard boards/board_$(BOARD).h))
+	$(error Board header boards/board_$(BOARD).h doesn't exist)
+endif
+ifeq (,$(wildcard projects/$(PROJECT).h))
+	$(error Project header projects/$(PROJECT).h doesn't exist)
+endif
+
+print:
+	$(info Including boards/board_$(BOARD).h)
+	$(info Including projects/$(PROJECT).h)
+	$(info )
+	
 $(BIN_IMAGE): $(EXECUTABLE)
 	$(OBJCOPY) -O binary $^ $@
 
@@ -180,12 +193,6 @@ $(EXECUTABLE): 	\
 		${USB_SRCS} \
 		${STDP_LIB}
 	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
-
-print:
-	$(info )
-	$(info Including boards/board_$(BOARD).h)
-	$(info Including projects/$(PROJECT).h)
-	$(info )
 
 clean:
 	rm -rf $(EXECUTABLE)

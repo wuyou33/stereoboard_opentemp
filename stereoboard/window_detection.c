@@ -76,9 +76,7 @@ uint16_t detect_window(uint8_t *in, uint32_t image_width, uint32_t image_height,
   if (mode == MODE_DISPARITY) {
     // (0) filter the bad pixels out, replacing them with 6:
     // filter_bad_pixels(in, image_width, image_height);
-  }
-  else if(mode == MODE_ILLUMINANCE)
-  {
+  } else if (mode == MODE_ILLUMINANCE) {
     // reduce the range of illuminance
     uint8_t n_bits = 2;
     transform_illuminance_image(in, in, image_width, image_height, n_bits, 1);
@@ -214,7 +212,7 @@ uint32_t get_avg_disparity(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint1
   uint32_t w = max_x - min_x + 1;
   uint32_t h = max_y - min_y + 1;
 
-  return RES*get_sum_disparities(min_x, min_y, max_x, max_y, integral_image, image_width, image_height)/(w * h);
+  return RES * get_sum_disparities(min_x, min_y, max_x, max_y, integral_image, image_width, image_height) / (w * h);
 }
 
 uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t border, uint32_t *integral_image,
