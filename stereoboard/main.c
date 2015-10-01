@@ -9,6 +9,9 @@
   */
 /* Includes ------------------------------------------------------------------*/
 
+// include std libs
+#include <math.h>
+
 // include system files
 #include "arm_math.h"
 #include "stm32f4xx_conf.h"
@@ -124,15 +127,15 @@ void divergence_init()
   // memset(edge_hist, 0, MAX_HORIZON * sizeof(struct edge_hist_t));
 
   //Initializing for divergence and flow parameters
-  edge_flow.horizontal_slope = prev_edge_flow.horizontal_slope = 0;
-  edge_flow.horizontal_trans = prev_edge_flow.horizontal_trans = 0;
-  edge_flow.vertical_slope = prev_edge_flow.vertical_trans = 0;
-  edge_flow.vertical_trans = prev_edge_flow.vertical_trans = 0;
+  edge_flow.horizontal_flow = prev_edge_flow.horizontal_flow = 0;
+  edge_flow.horizontal_div = prev_edge_flow.horizontal_div = 0;
+  edge_flow.vertical_flow = prev_edge_flow.vertical_flow = 0;
+  edge_flow.vertical_div = prev_edge_flow.vertical_div = 0;
 
-  covariance.slope_x = 20;
-  covariance.slope_y = 20;
-  covariance.trans_x = 20;
-  covariance.trans_y = 20;
+  covariance.flow_x = 20;
+  covariance.flow_y = 20;
+  covariance.div_x = 20;
+  covariance.div_y = 20;
 
   avg_dist = 0;
   avg_disp = 0;
@@ -232,7 +235,7 @@ int main(void)
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
   // Stereo parameters:
-  uint32_t disparity_range = 16; // at a distance of 1m, disparity is 7-8
+  uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
   uint32_t disparity_min = 0;
   uint32_t disparity_step = 1;
   uint8_t thr1 = 7;
@@ -436,7 +439,7 @@ int main(void)
 
         //calculate the edge flow
         frame_searched = calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-                                             current_frame_nr , 6, 12, 0,
+                                             current_frame_nr , 10, 10, 10,
                                              IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
         //move the indices for the edge hist structure
@@ -447,12 +450,17 @@ int main(void)
 
         // TODO: find a better way to scale the data
         // scale pixel disparity to flow by scaling by image frame rate
-        divergencearray[0] = (uint8_t)((edge_flow.horizontal_slope * frameRate / RES) / RES + 127);
-        divergencearray[1] = (uint8_t)((edge_flow.horizontal_trans * frameRate / RES) / RES + 127);
-        divergencearray[2] = (uint8_t)((edge_flow.vertical_slope * frameRate / RES) / RES + 127);
-        divergencearray[3] = (uint8_t)((edge_flow.vertical_trans * frameRate / RES) / RES + 127);
+        /*divergencearray[0] = (uint8_t)((edge_flow.horizontal_div * frameRate / RES) + 127);           // should be in 100/s
+        divergencearray[1] = (uint8_t)(((edge_flow.horizontal_flow * frameRate / RES)/RES)/RES + 127);    // should be in px/s
+        divergencearray[2] = (uint8_t)((edge_flow.vertical_div * frameRate / RES) + 127);             // should be in 100/s
+        divergencearray[3] = (uint8_t)(((edge_flow.vertical_flow * frameRate / RES)/RES)/RES + 127);      // should be in px/s*/
 
-        // disparity to distance in cm given 7cm dist between cams and Field of View (FOV) of 60deg
+        divergencearray[0] = (uint8_t)(edge_flow.horizontal_div + 127);           // should be in 100/s
+        divergencearray[1] = (uint8_t)(edge_flow.horizontal_flow + 127);    // should be in px/s
+        divergencearray[2] = (uint8_t)(edge_flow.vertical_div + 127);             // should be in 100/s
+        divergencearray[3] = (uint8_t)(edge_flow.vertical_flow + 127);      // should be in px/s
+
+        // disparity to distance in dm given 7cm dist between cams and Field of View (FOV) of 60deg
         // d = dist_between_cam / (2*sin((disparity/2) * FOV_X/px_total))
         // d = 7 / (2*sin(disp*1.042/128/2))
         // d = 7 / (2*disp*1.042/128/2)
@@ -460,13 +468,15 @@ int main(void)
 
         divergencearray[4] = (uint8_t)avg_disp;
 
-        if (!avg_disp) {
-          avg_disp = 1;
+        if (avg_disp > 0) {
+          avg_dist = 10 * 7 / (avg_disp * 104 / 128);
+        }
+        else {
+          avg_dist = 100;
         }
 
-        avg_dist = RES * 7 / (abs(avg_disp) * 104 / 128);
-
-        //divergencearray[4] = (uint8_t)frame_searched;
+        divergencearray[4] = (uint8_t)avg_dist;
+        // divergencearray[4] = (uint8_t)frame_searched;
 
         memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
       }

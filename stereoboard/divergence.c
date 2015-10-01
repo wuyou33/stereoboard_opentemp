@@ -10,7 +10,6 @@
 #include "optic_flow.h"
 
 #include <stdlib.h>
-#include <limits.h>
 
 uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
                             struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t current_frame_nr,
@@ -31,13 +30,13 @@ uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, st
 
   // Calculate previous frame number
   // TODO: this selection of which frame to look at isn't very stable
-  uint8_t previous_frame_offset_x = 1, previous_frame_offset_y = 1;
+  uint8_t previous_frame_offset_x = 2, previous_frame_offset_y = 2;
 
   // TODO remove below, just for testing
   if (0) {  //MAX_HORIZON > 1) {
     uint32_t flow_mag_x, flow_mag_y;
-    flow_mag_x = abs(edge_flow->horizontal_trans);
-    flow_mag_y = abs(edge_flow->vertical_trans);
+    flow_mag_x = abs(edge_flow->horizontal_flow);
+    flow_mag_y = abs(edge_flow->vertical_flow);
 
     // TODO check which image we should pick
     // TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/2) boundary
@@ -81,15 +80,15 @@ uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, st
   line_fit_RANSAC(displacement->horizontal, &edge_flow->horizontal_slope, &edge_flow->horizontal_trans, image_width, RES);
   line_fit_RANSAC(displacement->vertical, &edge_flow->vertical_slope, &edge_flow->vertical_trans, image_height, RES);
 #else
-  line_fit(displacement->horizontal, &edge_flow->horizontal_slope, &edge_flow->horizontal_trans, image_width, RES);
-  line_fit(displacement->vertical, &edge_flow->vertical_slope, &edge_flow->vertical_trans, image_height, RES);
+  line_fit(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width, window_size + disp_range, RES);
+  line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height, window_size + disp_range,RES);
 #endif
 
   // Correct Divergence slope and translation by the amount of frames skipped
-  edge_flow->horizontal_slope /= previous_frame_offset_x;
-  edge_flow->horizontal_trans /= previous_frame_offset_x;
-  edge_flow->vertical_slope /= previous_frame_offset_y;
-  edge_flow->vertical_trans /= previous_frame_offset_y;
+  edge_flow->horizontal_flow /= previous_frame_offset_x;
+  edge_flow->horizontal_div /= previous_frame_offset_x;
+  edge_flow->vertical_flow /= previous_frame_offset_y;
+  edge_flow->vertical_div /= previous_frame_offset_y;
 
   return previous_frame_offset_x;
 }
@@ -98,6 +97,8 @@ uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, st
 void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t image_width, uint16_t image_height,
                               char direction, char side, uint16_t edge_threshold)
 {
+
+  // TODO use arm_conv_q31()
   int32_t sobel_sum = 0;
   int32_t Sobel[3] = { -1, 0, 1};
 
@@ -106,22 +107,28 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
 
   uint32_t idx = 0;
 
-  if (direction == 'x') {
-    // reset edge histogram to zero
-    memset(edge_histogram, 0, image_width);
+  // set pixel offset based on which image needed from interlaced image
+  uint32_t px_offset = 0;
+  if (side == 'l')
+    px_offset = 0;
+  else if (side == 'r')
+    px_offset = 1;
+  else
+    while(1); // let user know something is wrong
 
+  // compute edge histogram
+  if (direction == 'x') {
+    // set values that are not visited
+    edge_histogram[0] = edge_histogram[image_width-1] = 0;
     for (x = 1; x < image_width-1; x++) {
+      edge_histogram[x] = 0;
       for (y = 0; y < image_height; y++) {
         sobel_sum = 0;
 
         for (c = -1; c <= 1; c++) {
           idx = 2*(image_width * y + (x + c));  // 2 for interlace
 
-          if (side == 'l') {
-            sobel_sum += Sobel[c + 1] * (int32_t)in[idx];
-          } else { // default (side=='r')
-            sobel_sum += Sobel[c + 1] * (int32_t)in[idx + 1];
-          }
+          sobel_sum += Sobel[c + 1] * (int32_t)in[idx + px_offset];
         }
         sobel_sum = abs(sobel_sum);
         if (sobel_sum > edge_threshold)
@@ -129,22 +136,18 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
       }
     }
   }
-  else { // default (direction=='y')
-    // reset edge histogram to zero
-    memset(edge_histogram, 0, image_height);
-
+  else if (direction == 'y'){
+    // set values that are not visited
+    edge_histogram[0] = edge_histogram[image_height-1] = 0;
     for (y = 1; y < image_height-1; y++) {
+      edge_histogram[y] = 0;
       for (x = 0; x < image_width; x++) {
         sobel_sum = 0;
 
         for (c = -1; c <= 1; c++) {
           idx = 2*(image_width * (y + c) + x);  // 2 for interlace
 
-          if (side == 'l') {
-            sobel_sum += Sobel[c + 1] * (int32_t)in[idx];
-          } else { // default (side=='r')
-            sobel_sum += Sobel[c + 1] * (int32_t)in[idx + 1];
-          }
+          sobel_sum += Sobel[c + 1] * (int32_t)in[idx + px_offset];
         }
         sobel_sum = abs(sobel_sum);
         if (sobel_sum > edge_threshold)
@@ -152,6 +155,8 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
       }
     }
   }
+  else
+    while(1);   // hang to show user something isn't right
 }
 
 // Calculate_displacement calculates the displacement between two histograms
@@ -164,16 +169,16 @@ void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_pre
   uint32_t x = 0;
   uint32_t SAD_temp[2*DISP_RANGE_MAX+1];    // size must be at least 2*D + 1
 
-  int32_t W = window/2;
+  int32_t W = window;
   int32_t D = disp_range;
 
-  // reset values in displacement
   memset(displacement, 0, size);
 
   // TODO: replace with arm offset subtract
   for (x = W + D; x < size - W - D; x++) {
-    memset(SAD_temp, 0, 2*D+1);
+    displacement[x] = 0;
     for (c = -D; c <= D; c++) {
+      SAD_temp[c + D] = 0;
       for (r = -W; r <= W; r++) {
         SAD_temp[c + D] += abs(edge_histogram[x + r] - edge_histogram_prev[x + r + c]);
       }
@@ -193,21 +198,20 @@ int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_
 
   int32_t D = disp_range;
 
-  memset(SAD_temp, 0, 2*D+1);
-
   // TODO check if one loop can be replaced by line diff
   for (c = -D; c <= D; c++) {
+    SAD_temp[c + D] = 0;
     for (x = D; x < size - D; x++) {
       SAD_temp[c + D] += abs(edge_histogram[x] - edge_histogram_2[x + c]);
     }
   }
 
-  return (int32_t)getMinimum(SAD_temp, 2*D+1) - D;
+  return D - (int32_t)getMinimum(SAD_temp, 2*D+1);
 }
 
 
 // Line_fit fits a line using least squares to the histogram disparity map
-void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_t size, uint16_t RES)
+void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_t size, uint32_t border, uint16_t RES)
 {
   uint32_t x;
 
@@ -222,27 +226,35 @@ void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_
   *divergence = 0;
   *flow = 0;
 
-  for (x = 0; x < size; x++) {
-    if (displacement[x] != 0) {
-      sumX += x;
-      sumX2 += x * x;
-      sumY += displacement[x];
-      sumXY += x * displacement[x];
-      count++;
-    }
+  // compute fixed sums
+  int32_t xend = size - border - 1;
+  sumX = xend*(xend+1)/2 - border*(border+1)/2 + border;
+  sumX2 = xend * (xend+1) * (2*xend+1)/6;
+  xMean = (size-1)/2;
+  count = size -1 - 2*border;
+
+  for (x = border; x < size - border; x++) {
+    sumY += displacement[x];
+    sumXY += x * displacement[x];
   }
 
-  if (count > 0) {
-    xMean = sumX / count;
-    yMean = sumY / count;
+  yMean = RES*sumY / count;
 
-    if ((sumX2 - sumX * xMean) != 0) {
-      *divergence = RES * (sumXY - sumX * yMean) / (sumX2 - sumX * xMean);
-    } else {
-      *divergence = RES * (sumXY - sumX * yMean);   // large number
-    }
-    *flow = yMean * RES - *divergence * xMean;
+  *divergence = (RES*sumXY - sumX * yMean) / (sumX2 - sumX * xMean);    // compute slope of line ax + b
+  *flow = yMean - *divergence * xMean;  // compute b (or y) intercept of line ax + b
+
+  /*
+  int32_t SSxx, SSxy;
+  SSxx = sumX2 - sumX * sumX / count;
+  SSxy = sumXY - sumX * sumY / count;
+
+  if (SSxx != 0) {
+    *divergence = RES * SSxy / SSxx;    // compute slope of line ax + b
+  } else {
+    *divergence = RES * 255;   // large number
   }
+  *flow = RES*sumY/count - *divergence*sumX/count;  // compute b (or y) intercept of line ax + b
+  *flow */
 }
 
 
@@ -309,7 +321,7 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, 
       errors[it] = total_error;
     }
     // select best fit:
-    best_ind = getMinimum2(errors, ransac_iter);
+    best_ind = getMinimum(errors, ransac_iter);
 
     *divergence = a[best_ind];
     *flow = b[best_ind];
@@ -322,14 +334,14 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, 
 void totalKalmanFilter(struct covariance_t *coveriance, struct edge_flow_t *prev_edge_flow,
                        struct edge_flow_t *edge_flow, uint32_t Q, uint32_t R, uint32_t RES)
 {
-  edge_flow->horizontal_trans = simpleKalmanFilter(&(coveriance->trans_x), prev_edge_flow->horizontal_trans,
-                                edge_flow->horizontal_trans, Q, R, RES);
-  edge_flow->vertical_trans = simpleKalmanFilter(&(coveriance->trans_y), prev_edge_flow->vertical_trans,
-                              edge_flow->vertical_trans, Q, R, RES);
-  edge_flow->horizontal_slope = simpleKalmanFilter(&(coveriance->slope_x), prev_edge_flow->horizontal_slope,
-                                edge_flow->horizontal_slope, Q, R, RES);
-  edge_flow->vertical_slope = simpleKalmanFilter(&(coveriance->slope_y), prev_edge_flow->vertical_slope,
-                              edge_flow->vertical_slope, Q, R, RES);
+  edge_flow->horizontal_flow = simpleKalmanFilter(&(coveriance->flow_x), prev_edge_flow->horizontal_flow,
+                                edge_flow->horizontal_flow, Q, R, RES);
+  edge_flow->vertical_flow = simpleKalmanFilter(&(coveriance->flow_y), prev_edge_flow->vertical_flow,
+                              edge_flow->vertical_flow, Q, R, RES);
+  edge_flow->horizontal_div = simpleKalmanFilter(&(coveriance->div_x), prev_edge_flow->horizontal_div,
+                                edge_flow->horizontal_div, Q, R, RES);
+  edge_flow->vertical_div = simpleKalmanFilter(&(coveriance->div_y), prev_edge_flow->vertical_div,
+                              edge_flow->vertical_div, Q, R, RES);
 }
 
 int32_t simpleKalmanFilter(int32_t *cov, int32_t previous_est, int32_t current_meas, int32_t Q, int32_t R, int32_t RES)
@@ -358,7 +370,7 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
     //line_check1=(uint32_t)(Slope*(float)x+(Yint)+(float)image_height/2);
     //line_check2=(uint32_t)(displacement[x]+image_height/2);
     for (x = 0; x < image_width; x++) {
-      idx =  image_width * y * 2 + (x) * 2;
+      idx =  2*(image_width * y + x);
 
       /*if(y==line_check1)
         out[idx]=255;
@@ -371,19 +383,4 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
       in[idx + 1] = 0; //in[idx+1];
     }
   }
-}
-
-
-int32_t getMinimum2(uint32_t *flow_error, uint32_t max_ind)
-{
-  uint32_t i;
-  uint32_t min_ind = 0;
-  uint32_t min_err = flow_error[0];
-  for (i = 1; i < max_ind; i++) {
-    if (flow_error[i] < min_err && !isnan(flow_error[i])) {
-      min_ind = i;
-      min_err = flow_error[i];
-    }
-  }
-  return min_ind;
 }
