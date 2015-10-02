@@ -11,9 +11,9 @@
 
 #include <stdlib.h>
 
-uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
-                            struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t current_frame_nr,
-                            uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
+void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
+                            struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
+                            uint8_t current_frame_nr, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
                             uint16_t image_width, uint16_t image_height, uint16_t RES)
 {
   // check that inputs within allowable ranges
@@ -29,34 +29,33 @@ uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, st
   int32_t *prev_edge_histogram_y;
 
   // Calculate previous frame number
-  // TODO: this selection of which frame to look at isn't very stable
-  uint8_t previous_frame_offset_x = 2, previous_frame_offset_y = 2;
+  previous_frame_offset[0] = previous_frame_offset[1] = 1;
 
-  // TODO remove below, just for testing
-  if (0) {  //MAX_HORIZON > 1) {
+  // TODO confirm below
+  if (MAX_HORIZON > 1) {
     uint32_t flow_mag_x, flow_mag_y;
     flow_mag_x = abs(edge_flow->horizontal_flow);
     flow_mag_y = abs(edge_flow->vertical_flow);
 
     // TODO check which image we should pick
     // TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/2) boundary
-    if (flow_mag_x * (MAX_HORIZON - 1) > 2 * RES) {
-      previous_frame_offset_x = 2 * RES / flow_mag_x + 1;
+    if (4*flow_mag_x * (MAX_HORIZON - 1) > RES*disp_range) {
+      previous_frame_offset[0] = (RES*disp_range) / (2*flow_mag_x) + 1;
     } else {
-      previous_frame_offset_x = MAX_HORIZON - 1;
+      previous_frame_offset[0] = MAX_HORIZON - 1;
     }
 
-    if (flow_mag_y * (MAX_HORIZON - 1) > 2 * RES) {
-      previous_frame_offset_y = 2 * RES / flow_mag_y + 1;
+    if (4*flow_mag_y * (MAX_HORIZON - 1) > RES*disp_range) {
+      previous_frame_offset[1] = (RES*disp_range)/ (2*flow_mag_y) + 1;
     } else {
-      previous_frame_offset_y = MAX_HORIZON - 1;
+      previous_frame_offset[1] = MAX_HORIZON - 1;
     }
   }
 
   // the previous frame number relative to dynamic parameters
-  uint8_t previous_frame_x = (current_frame_nr - previous_frame_offset_x + MAX_HORIZON) %
+  uint8_t previous_frame_x = (current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
                              MAX_HORIZON; // wrap index
-  uint8_t previous_frame_y = (current_frame_nr - previous_frame_offset_y + MAX_HORIZON) %
+  uint8_t previous_frame_y = (current_frame_nr - previous_frame_offset[1] + MAX_HORIZON) %
                              MAX_HORIZON; // wrap index
 
   // copy previous edge histogram based on previous frame number
@@ -77,27 +76,24 @@ uint8_t calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, st
 
   // Fit a linear line
 #ifdef RANSAC
-  line_fit_RANSAC(displacement->horizontal, &edge_flow->horizontal_slope, &edge_flow->horizontal_trans, image_width, RES);
-  line_fit_RANSAC(displacement->vertical, &edge_flow->vertical_slope, &edge_flow->vertical_trans, image_height, RES);
+  line_fit_RANSAC(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width, window_size + disp_range, RES);
+  line_fit_RANSAC(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height, window_size + disp_range, RES);
 #else
   line_fit(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width, window_size + disp_range, RES);
   line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height, window_size + disp_range,RES);
 #endif
 
   // Correct Divergence slope and translation by the amount of frames skipped
-  edge_flow->horizontal_flow /= previous_frame_offset_x;
-  edge_flow->horizontal_div /= previous_frame_offset_x;
-  edge_flow->vertical_flow /= previous_frame_offset_y;
-  edge_flow->vertical_div /= previous_frame_offset_y;
-
-  return previous_frame_offset_x;
+  edge_flow->horizontal_flow  /= previous_frame_offset[0];
+  edge_flow->horizontal_div   /= previous_frame_offset[0];
+  edge_flow->vertical_flow    /= previous_frame_offset[1];
+  edge_flow->vertical_div     /= previous_frame_offset[1];
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
 void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t image_width, uint16_t image_height,
                               char direction, char side, uint16_t edge_threshold)
 {
-
   // TODO use arm_conv_q31()
   int32_t sobel_sum = 0;
   int32_t Sobel[3] = { -1, 0, 1};
@@ -213,9 +209,9 @@ int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_
 // Line_fit fits a line using least squares to the histogram disparity map
 void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_t size, uint32_t border, uint16_t RES)
 {
-  uint32_t x;
+  int32_t x;
 
-  uint32_t count = 0;
+  int32_t count = 0;
   int32_t sumY = 0;
   int32_t sumX = 0;
   int32_t sumX2 = 0;
@@ -229,41 +225,40 @@ void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_
   // compute fixed sums
   int32_t xend = size - border - 1;
   sumX = xend*(xend+1)/2 - border*(border+1)/2 + border;
-  sumX2 = xend * (xend+1) * (2*xend+1)/6;
-  xMean = (size-1)/2;
-  count = size -1 - 2*border;
+  sumX2 = xend * (xend+1) * (2*xend+1) / 6;
+  xMean = (size-1) / 2;
+  count = size - 2*border;
 
   for (x = border; x < size - border; x++) {
     sumY += displacement[x];
     sumXY += x * displacement[x];
   }
 
-  yMean = RES*sumY / count;
+  yMean = RES * sumY / count;
 
-  *divergence = (RES*sumXY - sumX * yMean) / (sumX2 - sumX * xMean);    // compute slope of line ax + b
+  *divergence = (RES * sumXY - sumX * yMean) / (sumX2 - sumX * xMean);    // compute slope of line ax + b
   *flow = yMean - *divergence * xMean;  // compute b (or y) intercept of line ax + b
-
-  /*
-  int32_t SSxx, SSxy;
-  SSxx = sumX2 - sumX * sumX / count;
-  SSxy = sumXY - sumX * sumY / count;
-
-  if (SSxx != 0) {
-    *divergence = RES * SSxy / SSxx;    // compute slope of line ax + b
-  } else {
-    *divergence = RES * 255;   // large number
-  }
-  *flow = RES*sumY/count - *divergence*sumX/count;  // compute b (or y) intercept of line ax + b
-  *flow */
 }
 
+int ipow(int base, int exp)
+{
+    int result = 1;
+    while (exp)
+    {
+        if (exp & 1)
+            result *= base;
+        exp >>= 1;
+        base *= base;
+    }
 
-void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, uint16_t size, uint32_t RES)
+    return result;
+}
+
+void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, uint16_t size, uint32_t border, uint32_t RES)
 {
   //Fit a linear line with RANSAC (from Guido's code)
   uint8_t ransac_iter = 20;
   int32_t it;
-  uint32_t k;
   uint32_t ind1, ind2, tmp, entry;
   uint32_t total_error, best_ind;
   int32_t dx, dflow, predicted_flow;
@@ -272,63 +267,42 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, 
   int32_t b[ransac_iter];
   uint32_t errors[ransac_iter];
 
-  int32_t X[size];
+  uint16_t entries = size - 2*border;
 
-  int32_t count_disp = 0;
+  for (it = 0; it < ransac_iter; it++) {
+    ind1 = rand() % entries + border;
+    ind2 = rand() % entries + border;
 
-  for (k = 0; k < size; k++) {
-    X[k] = k;
-    count_disp += displacement[k];
-  }
-
-  if (count_disp != 0) {
-    for (it = 0; it < ransac_iter; it++) {
-      ind1 = rand() % size;
-      ind2 = rand() % size;
-
-      while (ind1 == ind2) {
-        ind2 = rand() % size;
-      }
-
-      if (X[ind1] > X[ind2]) {
-        tmp = ind2;
-        ind2 = ind1;
-        ind1 = tmp;
-      }
-      /*while(displacement[ind1]==0)
-        ind1 = rand() % size;
-      while(displacement[ind2]==0)
-        ind2 = rand() % size;*/
-
-      dx = X[ind2] - X[ind1];
-      dflow = displacement[ind2] - displacement[ind1];
-
-      //Fit line with two points
-      if (dx != 0) {
-        a[it] = RES * dflow / dx;
-      } else {
-        a[it] = RES * dflow;
-      }
-
-      b[it] = RES * displacement[ind1] - (a[it] * X[ind1]);
-
-      // evaluate fit:
-      total_error = 0;
-      for (entry = 0; entry < size; entry++) {
-        predicted_flow = (a[it] * X[entry] + b[it]);
-        total_error += abs(RES*displacement[entry] - predicted_flow);
-      }
-      errors[it] = total_error;
+    while (ind1 == ind2) {
+      ind2 = rand() % entries + border;
     }
-    // select best fit:
-    best_ind = getMinimum(errors, ransac_iter);
 
-    *divergence = a[best_ind];
-    *flow = b[best_ind];
-  } else {
-    *divergence = 0;
-    *flow = 0;
+    // TODO: is this really necessary?
+    if (ind1 > ind2) {
+      tmp = ind2;
+      ind2 = ind1;
+      ind1 = tmp;
+    }
+
+    dx = ind2 - ind1;   // never zero
+    dflow = displacement[ind2] - displacement[ind1];
+
+    // Fit line with two points
+    a[it] = RES * dflow / dx;
+    b[it] = RES * displacement[ind1] - (a[it] * ind1);
+    // evaluate fit:
+    total_error = 0;
+    for (entry = border; entry < size-border; entry++) {
+      predicted_flow = a[it] * entry + b[it];
+      total_error += ipow(RES*displacement[entry] - predicted_flow,2);
+    }
+    errors[it] = total_error;
   }
+  // select best fit:
+  best_ind = getMinimum(errors, ransac_iter);
+
+  *divergence = a[best_ind];
+  *flow = b[best_ind];
 }
 
 void totalKalmanFilter(struct covariance_t *coveriance, struct edge_flow_t *prev_edge_flow,

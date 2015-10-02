@@ -112,6 +112,7 @@ USB_SRCS = \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
 
 all: check_user_inputs $(SUBMODULE) print $(BIN_IMAGE)
+	$(info Build Successful!)
 
 check_user_inputs:
 ifeq (,$(wildcard boards/board_$(BOARD).h))
