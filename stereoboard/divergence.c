@@ -40,13 +40,13 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
     // TODO check which image we should pick
     // TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/2) boundary
     if (4*flow_mag_x * (MAX_HORIZON - 1) > RES*disp_range) {
-      previous_frame_offset[0] = (RES*disp_range) / (2*flow_mag_x) + 1;
+      previous_frame_offset[0] = (RES*disp_range) / (4*flow_mag_x) + 1;
     } else {
       previous_frame_offset[0] = MAX_HORIZON - 1;
     }
 
     if (4*flow_mag_y * (MAX_HORIZON - 1) > RES*disp_range) {
-      previous_frame_offset[1] = (RES*disp_range)/ (2*flow_mag_y) + 1;
+      previous_frame_offset[1] = (RES*disp_range)/ (4*flow_mag_y) + 1;
     } else {
       previous_frame_offset[1] = MAX_HORIZON - 1;
     }

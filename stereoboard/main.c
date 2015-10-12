@@ -237,7 +237,7 @@ int main(void)
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
   // Stereo parameters:
-  uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8
+  uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8. disp = Npix*cam_separation /(2*dist*tan(FOV/2))
   uint32_t disparity_min = 0;
   uint32_t disparity_step = 1;
   uint8_t thr1 = 7;
@@ -456,22 +456,22 @@ int main(void)
         divergenceArray[2] = (uint8_t)(edge_flow.vertical_div + 127);             // should be in 0.01/s
         divergenceArray[3] = (uint8_t)(edge_flow.vertical_flow/10 + 127);         // should be in 0.1px/s
 
-        // disparity to distance in dm given 7cm dist between cams and Field of View (FOV) of 60deg
-        // d = dist_between_cam / (2*sin((disparity/2) * FOV_X/px_total))
-        // d = 7 / (2*sin(disp*1.042/128/2))
-        // d = 7 / (2*disp*1.042/128/2)
-        // d = RES*7 / (disp*RES*1.042/128)
+        // disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
+        // d =  Npix*cam_separation /(2*disp*tan(FOV/2))
+        // d = 0.06*128 / (2*tan(disp*1.042/2))
+        // d = 0.06*128 / (2*disp*1.042/2)
+        // d = RES*0.06*128 / (disp*RES*1.042)
 
         divergenceArray[4] = (uint8_t)avg_disp;
 
         if (avg_disp > 0) {
-          avg_dist = RES * 7 / (avg_disp * 104 / IMAGE_WIDTH);
+          avg_dist = RES * 6 * IMAGE_WIDTH / (avg_disp * 104);
         }
         else {
-          avg_dist = RES;
+          avg_dist = 1477; // 2 * RES * 6 * IMAGE_WIDTH / 104;
         }
 
-        //divergenceArray[4] = (uint8_t)avg_dist/10;
+        divergenceArray[4] = (uint8_t)avg_dist/10;
         memcpy(divergenceArray+5, previous_frame_offset, 2);  // copy frame offset to output array
         divergenceArray[7] = frameRate;
 
