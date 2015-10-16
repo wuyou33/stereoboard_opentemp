@@ -315,10 +315,12 @@ int main(void)
       // compute run frequency
       freq_counter++;
       if ((sys_time_get() - sys_time_prev) >= 2000) { // clock at 2kHz
-        frameRate = freq_counter * (sys_time_get() - sys_time_prev) / 2000;
+        frameRate = freq_counter * (sys_time_get() - sys_time_prev) / 2000; // in Hz
         freq_counter = 0;
         sys_time_prev = sys_time_get();
       }
+
+      frameRate = 2000 / (sys_time_get() - sys_time_prev); // in Hz
 
       /*
           uint8_t readChar = ' ';
@@ -439,12 +441,12 @@ int main(void)
         //  initialiseDivergence();
         //}
 
-        //calculate the edge flow
+        // calculate the edge flow
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
                                              previous_frame_offset, current_frame_nr , 10, 10, 10,
                                              IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
-        //move the indices for the edge hist structure
+        // move the indices for the edge hist structure
         current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
 
         // Filter flow
@@ -461,6 +463,7 @@ int main(void)
         // d = 0.06*128 / (2*tan(disp*1.042/2))
         // d = 0.06*128 / (2*disp*1.042/2)
         // d = RES*0.06*128 / (disp*RES*1.042)
+        // d = RES*0.06*PIX / (disp*FOVX)
 
         divergenceArray[4] = (uint8_t)avg_disp;
 

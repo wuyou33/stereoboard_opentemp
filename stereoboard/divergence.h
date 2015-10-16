@@ -11,10 +11,15 @@
 #include "arm_math.h"
 #include "main_parameters.h"
 
+#ifndef MAX_HORIZON
 #define MAX_HORIZON 5
+#endif
+#ifndef DISP_RANGE_MAX 20
 #define DISP_RANGE_MAX 20
+#endif
+
 // #define MAX_FLOW 1.0
-//#define RANSAC 1
+// #define RANSAC 1
 // #define ADAPTIVE_THRES_EDGE 0
 
 struct edge_hist_t {

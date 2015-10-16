@@ -38,7 +38,8 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
     flow_mag_y = abs(edge_flow->vertical_flow);
 
     // TODO check which image we should pick
-    // TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/2) boundary
+    // TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/some_size) boundary
+    // TODO I currently use a switching limit of disparity range/4
     if (4*flow_mag_x * (MAX_HORIZON - 1) > RES*disp_range) {
       previous_frame_offset[0] = (RES*disp_range) / (4*flow_mag_x) + 1;
     } else {
@@ -294,7 +295,8 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, 
     total_error = 0;
     for (entry = border; entry < size-border; entry++) {
       predicted_flow = a[it] * entry + b[it];
-      total_error += ipow(RES*displacement[entry] - predicted_flow,2);
+      //total_error += ipow(RES*displacement[entry] - predicted_flow,2);
+      total_error += RES*displacement[entry] - predicted_flow;
     }
     errors[it] = total_error;
   }
