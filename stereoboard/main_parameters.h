@@ -28,6 +28,10 @@
 
 //////////////////////////////////////////////////////
 // Settings
+#ifndef STEREO_BUF_SIZE
+#define STEREO_BUF_SIZE 1024
+#endif
+
 #ifndef USE_COLOR
 #define USE_COLOR 0
 #endif

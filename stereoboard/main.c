@@ -64,7 +64,7 @@ uint16_t offset_crop = 0;
   */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,TEST_RX} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
@@ -272,10 +272,18 @@ int main(void)
   uint8_t n_disp_bins = 6;
   uint32_t disparities[n_disp_bins];
   uint8_t RESOLUTION = 100;
-
+  uint8_t ser_read_buf[STEREO_BUF_SIZE];           // circular buffer for incoming data
+  uint8_t msg_buf[256];         // define local data
+  typedef struct {
+    uint8_t len;
+    uint8_t *data;
+    uint8_t data_new;
+  } uint8array;
+  uint8array stereocam_data = {.len = 0, .data = msg_buf, .data_new = 0};  // buffer used to contain image without line endings
+  uint16_t insert_loc, extract_loc, msg_start;   // place holders for buffer read and write
   // initialize divergence
   divergence_init();
-
+  led_clear();
   while (1) {
     if (current_stereoboard_algorithm == SEND_PROXIMITY) {
       /*
@@ -322,32 +330,39 @@ int main(void)
 
       frameRate = 2000 / (sys_time_get() - sys_time_prev); // in Hz
 
-      /*
+
           uint8_t readChar = ' ';
 
           while(UsartCh()){
             readChar=UsartRx();
-            if(readChar==1)
-            {
-              current_stereoboard_algorithm=SEND_DISPARITY_MAP;
-            }
-            else if (readChar==2)
-            {
-              current_stereoboard_algorithm=SEND_MATRIX;
-            }
-            else if (readChar==3)
-            {
-              disparity_min-=1;
-            }
-            else if (readChar==4)
-            {
-              disparity_min+=1;
-            }
-            else if (readChar==5)
-            {
-              current_stereoboard_algorithm=SEND_DIVERGENCE;
-            }
-          }*/
+            uint16_t length = STEREO_BUF_SIZE;
+           	handleStereoPackage(readChar,length,&insert_loc,&extract_loc,&msg_start,msg_buf,ser_read_buf,&stereocam_data.data_new,&stereocam_data.len);
+           	if(stereocam_data.data_new){
+           		led_toggle();
+
+           		stereocam_data.data_new=0;
+           	}
+//            if(readChar==1)
+//            {
+//              current_stereoboard_algorithm=SEND_DISPARITY_MAP;
+//            }
+//            else if (readChar==2)
+//            {
+//              current_stereoboard_algorithm=SEND_MATRIX;
+//            }
+//            else if (readChar==3)
+//            {
+//              disparity_min-=1;
+//            }
+//            else if (readChar==4)
+//            {
+//              disparity_min+=1;
+//            }
+//            else if (readChar==5)
+//            {
+//              current_stereoboard_algorithm=SEND_DIVERGENCE;
+//            }
+          }
 
       // New frame code: Vertical blanking = ON
 
