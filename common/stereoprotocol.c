@@ -70,6 +70,7 @@ uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *inse
   // read all data from the stereo com link, check that don't overtake extract
   if( stereoprot_add(*insert_loc, 1,buffer_size) != *extract_loc) {
     ser_read_buf[*insert_loc] = newByte;
+ //   printf("Hello there\n");
     *insert_loc = stereoprot_add(*insert_loc, 1,buffer_size);
   }
 
@@ -78,6 +79,7 @@ uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *inse
 
   //while (stereoprot_diff(*insert_loc, stereoprot_add(*extract_loc,3,buffer_size),buffer_size) > 0) {
   while (stereoprot_diff(*insert_loc, *extract_loc,buffer_size) > 3) {
+
     if (stereoprot_isStartOfMsg(ser_read_buf, *extract_loc,buffer_size)) {
 
 

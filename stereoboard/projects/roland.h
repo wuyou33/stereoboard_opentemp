@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION TEST_RX
+#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 
