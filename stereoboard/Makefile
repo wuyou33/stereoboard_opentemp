@@ -258,5 +258,8 @@ lst: $(MAIN_LST)
 roland: PROJECT=roland
 roland: all
 
+kimberly: PROJECT=kimberly
+kimberly: all
+
 
 .PHONY: all clean style cleanspaces
