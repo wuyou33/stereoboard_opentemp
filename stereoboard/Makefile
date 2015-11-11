@@ -255,11 +255,19 @@ lst: $(MAIN_LST)
 %.lst: %.c
 	$(CC) -c -g -Wa,-a,-ad $(CFLAGS) $< > $@
 
-roland: PROJECT=roland
+roland: PROJECT_FILE=roland
 roland: all
 
 kimberly: PROJECT=kimberly
 kimberly: all
+
+stereoavoid: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE=boards/board_6.h
+stereoavoid: all
+
+
+delfly_explorer: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE=boards/board_6.h
+delfly_explorer: all
+
 
 
 .PHONY: all clean style cleanspaces

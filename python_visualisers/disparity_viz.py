@@ -50,8 +50,8 @@ while True:
 
             if not '3.0.0'==cv2.__version__:
                 img = cv2.resize(img,(0,0),fx=20,fy=20,interpolation=cv2.INTER_NEAREST)
-            cv2.imshow('img',img)
-
+            cv2.imshow('img2',img)
+	    print 'test hier'
 
             key=cv2.waitKey(1)
             if 'q' == chr(key & 255):
