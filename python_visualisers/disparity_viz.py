@@ -12,8 +12,12 @@ saveImages= False
 treshold=0.3
 
 currentBuffer=[]
+print cv2.__version__
 if '3.0.0'==cv2.__version__:
     cv2.namedWindow('img',cv2.WINDOW_NORMAL)
+if '3.0.0-dev'==cv2.__version__:
+    cv2.namedWindow('img',cv2.WINDOW_NORMAL)
+
 
 fileToWrite=file("data.csv",'w')
 dataWriter=csv.writer(fileToWrite)
@@ -45,28 +49,20 @@ while True:
             totalData=[frameNumber,time.time()]
             img /= 20
             img /= 6
+           
 
             # Create a color image
             img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
 
-            if not '3.0.0'==cv2.__version__:
+            if (not '3.0.0'==cv2.__version__) and (not '3.0.0-dev'==cv2.__version__):
+		print 'resizing stuff!'
                 img = cv2.resize(img,(0,0),fx=20,fy=20,interpolation=cv2.INTER_NEAREST)
-            cv2.imshow('img2',img)
+            cv2.imshow('img',img)
 	    print 'test hier'
 
             key=cv2.waitKey(1)
             if 'q' == chr(key & 255):
                 break	
-            if 'a' == chr(key & 255):
-                stereoboard_tools.stereoboardCommand=1	
-            if 's' == chr(key & 255):
-                stereoboard_tools.stereoboardCommand=2
-            if 'd' == chr(key & 255):
-                stereoboard_tools.stereoboardCommand=3
-            if 'f' == chr(key & 255):
-                stereoboard_tools.stereoboardCommand=4
-            if 'z' == chr(key & 255):
-                stereoboard_tools.stereoboardCommand=5
             if saveImages:
                 import scipy
                 fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'

@@ -4,9 +4,9 @@ command=$2
 echo "executing " $nr " with " $command
 if [ -z "$commandi" ];
 then
-	BOARD_FUNCTION="BOARD_FUNCTION=-D$command=1 "
+   PROJECT=$2
 else
- BOARD_FUNCTION="not defined"
+ PROJECT="not defined"
 fi
 echo $BOARD_FUNCTION
-make clean && make singlecamera CAMNUMBER=$nr $BOARD_FUNCTION && make uploadsinglecamera CAMNUMBER=$nr
+make clean && make singlecamera CAMNUMBER=$nr PROJECT=$PROJECT && make uploadsinglecamera CAMNUMBER=$nr
