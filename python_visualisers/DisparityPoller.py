@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import serial
 import stereoboard_tools
 import numpy as np
