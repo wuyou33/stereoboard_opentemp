@@ -265,8 +265,8 @@ stereoavoid: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE=boards/board_6
 stereoavoid: all
 
 
-delfly_explorer: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE=boards/board_6.h
-delfly_explorer: all
+explorer: PROJECT_FILE="projects/explorer.h" BOARD_FILE="boards/board_6.h"
+explorer: all
 
 
 

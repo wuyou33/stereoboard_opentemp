@@ -13,13 +13,18 @@
  * MAIN PARAMETERS
  *****************/
 #ifndef BOARD_FILE
+
+#pragma message("DEFINING BOARD FILE")
 #define BOARD_FILE "boards/board_default.h"
 #endif
+
 #ifndef PROJECT_FILE
 #define PROJECT_FILE "projects/example.h"
 #endif
-
+#pragma message("PROJECT_FILE=" PROJECT_FILE)
 #include PROJECT_FILE
+
+#pragma message("BOARD_FILE=" BOARD_FILE)
 #include BOARD_FILE
 
 #ifndef DEFAULT_BOARD_FUNCTION
