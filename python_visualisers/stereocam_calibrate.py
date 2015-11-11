@@ -31,17 +31,14 @@ maxOffset = 16
 def changeOffsetLeft(newValue):
     global  DISPARITY_OFFSET_LEFT
     DISPARITY_OFFSET_LEFT = newValue-maxOffset/2
-    createEverythingUsingData()
 
 def changeOffsetRight(newValue):
     global  DISPARITY_OFFSET_RIGHT
     DISPARITY_OFFSET_RIGHT= newValue-maxOffset/2
-    createEverythingUsingData()
 
 def changeOffsetBorder(newValue):
     global  DISPARITY_BORDER
     DISPARITY_BORDER= newValue
-    createEverythingUsingData()
 
 
 
@@ -75,16 +72,14 @@ while True:
 
             # Go from values between 0-255 to intensities between 0.0-1.0
             img /= 255
-            img = cv2.Laplacian(img,cv2.CV_64F)
-            img = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
 
             # Show the images
             cv2.imshow('img',img)
             key=cv2.waitKey(1)
-            if key > 0:
-		    print '#define DISPARITY_OFFSET_LEFT ', DISPARITY_OFFSET_LEFT
-		    print '#define DISPARITY_OFFSET_RIGHT ', DISPARITY_OFFSET_RIGHT
-		    print '#define DISPARITY_BORDER ', DISPARITY_BORDER
+            print '-----------------------------------------------------'
+	    print '#define DISPARITY_OFFSET_LEFT ', DISPARITY_OFFSET_LEFT
+	    print '#define DISPARITY_OFFSET_RIGHT ', DISPARITY_OFFSET_RIGHT
+	    print '#define DISPARITY_BORDER ', DISPARITY_BORDER
 
     except KeyboardInterrupt:
 	break
