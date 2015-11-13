@@ -146,7 +146,7 @@ void divergence_init()
 	initialisedDivergence = 1;
 }
 
-#define WINDOWBUFSIZE 16  // 8 for window and 8 for divergence
+#define WINDOWBUFSIZE 8  // 8 for window and 8 for divergence
 
 uint8_t windowMsgBuf[WINDOWBUFSIZE];
 uint8_t coordinate[2];
@@ -438,7 +438,7 @@ int main(void)
 			}
 
 			// compute and send divergence
-			if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == SEND_WINDOW) {
+			if (current_stereoboard_algorithm == SEND_DIVERGENCE){// || current_stereoboard_algorithm == SEND_WINDOW) {
 				//if (initialisedDivergence == 0) {
 				//  initialiseDivergence();
 				//}
@@ -500,7 +500,7 @@ int main(void)
 				windowMsgBuf[6] = window_size;
 				windowMsgBuf[7] = (uint8_t)frameRate;
 
-				memcpy(windowMsgBuf + 8, divergenceArray, 8);
+				//memcpy(windowMsgBuf + 8, divergenceArray, 8);
 			}
 			// Now send the data that we want to send
 			if (current_stereoboard_algorithm == SEND_IMAGE) {
