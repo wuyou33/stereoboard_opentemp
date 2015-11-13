@@ -85,22 +85,12 @@ void calculateDistanceMatrix(uint8_t *disparity_image,
           anyOn = 1;
         }
         break;
-
       }
     }
-    /*
-    toSendBuffer[bufferIndex]=highestValues[bufferIndex][4];
-    if(toSendBuffer[bufferIndex]>CLOSE_BOUNDARY)
-    {
-      anyOn=1;
-    }
-    */
   }
   if (anyOn == 1) {
     led_set();
   } else {
     led_clear();
   }
-
-
 }

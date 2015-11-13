@@ -47,6 +47,7 @@ while True:
                 fileNameBoth = 'image'+str(frameNumber)+'.png'
                 scipy.misc.imsave(fileNameBoth, img)
             totalData=[frameNumber,time.time()]
+	    print img
             img /= 20
             img /= 6
            

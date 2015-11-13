@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_MATRIX
+#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 
@@ -25,7 +25,7 @@
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
-#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 #define CAPTURE_MODE_SNAPSHOT 1
 

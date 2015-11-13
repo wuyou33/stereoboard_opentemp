@@ -356,7 +356,6 @@ int main(void)
 				}
 			}
 
-
 			// New frame code: Vertical blanking = ON
 
 
