@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import time
-ser = serial.Serial('/dev/ttyUSB0',9600,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 treshold=0.3
@@ -62,7 +62,7 @@ while True:
            
 
             # keep a time step list and average disparity list for plotting:
-            step += 1;
+#            step += 1;
             time_steps.extend([step]);
             # for now maximum disparity, later the average:
             max_disparity = np.max(img[:,:]);
