@@ -24,7 +24,7 @@ if '3.0.0-dev'==cv2.__version__:
 fileToWrite=file("data.csv",'w')
 dataWriter=csv.writer(fileToWrite)
 step = 0;
-avg_disparity = [0];
+distance = [0];
 time_steps = [0];
 plt.axis([0, 1000, 0, 1]);
 plt.ion();
@@ -61,24 +61,52 @@ while True:
             img /= 6
            
 
+            # *** Disparity based velocity estimate ***
             # keep a time step list and average disparity list for plotting:
             step += 1;
             time_steps.extend([step]);
             # for now maximum disparity, later the average:
             max_disparity = np.max(img[:,:]);
-            avg_disparity.extend([max_disparity]);
-            if(len(avg_disparity) > max_time):
-                avg_disparity.pop(0);
+            dist = 1.0 / (max_disparity + 0.1);
+            alpha = 0.95;
+            new_dist = alpha*distance[-1] + (1-alpha)*dist;
+            # Deal with outliers:
+            # Single outliers are discarded, while persisting outliers will lead to an array reset:
+            MAX_SUBSEQUENT_OUTLIERS = 5;
+            if(np.abs(new_dist - distance[-1]) > 1.5):
+                outlier+=1;
+                if(outlier >= MAX_SUBSEQUENT_OUTLIERS):
+                    # The drone has probably turned in a new direction:
+                    print '*** TURNED!!! ***'
+                    distance = [new_dist];
+                    time_steps = [t];
+                    outlier = 0;
+            else:
+                outlier = 0;
+                # append:
+                distance.extend([new_dist]);
+            
+            # determine velocity (very simple method):
+            n_steps_velocity = 20;
+            if(len(distance) > n_steps_velocity):
+                velocity = distance[-n_steps_velocity] - distance[-1];
+                print 'Velocity = ', velocity
+
+            # keep maximum array size:
+            if(len(distance) > max_time):
+                distance.pop(0);
             if(len(time_steps) > max_time):
-                time_steps.pop(0);            
+                time_steps.pop(0);    
+
+            # plot the arrays every 5 time steps:        
             if(np.mod(step, 5) == 0):
                 t = np.array(time_steps);
-                d = np.array(avg_disparity);
+                d = np.array(distance);
                 plt.clf();
                 plt.plot(t, d);
                 plt.draw()
 
-            print 'last element:', avg_disparity[-1]
+            # print 'last element:', distance[-1]
 
             # Create a color image
             img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
