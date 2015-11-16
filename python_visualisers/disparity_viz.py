@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import time
-ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',9600,timeout=None)
 frameNumber = 0
 saveImages= False
 treshold=0.3
@@ -23,12 +23,17 @@ if '3.0.0-dev'==cv2.__version__:
 
 fileToWrite=file("data.csv",'w')
 dataWriter=csv.writer(fileToWrite)
+
+# for velocity estimation:
 step = 0;
 distance = [0];
+outlier = 0;
 time_steps = [0];
 plt.axis([0, 1000, 0, 1]);
 plt.ion();
 plt.show();
+
+# main loop:
 while True:
     try:
         # Read the image
@@ -63,8 +68,7 @@ while True:
 
             # *** Disparity based velocity estimate ***
             # keep a time step list and average disparity list for plotting:
-#            step += 1;
-            time_steps.extend([step]);
+            step += 1;
             # for now maximum disparity, later the average:
             max_disparity = np.max(img[:,:]);
             dist = 1.0 / (max_disparity + 0.1);
@@ -73,17 +77,18 @@ while True:
             # Deal with outliers:
             # Single outliers are discarded, while persisting outliers will lead to an array reset:
             MAX_SUBSEQUENT_OUTLIERS = 5;
-            if(np.abs(new_dist - distance[-1]) > 1.5):
+            if(np.abs(dist - distance[-1]) > 1.5):
                 outlier+=1;
                 if(outlier >= MAX_SUBSEQUENT_OUTLIERS):
                     # The drone has probably turned in a new direction:
                     print '*** TURNED!!! ***'
-                    distance = [new_dist];
-                    time_steps = [t];
+                    distance = [dist];
+                    time_steps = [step];
                     outlier = 0;
             else:
                 outlier = 0;
                 # append:
+                time_steps.extend([step]);
                 distance.extend([new_dist]);
             
             # determine velocity (very simple method):
@@ -106,7 +111,7 @@ while True:
                 plt.plot(t, d);
                 plt.draw()
 
-            # print 'last element:', distance[-1]
+            print 'len(distance) = ', len(distance) , ' len(time_steps) = ', len(time_steps) ,'last element:', distance[-1]
 
             # Create a color image
             img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
