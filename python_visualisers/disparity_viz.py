@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import time
-ser = serial.Serial('/dev/ttyUSB0',9600,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',115200,timeout=None)
 frameNumber = 0
 saveImages= False
 treshold=0.3
@@ -61,7 +61,7 @@ while True:
                 fileNameBoth = 'image'+str(frameNumber)+'.png'
                 scipy.misc.imsave(fileNameBoth, img)
             totalData=[frameNumber,time.time()]
-	    	# print img
+	    print img
             img /= 20
             img /= 6
            

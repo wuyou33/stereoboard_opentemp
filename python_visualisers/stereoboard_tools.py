@@ -205,7 +205,7 @@ def readPartOfImage(ser, currentBuffer):
     # Add all bytes to our total collection of bytes
     for byte in raw:
         currentBuffer.append(int(byte))
-	#print 'read: ', int(byte)
+        #print 'read: ', int(byte)
     startPosition=None
     lastResult=(-1,-1)
     endOfImagesFound=0
