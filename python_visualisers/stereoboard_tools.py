@@ -287,13 +287,15 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
         PrintException()
 
 def saveImages(img,leftImage,rightImage,frameNumber,folderName):
-    import scipy
+    import cv2
     fileNameLeft = folderName+'/imageLeft'+str(frameNumber)+'.png'
     fileNameRight = folderName+'/imageRight'+str(frameNumber)+'.png'
     fileNameBoth = folderName+'/imageBoth'+str(frameNumber)+'.png'
-    scipy.misc.imsave(fileNameBoth, img)
-    scipy.misc.imsave(fileNameLeft, leftImage)
-    scipy.misc.imsave(fileNameRight, rightImage)
+    cv2.imwrite(fileNameBoth, img*255)
+    if leftImage!=0:
+        cv2.imwrite(fileNameLeft, leftImage*255)
+    if rightImage!=0:
+        cv2.imwrite(fileNameRight, rightImage*255)
 
 
 def createRedBlueImage(img, lineCount, lineLength):

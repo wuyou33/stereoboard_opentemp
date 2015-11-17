@@ -7,9 +7,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import time
+import os
 ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
-saveImages= False
+saveImages= True
+frameNumber = 0
+imageFolderName='imagesWalktroughSubstation'
+folderExtensionTry=0
+while os.path.exists(imageFolderName+str(folderExtensionTry)):
+    folderExtensionTry+=1
+imageFolderName=imageFolderName+str(folderExtensionTry)
+os.makedirs(imageFolderName)
+
 treshold=0.3
 max_time = 500;
 
@@ -56,10 +65,7 @@ while True:
             img = stereoboard_tools.fill_image_array(sync1,oneImage, lineLength, lineCount)
             img=np.array(img)
 
-            if saveImages:
-                import scipy
-                fileNameBoth = 'image'+str(frameNumber)+'.png'
-                scipy.misc.imsave(fileNameBoth, img)
+            
             totalData=[frameNumber,time.time()]
 	    print img
             img /= 20
@@ -78,12 +84,11 @@ while True:
             key=cv2.waitKey(1)
             if 'q' == chr(key & 255):
                 break	
-            if saveImages:
-                import scipy
-                fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
-                scipy.misc.imsave(fileNameBoth, img)
-                frameNumber+=1
 
+            if saveImages:
+                stereoboard_tools.saveImages(img, 0, 0, frameNumber, imageFolderName)
+                frameNumber+=1
+                print 'saving images'
     except Exception as excep:
         stereoboard_tools.PrintException()
         print 'error! ' , excep
