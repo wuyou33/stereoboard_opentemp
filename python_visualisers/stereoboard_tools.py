@@ -292,10 +292,8 @@ def saveImages(img,leftImage,rightImage,frameNumber,folderName):
     fileNameRight = folderName+'/imageRight'+str(frameNumber)+'.png'
     fileNameBoth = folderName+'/imageBoth'+str(frameNumber)+'.png'
     cv2.imwrite(fileNameBoth, img*255)
-    if leftImage!=0:
-        cv2.imwrite(fileNameLeft, leftImage*255)
-    if rightImage!=0:
-        cv2.imwrite(fileNameRight, rightImage*255)
+    cv2.imwrite(fileNameLeft, leftImage*255)
+    cv2.imwrite(fileNameRight, rightImage*255)
 
 
 def createRedBlueImage(img, lineCount, lineLength):
