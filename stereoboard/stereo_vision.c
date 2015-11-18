@@ -12,7 +12,10 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
     uint32_t disparity_min,
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
-  uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
+
+	disparity_min = DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
+
+	uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
   // TODO check if disparity_min is still required
   uint32_t disparity_max = disparity_range - 1 +
                            disparity_min;   // calculate maximum diisparity value based on minimum and range
@@ -94,7 +97,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
       //    // make image gradients absolute such that we can look for maximum values in the next step
       arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
 
-      for (i = half_horizontal_block_size; i < half_imageWidth; i++) {
+      for (i = half_horizontal_block_size + abs(disparity_min); i < half_imageWidth; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
@@ -105,7 +108,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
           for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++) {
             for (v = 0; v < vertical_block_size; v++) {
               // compute difference between pixel from left image with (disparity) range of pixels from right image
-              arm_offset_q15(&block_right[h + (v * image_width)], -block_left[h + (v * image_width)], cost, disparity_range);
+              arm_offset_q15(&block_right[h + (v * image_width) - disparity_min], -block_left[h + (v * image_width)], cost, disparity_range);
               // obtain absolute difference
               arm_abs_q15(cost, cost, disparity_range);
               // sum results of this pixel with other pixels in this window
@@ -155,7 +158,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
                 sub_disp = ((h21 - h31) * RESOLUTION_FACTOR * 10) / (h21 - h31 * 2) / 10 + (x1 * RESOLUTION_FACTOR);
               }
 
-              sub_disp += DISPARITY_OFFSET_HORIZONTAL;
+              sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
               } else {
@@ -245,7 +248,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
                 sub_disp = (disparity_max * RESOLUTION_FACTOR) - sub_disp;
               }
 
-              sub_disp += DISPARITY_OFFSET_HORIZONTAL;
+              sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
 
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
