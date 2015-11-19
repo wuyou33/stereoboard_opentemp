@@ -12,7 +12,7 @@
  * Project parameters
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_HISTOGRAM
-#define HISTOGRAM_FUNCTION HISTOGRAM_FOLLOW_ME_DRONE
+#define HISTOGRAM_FUNCTION HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 
