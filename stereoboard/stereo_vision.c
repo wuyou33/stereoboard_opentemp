@@ -13,7 +13,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
 
-	disparity_min = DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
+	disparity_min = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
 
 	uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
   // TODO check if disparity_min is still required
@@ -108,7 +108,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
           for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++) {
             for (v = 0; v < vertical_block_size; v++) {
               // compute difference between pixel from left image with (disparity) range of pixels from right image
-              arm_offset_q15(&block_right[h + (v * image_width) - disparity_min], -block_left[h + (v * image_width)], cost, disparity_range);
+              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost, disparity_range);
               // obtain absolute difference
               arm_abs_q15(cost, cost, disparity_range);
               // sum results of this pixel with other pixels in this window
