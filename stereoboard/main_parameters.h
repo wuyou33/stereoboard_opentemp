@@ -9,6 +9,10 @@
 #ifndef MAIN_PARAMETERS_H_
 #define MAIN_PARAMETERS_H_
 
+/* Defines possible values in the project file */
+#define HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE 1
+#define HISTOGRAM_FOLLOW_ME_DRONE 2
+
 /*****************
  * MAIN PARAMETERS
  *****************/
@@ -60,6 +64,12 @@
 
 #ifndef STEREO_CAM_NUMBER
 #define STEREO_CAM_NUMBER 0 //  0 = DelFly Explorer cam   1 = spare camera
+#endif
+
+#define HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE 1
+#define HISTOGRAM_FOLLOW_ME_DRONE 2
+#ifndef HISTOGRAM_FUNCTION
+#define HISTOGRAM_FUNCTION HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE
 #endif
 
 #ifndef STEREO_ALGORITHM
