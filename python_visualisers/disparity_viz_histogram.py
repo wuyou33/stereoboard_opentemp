@@ -61,11 +61,19 @@ while True:
                 scipy.misc.imsave(fileNameBoth, img)
             totalData=[frameNumber,time.time()]
 	    print img
+
+
+      far_away_threshold = 30
+      x = 2
+      while img[0,x] > far_away_threshold and x < 125:
+        x += 1
+
+
            # img /= 20
            # img /= 6
-            plt.clf()
+      plt.clf()
 	    plt.axis([0, 128, 0,120])
-	    plt.plot(img[0,:])
+	    plt.plot(range(0,127),img[0,:],'b',range(x-1,x+1),[0,120,0],'r')
 	    plt.draw()
             # Create a color image
             img=stereoboard_tools.createRedBlueImage(img,lineCount,lineLength)
