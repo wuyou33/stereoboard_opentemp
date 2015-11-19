@@ -231,7 +231,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
             uint32_t locationInBuffer = (uint32_t)(fakeShitImageWidth * (lineIndex - half_vertical_block_size)) + ii;
             if (locationInBuffer < 12288) {
 
-              sub_disp = (disparity_max - disparity_value) * RESOLUTION_FACTOR;
+              sub_disp = (disparity_range - 1 - disparity_value) * RESOLUTION_FACTOR;
               out[locationInBuffer] = sub_disp;//c1_i;
 
               if (disparity_value > 0 && disparity_value < disparity_max) {
@@ -245,7 +245,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
                 h31 = (y3 - y1);
                 h21 = (y2 - y1) * 4;
                 sub_disp = ((h21 - h31) * RESOLUTION_FACTOR * 10) / (h21 - h31 * 2) / 10 + (x1 * RESOLUTION_FACTOR);
-                sub_disp = (disparity_max * RESOLUTION_FACTOR) - sub_disp;
+                sub_disp = ((disparity_range - 1) * RESOLUTION_FACTOR) - sub_disp;
               }
 
               sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;

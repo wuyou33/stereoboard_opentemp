@@ -301,6 +301,7 @@ def saveImages(img,leftImage,rightImage,frameNumber,folderName):
 def createRedBlueImage(img, lineCount, lineLength):
     try:
         img2=np.zeros((lineCount,lineLength,3))
+
         img2[:,:,0]=1-img
         img2[:,:,2]=img
         img2[img==0,:]=[0,0,0]
