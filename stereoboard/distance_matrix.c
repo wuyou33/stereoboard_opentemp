@@ -87,21 +87,15 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
   uint8_t positionInMatrix = 0;
   uint8_t x;
   uint8_t y;
-
+  uint8_t minimumPixelsPerColumn;
+  if(HISTOGRAM_FUNCTION==HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE){
+	  minimumPixelsPerColumn=5;
+  }
+  else{
+	  minimumPixelsPerColumn=30;
+  }
   double sumSurroundingBuffer[pixelsPerLine];
   double maxValue = 0.0;
-//
-//  // Fill the disparity histogram:
-//  for (x = 0; x < pixelsPerLine ; x++) {
-//	histogramBuffer[x] = 0;
-//    for (y = 0; y < heightPerLine; y++) {
-//         positionInImageBuffer = pixelsPerLine * y + x;
-//         valueInImageBuffer = disparity_image[positionInImageBuffer];
-//         if(histogramBuffer[x] < valueInImageBuffer){
-//        	 histogramBuffer[x] = valueInImageBuffer;
-//        }
-//      }
-//    }
 
   // Fill the disparity histogram:
   int histoIndex;
@@ -117,10 +111,20 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
 	   for (y = 10; y < heightPerLine-10; y++) {
          positionInImageBuffer = pixelsPerLine * y + x;
          valueInImageBuffer = disparity_image[positionInImageBuffer];
-         if(valueInImageBuffer>0){
-        	 numPixelsFound++;
+         if(HISTOGRAM_FUNCTION==HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE){
+             if(valueInImageBuffer>0){
+    			 numPixelsFound++;
+    		  }
+    		  sumThisPlace += valueInImageBuffer;
          }
-         sumThisPlace += valueInImageBuffer;
+         else{ // Follow me function
+             if(valueInImageBuffer>2){
+    			 numPixelsFound++;
+
+    		  sumThisPlace += valueInImageBuffer;
+             }
+            }
+
        }
     }
 	if(numPixelsFound>5){
@@ -135,9 +139,25 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
 	sumSurroundingBuffer[histoIndex] = sumThisPlace;
 
   }
-
   for (histoIndex = dist; histoIndex < pixelsPerLine-dist ; histoIndex++) {
 	  histogramBuffer[histoIndex] = sumSurroundingBuffer[histoIndex];
 
+	  //If avoiding: set zeros who are dangerous to higher values.
+	  if(HISTOGRAM_FUNCTION==HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE){
+		  if(histogramBuffer[histoIndex]==0){
+			  //Filter surrounding histos
+			  if(histogramBuffer[MAX(0,histoIndex-1)]>0){
+				  histogramBuffer[histoIndex]=histogramBuffer[histoIndex-1];
+			  }
+			  else if(histogramBuffer[MIN(pixelsPerLine,histoIndex+1)]>0){
+				  histogramBuffer[histoIndex]=histogramBuffer[histoIndex+1];
+			  }
+			  else{
+				  //else set max
+				  histogramBuffer[histoIndex]=120;
+			  }
+
+		  }
+	  }
   }
 }
