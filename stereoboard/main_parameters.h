@@ -145,4 +145,7 @@
 #define TCM8230_EXTRA_SATURATION 0
 #endif
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
 #endif /* MAIN_PARAMETERS_H_ */

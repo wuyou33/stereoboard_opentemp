@@ -118,7 +118,7 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
     		  sumThisPlace += valueInImageBuffer;
          }
          else{ // Follow me function
-             if(valueInImageBuffer>2){
+             if(valueInImageBuffer>12){
     			 numPixelsFound++;
 
     		  sumThisPlace += valueInImageBuffer;
@@ -146,11 +146,11 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
 	  if(HISTOGRAM_FUNCTION==HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE){
 		  if(histogramBuffer[histoIndex]==0){
 			  //Filter surrounding histos
-			  if(histogramBuffer[MAX(0,histoIndex-1)]>0){
-				  histogramBuffer[histoIndex]=histogramBuffer[histoIndex-1];
+			  if(sumSurroundingBuffer[MAX(0,histoIndex-1)]>0){
+				  histogramBuffer[histoIndex]=sumSurroundingBuffer[histoIndex-1];
 			  }
-			  else if(histogramBuffer[MIN(pixelsPerLine,histoIndex+1)]>0){
-				  histogramBuffer[histoIndex]=histogramBuffer[histoIndex+1];
+			  else if(sumSurroundingBuffer[MIN(pixelsPerLine,histoIndex+1)]>0){
+				  histogramBuffer[histoIndex]=sumSurroundingBuffer[histoIndex+1];
 			  }
 			  else{
 				  //else set max

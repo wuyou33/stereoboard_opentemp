@@ -2,7 +2,6 @@
 
 #include "stereo_vision.h"
 #include BOARD_FILE
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 /**
  * Function takes input and calculates disparity using a block
