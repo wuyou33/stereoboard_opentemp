@@ -118,7 +118,7 @@ const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
-uint8_t divergenceArray[8];
+uint8_t divergenceArray[10];
 
 void divergence_init()
 {
@@ -479,7 +479,7 @@ int main(void)
 				divergenceArray[4] = (uint8_t)avg_disp;
 
 				if (avg_disp > 0) {
-					avg_dist = RES * 6 * IMAGE_WIDTH / (avg_disp * 104);
+					avg_dist = RES * 6 * IMAGE_WIDTH / (avg_disp * FOVX);
 				}
 				else {
 					avg_dist = 1477; // 2 * RES * 6 * IMAGE_WIDTH / 104;
@@ -488,6 +488,14 @@ int main(void)
 				divergenceArray[4] = (uint8_t)avg_dist/10;
 				memcpy(divergenceArray+5, previous_frame_offset, 2);  // copy frame offset to output array
 				divergenceArray[7] = frameRate;
+
+				// Calculate velocity
+				 int32_t frequency = 26; //TODO Fix frame rate
+				 int32_t vel_hor = edge_flow.horizontal_flow * frequency * avg_dist *  FOVX / (RES*RES*IMAGE_WIDTH);
+				 int32_t vel_ver = edge_flow.vertical_flow  * frequency * avg_dist *  FOVY / (RES*RES*IMAGE_HEIGHT);
+
+				divergenceArray[8]=(uint8_t)(vel_hor/10+127); // in cm/s
+				divergenceArray[9]=(uint8_t)(vel_ver/10+127); // in cm/s
 
 				memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
 			}
@@ -528,7 +536,7 @@ int main(void)
 				SendArray(windowMsgBuf, WINDOWBUFSIZE, 1);
 			}
 			if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
-				SendArray(divergenceArray, 6, 1);
+				SendArray(divergenceArray,10, 1);
 			}
 			if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 				SendCommand(toSendCommand);
