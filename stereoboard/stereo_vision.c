@@ -84,7 +84,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
       idx_SAD = 0;
     }
 
-    // de-interlace image lines and put them at right place in the image blocks
+    // de-interlace image lines and put them at correct place in the image blocks
     separate_image_line_offset_block(&in[idx0], block_right, block_left, image_width_bytes, idx_line, fakeShitImageWidth);
 
     if (idx_SAD > -1) {

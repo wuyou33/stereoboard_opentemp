@@ -161,3 +161,27 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
 	  }
   }
 }
+
+uint8_t calculateHeadingFromHistogram(uint8_t *histogramBuffer)
+{
+	// Settings
+	int8_t far_away_threshold = 20; // 15
+	int8_t x_reference = 20; // 35
+	int8_t margin = 5;
+
+	// Init
+	uint8_t command = 1;
+	int8_t x_hist = 5;
+
+	while( (histogramBuffer[x_hist] > far_away_threshold) && (x_hist < 125) )
+		x_hist += 1;
+
+	if ( (x_hist-x_reference) < -margin )
+		command = 0; // turn left
+
+	if ( (x_hist-x_reference) > margin )
+			command = 2; // turn right
+
+	return command;
+
+}

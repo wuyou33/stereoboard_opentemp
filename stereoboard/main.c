@@ -64,15 +64,17 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR))
 	return DEFAULT_BOARD_FUNCTION;
 
+#elif defined(SEND_DELFLY_CORRIDOR)
+	return SEND_DELFLY_CORRIDOR
 #elif defined(SEND_HISTOGRAM)
 	return SEND_HISTOGRAM;
 #elif defined(SEND_COMMANDS)
@@ -367,7 +369,8 @@ int main(void)
 			// Calculate the disparity map, only when we need it
 			if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm == SEND_MATRIX
 					|| current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
-					current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW || current_stereoboard_algorithm==SEND_HISTOGRAM) {
+					current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
+					current_stereoboard_algorithm==SEND_HISTOGRAM || current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR) {
 				// Determine disparities:
 				min_y = 0;
 				max_y = 96;
@@ -386,8 +389,11 @@ int main(void)
 				}
 			}
 
-			if( current_stereoboard_algorithm==SEND_HISTOGRAM){
+			if( current_stereoboard_algorithm==SEND_HISTOGRAM || current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR){
 				calculateHistogram(disparity_image_buffer_8bit, histogramBuffer, blackBorderSize, pixelsPerLine,image_height);
+
+				if( current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR)
+					toSendCommand = calculateHeadingFromHistogram(histogramBuffer);
 			}
 
 			// determine phase of flight
@@ -531,6 +537,9 @@ int main(void)
 				SendArray(divergenceArray, 6, 1);
 			}
 			if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
+				SendCommand(toSendCommand);
+			}
+			if( current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 				SendCommand(toSendCommand);
 			}
 		}
