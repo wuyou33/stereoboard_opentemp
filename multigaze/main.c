@@ -16,11 +16,28 @@
 #include "../common/utils.h"
 #include "stm32f4xx_conf.h"
 #include "stereoboard_parameters.h"
-
+#include "../common/stereoprotocol.h"
 //#define SIZE_OF_ONE_IMAGE 80
 //#define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
 
 #define STEREO_CAMERAS_COUNT 6
+
+MsgProperties msgProperties[STEREO_CAMERAS_COUNT];
+#define STEREO_BUF_SIZE 1024                     // size of circular buffer
+
+typedef struct {
+	uint8_t len;
+	uint8_t height;
+	uint8_t *data;
+	uint8_t fresh;
+} uint8matrix;
+
+uint8_t ser_read_buf[STEREO_CAMERAS_COUNT][STEREO_BUF_SIZE]; // circular buffer for incoming data
+uint16_t insert_loc[STEREO_CAMERAS_COUNT];
+uint16_t extract_loc[STEREO_CAMERAS_COUNT];
+uint16_t msg_start[STEREO_CAMERAS_COUNT];
+uint8_t msg_buf[STEREO_CAMERAS_COUNT][STEREO_BUF_SIZE];     // define local data
+uint8matrix stereocam_datas[STEREO_CAMERAS_COUNT];
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -54,10 +71,18 @@ int search_start_position(int startPosition, int size_of_one_image,
 	}
 	return -1;
 }
-void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine,
-		int pixelsPerLine, int SIZE_OF_ONE_IMAGE) {
-
-	int startPos = 0;//currentReadLocation-SIZE_OF_ONE_IMAGE;//search_start_position(0, SIZE_OF_ONE_IMAGE, response);
+void send_matrix_part(uint8_t *response, uint8_t length) {
+//	int indexInBuffer=0;
+//	for (indexInBuffer = startOfBuf;
+//			indexInBuffer < endOfBuf; indexInBuffer++) {
+//		if (response[indexInBuffer] > CLOSE_BOUNDARY) {
+//			//led_set();
+//		}
+//
+//		Usart1Tx(&response[indexInBuffer], 1);
+//	}
+/*
+	int startPos = 0;
 	if (startPos >= 0) {
 		int arrayIndex = 0;
 
@@ -74,7 +99,7 @@ void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine,
 						int indexInBuffer;
 						for (indexInBuffer = startOfBuf;
 								indexInBuffer < endOfBuf; indexInBuffer++) {
-							if(response[indexInBuffer]>CLOSE_BOUNDARY){
+							if (response[indexInBuffer] > CLOSE_BOUNDARY) {
 								//led_set();
 							}
 
@@ -86,7 +111,7 @@ void send_matrix_part(uint8_t *response, uint8_t boardnumber, int matrixLine,
 				}
 			}
 		}
-	}
+	}*/
 }
 
 int isEndOfImage(uint8_t *stack) {
@@ -114,6 +139,19 @@ int main(void) {
 	// Initialize the LED
 	led_init();
 	//led_set();
+	int indexStereocams = 0;
+	for (indexStereocams = 0; indexStereocams < STEREO_CAMERAS_COUNT;
+			indexStereocams++) {
+		// initialize local variables
+		msgProperties[indexStereocams] = (MsgProperties ) { 0, 0, 0 };
+		insert_loc[indexStereocams] = 0;
+		extract_loc[indexStereocams] = 0;
+		msg_start[indexStereocams] = 0;
+		stereocam_datas[indexStereocams].fresh = 0;
+		stereocam_datas[indexStereocams].data = msg_buf[indexStereocams];
+
+	}
+	int currentCamera=0;
 
 #ifdef TUNNEL_NONE
 	// Initialize the serial communication (before the camera so we can print status)
@@ -149,142 +187,82 @@ int main(void) {
 	for (locationInStack = 0; locationInStack < STEREO_CAMERAS_COUNT;
 			locationInStack++) {
 		camerasReady[locationInStack] = 0;
+		stereocam_datas[locationInStack].fresh=0;
 	}
-	int currentCamera = 0;
-	int currentValueSending=0;
+
+	int currentValueSending = 0;
 	while (1) {
 #ifdef TUNNEL_NONE
-/*
-		uint8_t c = ' ';
-
-		while(Usart1Ch()){
-			c=Usart1Rx();
-			code[0] = c;
-			while (Usart1Tx(code, 1) == 0) {
-
-			}
-		}*/
-
-		/*
-		if(c>0){
-			led_set();
-		}
-		else{
-			led_clear();
-		}*/
-
 		led_toggle();
-		/*
-		code[0] = currentValueSending;
-		currentValueSending=currentValueSending+1;
-		currentValueSending=currentValueSending%100;
-		while (Usart1Tx(code, 1) == 0) {
-
-		}*/
 
 		uint8_t c = ' ';
 		// TODO can we create an even more generic system that says what inputs
 		// have characters and read from those inputs?
 
-		if (Cam1Ch() && camerasReady[0]==0)
+		if (Cam1Ch() && stereocam_datas[0].fresh==0)
 		{
 			currentCamera=0;
 			c = Cam1Rx();
 
-			receivedMatrixBuffer[currentCamera][locationsBufferedMatrixes[currentCamera]++]=c;
-
-			for (locationInStack=0; locationInStack<3; locationInStack++) {
-				lastReceivedStack[currentCamera][locationInStack]=lastReceivedStack[currentCamera][locationInStack+1];
-			}
-			lastReceivedStack[currentCamera][3]=c;
-			if (isEndOfImage(lastReceivedStack[currentCamera])>0)
-			{
+			if (handleStereoPackage(c, STEREO_BUF_SIZE, &insert_loc[currentCamera], &extract_loc[currentCamera], &msg_start[currentCamera], msg_buf[currentCamera], ser_read_buf[currentCamera],
+							&stereocam_datas[currentCamera].fresh, &stereocam_datas[currentCamera].len,&stereocam_datas[currentCamera].height)) {
 				camerasReady[currentCamera]=1;
 			}
 
 		}
-		if (Cam2Ch() && camerasReady[1]==0)
+
+		if (Cam2Ch() && stereocam_datas[1].fresh==0)
 		{
 
 			currentCamera=1;
 			c = Cam2Rx();
-			receivedMatrixBuffer[currentCamera][locationsBufferedMatrixes[currentCamera]++]=c;
-
-			for (locationInStack=0; locationInStack<3; locationInStack++) {
-				lastReceivedStack[currentCamera][locationInStack]=lastReceivedStack[currentCamera][locationInStack+1];
-			}
-			lastReceivedStack[currentCamera][3]=c;
-			if (isEndOfImage(lastReceivedStack[currentCamera])>0)
-			{
-				camerasReady[currentCamera]=1;
-			}
+			if (handleStereoPackage(c, STEREO_BUF_SIZE, &insert_loc[currentCamera], &extract_loc[currentCamera], &msg_start[currentCamera], msg_buf[currentCamera], ser_read_buf[currentCamera],
+										&stereocam_datas[currentCamera].fresh, &stereocam_datas[currentCamera].len,&stereocam_datas[currentCamera].height)) {
+							camerasReady[currentCamera]=1;
+						}
 		}
-		if (Cam3Ch()&& camerasReady[2]==0)
+		if (Cam3Ch()&& stereocam_datas[2].fresh==0)
 		{
 
 			currentCamera=2;
 			c = Cam3Rx();
-			receivedMatrixBuffer[currentCamera][locationsBufferedMatrixes[currentCamera]++]=c;
-
-			for (locationInStack=0; locationInStack<3; locationInStack++) {
-				lastReceivedStack[currentCamera][locationInStack]=lastReceivedStack[currentCamera][locationInStack+1];
-			}
-			lastReceivedStack[currentCamera][3]=c;
-			if (isEndOfImage(lastReceivedStack[currentCamera])>0)
-			{
-				camerasReady[currentCamera]=1;
-			}
+			if (handleStereoPackage(c, STEREO_BUF_SIZE, &insert_loc[currentCamera], &extract_loc[currentCamera], &msg_start[currentCamera], msg_buf[currentCamera], ser_read_buf[currentCamera],
+												&stereocam_datas[currentCamera].fresh, &stereocam_datas[currentCamera].len,&stereocam_datas[currentCamera].height)) {
+									camerasReady[currentCamera]=1;
+								}
 		}
-		if (Cam4Ch()&& camerasReady[3]==0)
+		if (Cam4Ch()&& stereocam_datas[3].fresh==0)
 		{
 
 			currentCamera=3;
 			c = Cam4Rx();
-			receivedMatrixBuffer[currentCamera][locationsBufferedMatrixes[currentCamera]++]=c;
 
-			for (locationInStack=0; locationInStack<3; locationInStack++) {
-				lastReceivedStack[currentCamera][locationInStack]=lastReceivedStack[currentCamera][locationInStack+1];
-			}
-			lastReceivedStack[currentCamera][3]=c;
-			if (isEndOfImage(lastReceivedStack[currentCamera])>0)
-			{
-				camerasReady[currentCamera]=1;
-			}
+			if (handleStereoPackage(c, STEREO_BUF_SIZE, &insert_loc[currentCamera], &extract_loc[currentCamera], &msg_start[currentCamera], msg_buf[currentCamera], ser_read_buf[currentCamera],
+												&stereocam_datas[currentCamera].fresh, &stereocam_datas[currentCamera].len,&stereocam_datas[currentCamera].height)) {
+									camerasReady[currentCamera]=1;
+								}
 		}
-		if (Cam5Ch() && camerasReady[4]==0)
+		if (Cam5Ch() && stereocam_datas[4].fresh==0)
 		{
 
 			currentCamera=4;
 			c = Cam5Rx();
-			receivedMatrixBuffer[currentCamera][locationsBufferedMatrixes[currentCamera]++]=c;
-
-			for (locationInStack=0; locationInStack<3; locationInStack++) {
-				lastReceivedStack[currentCamera][locationInStack]=lastReceivedStack[currentCamera][locationInStack+1];
-			}
-			lastReceivedStack[currentCamera][3]=c;
-			if (isEndOfImage(lastReceivedStack[currentCamera])>0)
-			{
-				camerasReady[currentCamera]=1;
-			}
+			if (handleStereoPackage(c, STEREO_BUF_SIZE, &insert_loc[currentCamera], &extract_loc[currentCamera], &msg_start[currentCamera], msg_buf[currentCamera], ser_read_buf[currentCamera],
+												&stereocam_datas[currentCamera].fresh, &stereocam_datas[currentCamera].len,&stereocam_datas[currentCamera].height)) {
+									camerasReady[currentCamera]=1;
+								}
 		}
-		if (Cam6Ch() && camerasReady[5]==0)
+		if (Cam6Ch() && stereocam_datas[5].fresh==0)
 		{
 
 			currentCamera=5;
 			c = Cam6Rx();
-			receivedMatrixBuffer[currentCamera][locationsBufferedMatrixes[currentCamera]++]=c;
+			if (handleStereoPackage(c, STEREO_BUF_SIZE, &insert_loc[currentCamera], &extract_loc[currentCamera], &msg_start[currentCamera], msg_buf[currentCamera], ser_read_buf[currentCamera],
+												&stereocam_datas[currentCamera].fresh, &stereocam_datas[currentCamera].len,&stereocam_datas[currentCamera].height)) {
+									camerasReady[currentCamera]=1;
+								}
 
-			for (locationInStack=0; locationInStack<3; locationInStack++) {
-				lastReceivedStack[currentCamera][locationInStack]=lastReceivedStack[currentCamera][locationInStack+1];
-			}
-			lastReceivedStack[currentCamera][3]=c;
-			if (isEndOfImage(lastReceivedStack[currentCamera])>0)
-			{
-				camerasReady[currentCamera]=1;
-			}
 		}
-
-
 
 		// Check how many of the buffers are not full yet
 
@@ -295,7 +273,7 @@ int main(void) {
 		{
 			c = locationInVector;
 
-			if(camerasReady[locationInVector]==0)
+			if(stereocam_datas[locationInVector].fresh==0)
 			{
 				camerasToComplete++;
 			}
@@ -305,20 +283,17 @@ int main(void) {
 		// ... send this data through the serial port
 		if(camerasToComplete<3)
 		{
-			//led_toggle();
+			led_toggle();
 			//led_clear();
 
 			for(currentCamera=0; currentCamera < STEREO_CAMERAS_COUNT; currentCamera++)
 			{
-				if (isEndOfImage(lastReceivedStack[currentCamera])>0)
+				if (stereocam_datas[currentCamera].fresh)
 				{
-					camerasReady[currentCamera]=0;
-					locationsBufferedMatrixes[currentCamera]=0;
+					stereocam_datas[currentCamera].fresh=0;
 				}
 			}
 
-		//	memset(camerasReady,0,STEREO_CAMERAS_COUNT);
-		//	memset(locationsBufferedMatrixes,0,STEREO_CAMERAS_COUNT);
 			code[3] = 175;
 			while (Usart1Tx(code, 4) == 0) {
 
@@ -327,7 +302,7 @@ int main(void) {
 			int cameraboard;
 			int matrixLine;
 
-			for(matrixLine=0; matrixLine < MATRIX_HEIGHT_BINS; matrixLine++) {
+			for(matrixLine=0; matrixLine < stereocam_datas[0].height; matrixLine++) {
 				code[3] = 128;
 				while (Usart1Tx(code, 4) == 0) {
 
@@ -335,7 +310,21 @@ int main(void) {
 
 				for (cameraboard=0;cameraboard <STEREO_CAMERAS_COUNT; cameraboard++)
 				{
-					send_matrix_part(receivedMatrixBuffer[cameraboard],cameraboard,matrixLine,MATRIX_WIDTH_BINS,SIZE_OF_ONE_IMAGE);
+
+					/*while (Usart1Tx(stereocam_datas[cameraboard].data, 	stereocam_datas[cameraboard].len/6) == 0) {
+
+					}*/
+					uint8_t toSend[10];
+					toSend[0]=1;
+					toSend[1]=2;
+					toSend[2]=3;
+					toSend[3]=4;
+					toSend[4]=5;
+					uint8_t lengthLine = stereocam_datas[cameraboard].len/stereocam_datas[0].height;
+					toSend[0]=lengthLine;
+					Usart1Tx(stereocam_datas[cameraboard].data+(matrixLine*lengthLine),lengthLine);
+
+					//send_matrix_part(stereocam_datas[cameraboard].data,cameraboard,matrixLine,MATRIX_WIDTH_BINS,SIZE_OF_ONE_IMAGE);
 				}
 				code[3] = 218;
 				while (Usart1Tx(code, 4) == 0) {
@@ -346,7 +335,7 @@ int main(void) {
 			while (Usart1Tx(code, 4) == 0) {
 
 			}
- 		}
+		}
 #else
 		tunnel_run();
 #endif

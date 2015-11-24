@@ -1,6 +1,6 @@
 TARGET        = MultiGaze
 CAMERA	      = StereoBoard
-
+PROJECT       = multigaze_histogram
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
 
@@ -107,6 +107,7 @@ system_stm32f4xx.c \
 ../common/led.c \
 tunnel.c \
 usart.c \
+../common/stereoprotocol.c \
 ../common/utils.c
 
 
@@ -149,27 +150,27 @@ uploadsinglecamera: ${CAMERA}${CAMNUMBER}.elf
 
 
 ${CAMERA}1.elf:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg1
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg1 PROJECT=${PROJECT}
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}1.elf
 
 ${CAMERA}2.elf:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg2
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg2 PROJECT=${PROJECT}
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}2.elf
 
 ${CAMERA}3.elf:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg3
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg3 PROJECT=${PROJECT}
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}3.elf
 
 ${CAMERA}4.elf:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg4
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg4 PROJECT=${PROJECT}
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}4.elf
 
 ${CAMERA}5.elf:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg5
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg5 PROJECT=${PROJECT}
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}5.elf
 
 ${CAMERA}6.elf:
-	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg6
+	make -C ../stereoboard clean && make -C ../stereoboard BOARD=mg6 PROJECT=${PROJECT}
 	cp ../stereoboard/${CAMERA}.elf ./${CAMERA}6.elf
 
 upload: ${EXECUTABLE} ${CAMERA}1.elf ${CAMERA}2.elf ${CAMERA}3.elf ${CAMERA}4.elf ${CAMERA}5.elf ${CAMERA}6.elf
