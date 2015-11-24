@@ -326,7 +326,7 @@ void dma2_stream1_isr(void)
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_HTIF1);
 
     // Count the frames
-    frame_counter++;
+   //frame_counter++;
   }
 
   // Get the currently used buffer
