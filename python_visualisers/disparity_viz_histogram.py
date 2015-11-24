@@ -72,8 +72,8 @@ while True:
            # img /= 20
            # img /= 6
             plt.clf()
-	    plt.axis([0, 128, 0,120])
-	    plt.plot(range(0,128),img[0,:])
+	    plt.axis([0, length, 0,120])
+	    plt.plot(range(0,len(img[0,:])),img[0,:])
 	    plt.plot([x-1,x,x+1],[0,120,0],'r')
 	    plt.draw()
             # Create a color image
