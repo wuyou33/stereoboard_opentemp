@@ -32,7 +32,7 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
   previous_frame_offset[0] = previous_frame_offset[1] = 1;
 
   // TODO confirm below
-  if (MAX_HORIZON > 1) {
+  if (MAX_HORIZON > 2) {
     uint32_t flow_mag_x, flow_mag_y;
     flow_mag_x = abs(edge_flow->horizontal_flow);
     flow_mag_y = abs(edge_flow->vertical_flow);
@@ -85,10 +85,10 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
 #endif
 
   // Correct Divergence slope and translation by the amount of frames skipped
-  edge_flow->horizontal_flow  /= previous_frame_offset[0];
+/*  edge_flow->horizontal_flow  /= previous_frame_offset[0];
   edge_flow->horizontal_div   /= previous_frame_offset[0];
   edge_flow->vertical_flow    /= previous_frame_offset[1];
-  edge_flow->vertical_div     /= previous_frame_offset[1];
+  edge_flow->vertical_div     /= previous_frame_offset[1];*/
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
