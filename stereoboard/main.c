@@ -64,15 +64,17 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU))
 	return DEFAULT_BOARD_FUNCTION;
 
+#elif defined(SEND_FOLLOW_YOU)
+	return SEND_FOLLOW_YOU
 #elif defined(SEND_DELFLY_CORRIDOR)
 	return SEND_DELFLY_CORRIDOR
 #elif defined(SEND_HISTOGRAM)
@@ -279,6 +281,15 @@ int main(void)
 	uint8_t n_disp_bins = 6;
 	uint32_t disparities[n_disp_bins];
 	uint8_t RESOLUTION = 100;
+
+	// Settings and initialisation for FOLLOW_YOU
+	uint16_t feature_count_limit = 10;
+	uint8_t positionVelocityVector[12]; // 2-byte protocol, [Xh,Xl,Yh,Yl,Zh,Zl, Vxh,Vxl,Vyh,Vyl,Vzh,Vzl]
+	int no_prev_measurment = 0;
+	int16_t pos_x,pos_y = 0;
+	uint8_t feature_image_locations [3*feature_count_limit];
+	float feature_XYZ_locations[3*feature_count_limit];
+
 
 	// Stereo communication input protocol
 	uint8_t ser_read_buf[STEREO_BUF_SIZE];           // circular buffer for incoming data
@@ -525,6 +536,54 @@ int main(void)
 
 				//memcpy(windowMsgBuf + 8, divergenceArray, 8);
 			}
+
+			if (current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
+
+				uint8_t search_window = 10;
+				uint16_t nr_of_features = 0;
+
+				memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
+
+				// if no previous measurement, search in the whole image for nearby person
+				if ( no_prev_measurment == 0 )
+				{
+					min_y = 0;
+					max_y = image_height-1;
+
+				} else // only search in range of previous measurement
+				{
+					min_y = MAX(0,pos_y-search_window);
+					max_y = MIN(image_height,pos_y-search_window);
+				}
+
+				// run stereo vision algorithm
+				stereo_vision_sparse_block_fast_version(current_image_buffer,
+					disparity_image_buffer_8bit, image_width, image_height,
+					disparity_min, disparity_range, disparity_step, thr1, thr2,
+					min_y, max_y);
+
+				// subtract feature locations from disparitymap in specified range
+				nr_of_features = getFeatureImageLocations(disparity_image_buffer_8bit, feature_image_locations, image_width, image_height, min_y, max_y, feature_count_limit);
+				// visualize features
+				if ( nr_of_features == feature_count_limit )
+				{
+					//visualizeFeatureImageLocations(current_image_buffer, feature_image_locations, nr_of_features, image_width, feature_count_limit);
+					visualizeBlobImageLocation(current_image_buffer, feature_image_locations, nr_of_features, image_width, feature_count_limit);
+
+				}
+				// rotate and convert image points to real world points
+				getFeatureXYZLocations(feature_image_locations, feature_XYZ_locations, nr_of_features, image_width, image_height);
+
+
+			}
+
+
+
+
+
+
+
+
 			// Now send the data that we want to send
 			if (current_stereoboard_algorithm == SEND_IMAGE) {
 				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
@@ -549,6 +608,10 @@ int main(void)
 			}
 			if( current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 				SendCommand(toSendCommand);
+			}
+			if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
+				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
 			}
 		}
 	}
