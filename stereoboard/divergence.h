@@ -80,5 +80,7 @@ uint32_t getMinimum2(uint32_t *a, uint32_t n);
 uint32_t getMaximum(uint32_t *a, uint32_t n);
 uint32_t getMedian(int32_t *daArray, int32_t iSize);
 uint32_t getMean(int32_t *daArray, int32_t iSize);
+uint32_t getTotalIntensityImage(uint8_t* in,uint32_t image_height, uint32_t image_width);
+uint32_t getAmountPeaks(int32_t* edgehist, int32_t median, int32_t size);
 
 #endif /* DIVERGENCE_H_ */

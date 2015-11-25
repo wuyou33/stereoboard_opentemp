@@ -89,7 +89,7 @@ while True:
             plt.plot(velocity_yHistory)
 	    plt.draw()
 
-	    time.sleep(0.05)
+	    #time.sleep(0.05)
         
             
     except Exception as excep:
