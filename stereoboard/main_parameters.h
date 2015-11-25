@@ -94,9 +94,6 @@
 #define CAPTURE_MODE_SNAPSHOT 0
 #endif
 
-#ifndef AVG_FREQ
-#define AVG_FREQ 0
-#endif
 //////////////////////////////////////////////////////
 // Define image format
 //#define CAMERA_CPLD_STEREO camera_cpld_stereo_left
