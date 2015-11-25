@@ -25,8 +25,10 @@
 struct edge_hist_t {
   int32_t horizontal[IMAGE_WIDTH];
   int32_t vertical[IMAGE_HEIGHT];
+  int32_t frame_time;
 };
 
+//Edge Flow calculated from previous frame (adaptive frame selection)
 struct edge_flow_t {
   int32_t horizontal_flow;
   int32_t horizontal_div;

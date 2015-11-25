@@ -345,15 +345,17 @@ int main(void)
 			current_image_buffer[1] = 0;
 
 			// compute run frequency
+#ifdef AVG_FREQ
 			freq_counter++;
 			if ((sys_time_get() - sys_time_prev) >= 2000) { // clock at 2kHz
 				frameRate = freq_counter * (sys_time_get() - sys_time_prev) / 2000; // in Hz
 				freq_counter = 0;
 				sys_time_prev = sys_time_get();
 			}
-
+#else
 			frameRate = 2000 / (sys_time_get() - sys_time_prev); // in Hz
-
+			sys_time_prev = sys_time_get();
+#endif
 			// Read from other device with the stereo communication protocol.
 			uint8_t readChar = ' ';
 			while(UsartCh()){
@@ -468,23 +470,20 @@ int main(void)
 				//if (initialisedDivergence == 0) {
 				//  initialiseDivergence();
 				//}
-
+                led_toggle();
 				// calculate the edge flow
 				calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
 						previous_frame_offset, current_frame_nr , 10, 10, 10,
 						IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
-				// move the indices for the edge hist structure
-				current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
-
 				// Filter flow
 				// totalKalmanFilter(&covariance, &prev_edge_flow, &edge_flow, Q, R, RES);
 
-				divergenceArray[0] = (uint8_t)(edge_flow.horizontal_div + 127);           // should be in 0.01/s
-				divergenceArray[1] = (uint8_t)(edge_flow.horizontal_flow/10 + 127);       // should be in 0.1px/s
+				divergenceArray[0] = (uint8_t)(edge_flow.horizontal_div/ previous_frame_offset[0] + 127);           // should be in 0.01px/frame
+				divergenceArray[1] = (uint8_t)(edge_flow.horizontal_flow/(10*previous_frame_offset[0]) + 127);       // should be in 0.1px/frame
 
-				divergenceArray[2] = (uint8_t)(edge_flow.vertical_div + 127);             // should be in 0.01/s
-				divergenceArray[3] = (uint8_t)(edge_flow.vertical_flow/10 + 127);         // should be in 0.1px/s
+				divergenceArray[2] = (uint8_t)(edge_flow.vertical_div/previous_frame_offset[1] + 127);             // should be in 0.01px/frame
+				divergenceArray[3] = (uint8_t)(edge_flow.vertical_flow/(10*previous_frame_offset[1]) + 127);         // should be in 0.1px/frame
 
 				// disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
 				// d =  Npix*cam_separation /(2*disp*tan(FOV/2))
@@ -506,15 +505,24 @@ int main(void)
 				memcpy(divergenceArray+5, previous_frame_offset, 2);  // copy frame offset to output array
 				divergenceArray[7] = frameRate;
 
-				// Calculate velocity
-				 int32_t frequency = 26; //TODO Fix frame rate
-				 int32_t vel_hor = edge_flow.horizontal_flow * frequency * avg_dist *  FOVX / (RES*RES*IMAGE_WIDTH);
-				 int32_t vel_ver = edge_flow.vertical_flow  * frequency * avg_dist *  FOVY / (RES*RES*IMAGE_HEIGHT);
+				//store the time of the frame
+				edge_hist[current_frame_nr].frame_time = sys_time_get();
 
-				divergenceArray[8]=(uint8_t)(vel_hor/10+127); // in cm/s
-				divergenceArray[9]=(uint8_t)(vel_ver/10+127); // in cm/s
+				// Calculate velocity
+				int32_t hz_x = 2000/((int32_t)sys_time_get() - edge_hist[(current_frame_nr-previous_frame_offset[0]+MAX_HORIZON)%MAX_HORIZON].frame_time); // in s
+				int32_t hz_y = 2000/((int32_t)sys_time_get() - edge_hist[(current_frame_nr-previous_frame_offset[1]+MAX_HORIZON)%MAX_HORIZON].frame_time); // in s
+				 //int32_t frequency = 26; //TODO Fix frame rate
+				 int32_t vel_hor = edge_flow.horizontal_flow * avg_dist * hz_x *  FOVX / (RES*RES*IMAGE_WIDTH);
+				 int32_t vel_ver = edge_flow.vertical_flow  * avg_dist * hz_y  *  FOVY / (RES*RES*IMAGE_HEIGHT);
+
+				 divergenceArray[7] = hz_x;
+				divergenceArray[8]=(uint8_t)(vel_hor+127); // in dm/s
+				divergenceArray[9]=(uint8_t)(vel_ver+127); // in dm/s
 
 				memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+
+				// move the indices for the edge hist structure
+				current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
 			}
 
 			// compute and send window detection parameters
