@@ -13,7 +13,7 @@
 
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
                             struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
-                            uint8_t current_frame_nr, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
+                            uint8_t current_frame_nr, uint8_t* quality_measures, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
                             uint16_t image_width, uint16_t image_height, uint16_t RES)
 {
   // check that inputs within allowable ranges

@@ -97,7 +97,7 @@ stereoboard_algorithm_type getBoardFunction(void)
 #endif
 }
 
-//Element for the kalman filter divergence
+//Initializing all structures and elements for the optical flow algorithm (divergence.c)
 const int32_t RES = 100;   // resolution scaling for integer math
 
 struct covariance_t covariance;
@@ -115,12 +115,13 @@ uint8_t initialisedDivergence = 0;
 int32_t avg_disp = 0;
 int32_t avg_dist = 0;
 uint8_t previous_frame_offset[2] = {1,1};
+uint8_t quality_measures_edgeflow[10] = {0,0,0,0,0,0,0,0,0,0};
 
 const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
-uint8_t divergenceArray[10];
+uint8_t divergenceArray[18];
 
 void divergence_init()
 {
@@ -462,7 +463,7 @@ int main(void)
                 led_toggle();
 				// calculate the edge flow
 				calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-						previous_frame_offset, current_frame_nr , 10, 10, 10,
+						previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 10, 10,
 						IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
 				// Filter flow
@@ -505,8 +506,10 @@ int main(void)
 				 int32_t vel_ver = edge_flow.vertical_flow  * avg_dist * hz_y  *  FOVY / (RES*RES*IMAGE_HEIGHT);
 
 				 divergenceArray[7] = hz_x;
-				divergenceArray[8]=(uint8_t)(vel_hor+127); // in dm/s
-				divergenceArray[9]=(uint8_t)(vel_ver+127); // in dm/s
+				divergenceArray[8]=(uint8_t)(vel_hor+127); // in cm/s
+				divergenceArray[9]=(uint8_t)(vel_ver+127); // in cm/s
+
+				memcpy(divergenceArray+10, &quality_measures_edgeflow, 10*sizeof(uint8_t));  // copy quality measures to output array
 
 				memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
 
@@ -550,7 +553,7 @@ int main(void)
 				SendArray(windowMsgBuf, WINDOWBUFSIZE, 1);
 			}
 			if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
-				SendArray(divergenceArray,10, 1);
+				SendArray(divergenceArray,19, 1);
 			}
 			if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 				SendCommand(toSendCommand);
