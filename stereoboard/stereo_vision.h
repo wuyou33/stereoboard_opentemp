@@ -49,7 +49,7 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
 uint16_t getFeatureImageLocations(uint8_t *in, uint8_t *out, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit);
 void visualizeFeatureImageLocations(uint8_t *current_image_buffer, uint8_t *feature_image_locations, uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
 void getFeatureXYZLocations(uint8_t *feature_image_locations, float *feature_XYZ_locations, uint16_t nr_of_features, uint32_t image_width, uint32_t image_height);
-void visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
+uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_location, volatile uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
 
 
 #endif

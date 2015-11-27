@@ -289,6 +289,8 @@ int main(void)
 	int16_t pos_x,pos_y = 0;
 	uint8_t feature_image_locations [3*feature_count_limit];
 	float feature_XYZ_locations[3*feature_count_limit];
+	volatile uint16_t nr_of_features = 0;
+	uint8_t target_location [3];
 
 
 	// Stereo communication input protocol
@@ -548,7 +550,7 @@ int main(void)
 			if (current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
 
 				uint8_t search_window = 10;
-				uint16_t nr_of_features = 0;
+				nr_of_features = 0;
 
 				memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
@@ -575,8 +577,8 @@ int main(void)
 				// visualize features
 				if ( nr_of_features == feature_count_limit )
 				{
+					nr_of_features = visualizeBlobImageLocation(current_image_buffer, feature_image_locations, target_location, nr_of_features, image_width, feature_count_limit);
 					//visualizeFeatureImageLocations(current_image_buffer, feature_image_locations, nr_of_features, image_width, feature_count_limit);
-					visualizeBlobImageLocation(current_image_buffer, feature_image_locations, nr_of_features, image_width, feature_count_limit);
 
 				}
 				// rotate and convert image points to real world points
@@ -618,8 +620,9 @@ int main(void)
 				SendCommand(toSendCommand);
 			}
 			if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
-				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
-				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
+				//SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
+				SendArray(target_location,3, 1); // send 3D location of target
 			}
 		}
 	}

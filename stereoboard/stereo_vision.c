@@ -1526,7 +1526,7 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
 uint16_t getFeatureImageLocations(uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
 {
 	// set minimum value for disparity
-	uint8_t disp_far = 29; // approx 1.5m
+	uint8_t disp_far = 19; // 29; // approx 1.5m
 	uint8_t disp_close = 86; //86; // approx 0.5m
 	const uint8_t nr_bins = 10;
 	volatile uint8_t bin_min_value = 30;
@@ -1547,44 +1547,48 @@ uint16_t getFeatureImageLocations(uint8_t *disparity_image_buffer, uint8_t *feat
 	volatile uint16_t x = 0;
 	volatile uint16_t y = 0;
 
-	if ( method == 1 )
+
+
+	for ( x = 0; x < nr_bins; x++ )
 	{
+		disp_bins[x] = 0;
+	}
 
-		for ( x = 0; x < nr_bins; x++ )
-		{
-			disp_bins[x] = 0;
-		}
+	for (y = min_y; y < max_y; y++) {
+		for (x = 0; x < image_width; x++) {
 
-		for (y = min_y; y < max_y; y++) {
-			for (x = 0; x < image_width; x++) {
+			disp = disparity_image_buffer[x + y * image_width];
+			if ( (disp > disp_far) && (disp < disp_close) )
+			{
+				bin_nr = (disp-disp_far)/bin_width;
+				disp_bins[bin_nr]++;
 
-				disp = disparity_image_buffer[x + y * image_width];
-				if ( (disp > disp_far) && (disp < disp_close) )
+				if ( bin_nr < nr_bins -1 )
 				{
-					bin_nr = (disp-disp_far)/bin_width;
-					disp_bins[bin_nr]++;
+					disp_bins[bin_nr+1]++;
 				}
 			}
 		}
+	}
 
-		sum_bins = 0;
-		bin_index = 0;
-		for ( x = nr_bins-1; x > 0; x-- )
+	sum_bins = 0;
+	bin_index = 0;
+	for ( x = nr_bins-1; x > 0; x-- )
+	{
+		sum_bins += disp_bins[x];
+		if ( (sum_bins>bin_min_value) && (bin_index == 0) )
 		{
-			sum_bins += disp_bins[x];
-			if ( (sum_bins>bin_min_value) && (bin_index == 0) )
-			{
-				bin_index = x;
-			}
-
+			bin_index = x;
 		}
 
-		if ( bin_index > 0 )
-		{
-			disp_start = ((bin_index-2)*bin_width)+disp_far;
-			disp_end = ((bin_index+1)*bin_width)+disp_far;
+	}
 
-			for (y = min_y; (y < max_y) && (feature_count<feature_count_limit); y++) {
+	if ( bin_index > 0 )
+	{
+		disp_start = ((bin_index-1)*bin_width)+disp_far;
+		disp_end = ((bin_index+1)*bin_width)+disp_far;
+
+		for (y = min_y; (y < max_y) && (feature_count<feature_count_limit); y++) {
 			for (x = 0; (x < image_width) && (feature_count<feature_count_limit); x++) {
 
 				disp = disparity_image_buffer[x + y * image_width];
@@ -1599,97 +1603,6 @@ uint16_t getFeatureImageLocations(uint8_t *disparity_image_buffer, uint8_t *feat
 			}
 		}
 	}
-
-	}
-
-
-	if ( method == 2 )
-	{
-
-		for ( x = 0; x < nr_bins; x++ )
-		{
-			disp_bins[x] = 0;
-		}
-
-		for (y = min_y; y < max_y; y++) {
-			for (x = 0; x < image_width; x++) {
-
-				disp = disparity_image_buffer[x + y * image_width];
-				if ( (disp > disp_far) && (disp < disp_close) )
-				{
-					bin_nr = (disp-disp_far)/bin_width;
-					disp_bins[bin_nr]++;
-
-					if ( bin_nr < nr_bins-1 )
-					{
-						disp_bins[bin_nr+1]++;
-					}
-					if ( bin_nr < nr_bins-2 )
-					{
-						disp_bins[bin_nr+2]++;
-					}
-
-				}
-			}
-
-
-		}
-
-
-		for ( x = 0; x < nr_bins; x++ )
-		{
-			if (disp_bins[x]>bin_min_value)
-			{
-				bin_index = x;
-			}
-		}
-
-
-		if ( bin_index == (nr_bins-1) )
-		{
-			bin_index = nr_bins-2;
-		}
-
-		if ( bin_index > 0 )
-		{
-			disp_start = ((bin_index-2)*bin_width)+disp_far;
-			disp_end = ((bin_index)*bin_width)+disp_far;
-
-			for (y = min_y; (y < max_y) && (feature_count<feature_count_limit); y++) {
-				for (x = 0; (x < image_width) && (feature_count<feature_count_limit); x++) {
-
-					disp = disparity_image_buffer[x + y * image_width];
-					if ((disp > disp_start) && (disp < disp_end) )
-					{
-						feature_image_locations[feature_count] = x;
-						feature_image_locations[feature_count_limit+feature_count] = y;
-						feature_image_locations[(feature_count_limit*2)+feature_count] = disparity_image_buffer[x + y * image_width];
-
-						feature_count++;
-					}
-				}
-			}
-		}
-	}
-
-
-	if ( method == 3 )
-	{
-		for (y = min_y; (y < max_y) && (feature_count<feature_count_limit); y++) {
-			for (x = 0; (x < image_width) && (feature_count<feature_count_limit); x++) {
-				if ((disparity_image_buffer[x + y * image_width] > disp_far) && (disparity_image_buffer[x + y * image_width] < disp_close) )
-				{
-					feature_image_locations[feature_count] = x;
-					feature_image_locations[feature_count_limit+feature_count] = y;
-					feature_image_locations[(feature_count_limit*2)+feature_count] = disparity_image_buffer[x + y * image_width];
-
-					feature_count++;
-				}
-			}
-		}
-	}
-
-
 
 	return feature_count;
 }
@@ -1707,51 +1620,103 @@ void visualizeFeatureImageLocations(uint8_t *inI, uint8_t *inF, uint16_t nr_of_f
 	}
 }
 
-void visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit)
+uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_location, volatile uint16_t nr_of_features3, uint32_t image_width, uint16_t feature_count_limit)
 {
-	uint16_t i = 0;
-	int16_t x = 0;
-	int16_t y = 0;
+	volatile uint16_t i = 0;
+	volatile uint16_t j = 0;
+	volatile int16_t x = 0;
+	volatile int16_t y = 0;
+	volatile int16_t disp = 0;
+	volatile int16_t fx = 0;
+	volatile int16_t fy = 0;
+	volatile int16_t fdisp = 0;
+	volatile int16_t x_error = 0;
+	volatile int16_t y_error = 0;
+	volatile int16_t x_mean = 0;
+	volatile int16_t y_mean = 0;
+	volatile int16_t disp_mean = 0;
+	volatile uint16_t z_mean = 0;
+
+	volatile uint16_t nr_of_features = feature_count_limit;
+	volatile uint16_t nr_of_features2 = feature_count_limit;
+	volatile uint16_t count_features = 0;
 
 	int image_width_bytes = image_width*2;
-	for ( i = 0; i < nr_of_features; i++ )
+
+	for ( i = 0; i < nr_of_features2; i++ )
 	{
-		x += inF[i];
-		y += inF[i+feature_count_limit];
+		x = inF[i];
+		y = inF[i+feature_count_limit];
+		disp = inF[i+(2*feature_count_limit)];
+		count_features = 0;
+		x_mean = x;
+		y_mean = y;
+		disp_mean = disp;
 
-	}
-
-	x = x/nr_of_features;
-	y = y/nr_of_features;
-
-	for ( i = 0; i < nr_of_features; i++ )
-	{
-		if ( abs(x - inF[i]) > 10 ||  abs(y - inF[i+feature_count_limit]) > 10 )
+		for ( j = 0; j < nr_of_features2; j++ )
 		{
-			inF[i] = inF[nr_of_features-1];
-			inF[i+feature_count_limit] = inF[nr_of_features-1+feature_count_limit];
-			nr_of_features--;
+			fx = inF[j];
+			fy = inF[j+feature_count_limit];
+			fdisp = inF[i+(2*feature_count_limit)];
+			x_error = x - fx;
+			y_error = y - fy;
+
+			if ( (x_error < 5) && (x_error > -5) &&  (y_error < 1) && (y_error > -8) )
+			{
+				count_features++;
+				x_mean += fx;
+				y_mean += fy;
+				disp_mean += fdisp;
+			}
 		}
+
+		target_location[0] = (uint8_t) 65;
+		target_location[1] = (uint8_t) 48;
+		target_location[2] = (uint8_t) 100;
+
+		led_clear();
+
+		if ( count_features > 5 )
+		{
+			x_mean = x_mean/nr_of_features2;
+			y_mean = y_mean/nr_of_features2;
+			disp_mean = disp_mean/nr_of_features2;
+			z_mean = (120*6)/((disp_mean/RESOLUTION_FACTOR)*2); // [cm] divided by 2
+
+			target_location[0] = (uint8_t) x_mean;
+			target_location[1] = (uint8_t) y_mean;
+			target_location[2] = (uint8_t) z_mean;
+
+
+			inI[(x*2) + 1 + (y * image_width_bytes)] = 255;
+			inI[((x-1)*2) + 1 + ((y-1) * image_width_bytes)] = 255;
+			inI[((x+1)*2) + 1 + ((y-1) * image_width_bytes)] = 255;
+			inI[((x-1)*2) + 1 + ((y+1) * image_width_bytes)] = 255;
+			inI[((x+1)*2) + 1 + ((y+1) * image_width_bytes)] = 255;
+
+			led_set();
+
+			/*
+			target_location[0] = 0;
+			target_location[1] = 1;
+			target_location[2] = 2;
+			*/
+
+			break;
+		}
+		else
+		{
+			count_features = 0;
+		}
+
+
 	}
 
-	x = 0;
-	y = 0;
 
-	for ( i = 0; i < nr_of_features; i++ )
-	{
-		x += inF[i];
-		y += inF[i+feature_count_limit];
 
-	}
 
-	x = x/nr_of_features;
-	y = y/nr_of_features;
 
-	inI[(x*2) + 1 + (y * image_width_bytes)] = 255;
-	inI[((x-1)*2) + 1 + ((y-1) * image_width_bytes)] = 255;
-	inI[((x+1)*2) + 1 + ((y-1) * image_width_bytes)] = 255;
-	inI[((x-1)*2) + 1 + ((y+1) * image_width_bytes)] = 255;
-	inI[((x+1)*2) + 1 + ((y+1) * image_width_bytes)] = 255;
+	return count_features;
 }
 
 void getFeatureXYZLocations(uint8_t *in, float *out, uint16_t nr_of_features, uint32_t image_width, uint32_t image_height)
