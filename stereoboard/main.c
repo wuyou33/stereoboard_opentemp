@@ -464,7 +464,7 @@ int main(void)
         led_toggle();
         // calculate the edge flow
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-                            previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 10, 10,
+                            previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 20, 0,
                             IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
         // Filter flow
@@ -507,13 +507,13 @@ int main(void)
                                MAX_HORIZON].frame_time); // in s
         int32_t hz_y = 2000 / ((int32_t)sys_time_get() - edge_hist[(current_frame_nr - previous_frame_offset[1] + MAX_HORIZON) %
                                MAX_HORIZON].frame_time); // in s
-        //int32_t frequency = 26; //TODO Fix frame rate
         int32_t vel_hor = edge_flow.horizontal_flow * avg_dist * hz_x *  FOVX / (RES * RES * IMAGE_WIDTH);
         int32_t vel_ver = edge_flow.vertical_flow  * avg_dist * hz_y  *  FOVY / (RES * RES * IMAGE_HEIGHT);
 
         divergenceArray[7] = hz_x;
-        divergenceArray[8] = (uint8_t)(vel_hor + 127); // in cm/s
-        divergenceArray[9] = (uint8_t)(vel_ver + 127); // in cm/s
+        //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
+        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in cm/s
+        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in cm/s
 
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 

@@ -12,7 +12,7 @@
 #include "main_parameters.h"
 
 #ifndef MAX_HORIZON
-#define MAX_HORIZON 5
+#define MAX_HORIZON 2
 #endif
 #ifndef DISP_RANGE_MAX 20
 #define DISP_RANGE_MAX 20
