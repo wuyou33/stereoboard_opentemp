@@ -512,8 +512,8 @@ int main(void)
 
         divergenceArray[7] = hz_x;
         //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
-        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in cm/s
-        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in cm/s
+        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in dm/s
+        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in dm/s
 
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 

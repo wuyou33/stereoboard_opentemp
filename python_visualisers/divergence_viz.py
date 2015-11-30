@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import math
-plt.axis([0,300, -0.5,0.5])
+plt.axis([0,300, 0 , 255])
 plt.ion()
 plt.show()
    
@@ -75,7 +75,9 @@ while True:
 
             velocity_xHistory.append(velocity_x_stereoboard)
             velocity_yHistory.append(velocity_y_stereoboard)
-            
+            #velocity_xHistory.append(img[0,15])            
+            #velocity_yHistory.append(img[0,16])            
+
             if counter > 100:
                 del velocity_xHistory[0]
             	del velocity_yHistory[0]

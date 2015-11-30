@@ -77,21 +77,21 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
   *avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
 
   //Calculate and Store quality values
-  uint32_t totalIntensity = getTotalIntensityImage(in,image_width,image_height);
+  uint32_t totalIntensity = getTotalIntensityImage(in, image_width, image_height);
   uint32_t mean_hor = getMean(edge_histogram_x, image_width);
   uint32_t mean_ver = getMean(edge_histogram_y, image_height);
   uint32_t median_hor = getMedian(edge_histogram_x, image_width);
   uint32_t median_ver = getMedian(edge_histogram_y, image_height);
-  uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 2000 ,image_width);
-  uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 2000 ,image_height);
+  uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 500 , image_width);
+  uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 500 , image_height);
 
-  quality_measures[0] =  (uint8_t)(totalIntensity/1000);
-  quality_measures[1] = (uint8_t)(mean_hor / 10);
-  quality_measures[2] = (uint8_t)(mean_ver / 10);
-  quality_measures[3] = (uint8_t)(median_hor / 10);
-  quality_measures[4] = (uint8_t)(median_ver / 10);
-  quality_measures[5] =  (uint8_t)(amountPeaks_hor);
-  quality_measures[6] =  (uint8_t)(amountPeaks_ver);
+  quality_measures[0] = (uint8_t)(totalIntensity / 20000);
+  quality_measures[1] = (uint8_t)(mean_hor / 20);
+  quality_measures[2] = (uint8_t)(mean_ver / 20);
+  quality_measures[3] = (uint8_t)(median_hor / 20);
+  quality_measures[4] = (uint8_t)(median_ver / 20);
+  quality_measures[5] = (uint8_t)(amountPeaks_hor);
+  quality_measures[6] = (uint8_t)(amountPeaks_ver);
 
   // Fit a linear line
 #ifdef RANSAC
@@ -455,36 +455,35 @@ uint32_t getMean(int32_t *daArray, int32_t iSize)
   return dSum / iSize;
 }
 
-uint32_t getTotalIntensityImage(uint8_t * in,uint32_t image_height, uint32_t image_width){
+uint32_t getTotalIntensityImage(uint8_t *in, uint32_t image_height, uint32_t image_width)
+{
 
-	uint32_t y = 0, x = 0;
-	uint32_t idx = 0;
-	uint32_t px_offset = 0;
-	uint32_t totalIntensity = 0;
-	for (x = 1; x < image_width-1; x++) {
-		for (y = 0; y < image_height; y++) {
-			idx = 2*(image_width * y + (x ));  // 2 for interlace
+  uint32_t y = 0, x = 0;
+  uint32_t idx = 0;
+  uint32_t px_offset = 0;
+  uint32_t totalIntensity = 0;
+  for (x = 1; x < image_width - 1; x++) {
+    for (y = 0; y < image_height; y++) {
+      idx = 2 * (image_width * y + (x)); // 2 for interlace
 
 
-			totalIntensity += (uint32_t)in[idx + px_offset];
-		}
-	}
-	return totalIntensity;
+      totalIntensity += (uint32_t)in[idx + px_offset];
+    }
+  }
+  return totalIntensity;
 }
 
-uint32_t getAmountPeaks(int32_t* edgehist, int32_t median, int32_t size)
+uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size)
 {
-	uint32_t  amountPeaks = 0;
-	uint32_t i = 0;
+  uint32_t  amountPeaks = 0;
+  uint32_t i = 0;
 
-	for (i = 1; i < size+1;  i ++)
-	{
-		if(edgehist[i-1]<edgehist[i] && edgehist[i]>edgehist[i+1] && edgehist[i] > median)
-		{
-			amountPeaks ++;
-		}
-	}
-	return amountPeaks;
+  for (i = 1; i < size + 1;  i ++) {
+    if (edgehist[i - 1] < edgehist[i] && edgehist[i] > edgehist[i + 1] && edgehist[i] > median) {
+      amountPeaks ++;
+    }
+  }
+  return amountPeaks;
 }
 
 
