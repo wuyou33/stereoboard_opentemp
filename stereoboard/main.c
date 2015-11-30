@@ -64,15 +64,17 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU))
   return DEFAULT_BOARD_FUNCTION;
 
+#elif defined(SEND_FOLLOW_YOU)
+	return SEND_FOLLOW_YOU
 #elif defined(SEND_DELFLY_CORRIDOR)
   return SEND_DELFLY_CORRIDOR
 #elif defined(SEND_HISTOGRAM)
@@ -280,6 +282,17 @@ int main(void)
   uint8_t n_disp_bins = 6;
   uint32_t disparities[n_disp_bins];
   uint8_t RESOLUTION = 100;
+
+  // Settings and initialisation for FOLLOW_YOU
+  uint16_t feature_count_limit = 10;
+  uint8_t positionVelocityVector[12]; // 2-byte protocol, [Xh,Xl,Yh,Yl,Zh,Zl, Vxh,Vxl,Vyh,Vyl,Vzh,Vzl]
+  int no_prev_measurment = 0;
+  int16_t pos_x,pos_y = 0;
+  uint8_t feature_image_locations [3*feature_count_limit];
+  float feature_XYZ_locations[3*feature_count_limit];
+  volatile uint16_t nr_of_features = 0;
+  uint8_t target_location [3];
+
 
   // Stereo communication input protocol
   uint8_t ser_read_buf[STEREO_BUF_SIZE];           // circular buffer for incoming data
@@ -517,7 +530,8 @@ int main(void)
 
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 
-        memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+		memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+
 
         // move the indices for the edge hist structure
         current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
@@ -566,6 +580,11 @@ int main(void)
       }
       if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
         SendCommand(toSendCommand);
+      }
+      if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
+		 //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+		 //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
+		 SendArray(target_location,3, 1); // send 3D location of target
       }
     }
   }
