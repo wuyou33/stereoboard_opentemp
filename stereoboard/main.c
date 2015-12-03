@@ -64,7 +64,7 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
@@ -74,7 +74,7 @@ stereoboard_algorithm_type getBoardFunction(void)
   return DEFAULT_BOARD_FUNCTION;
 
 #elif defined(SEND_FOLLOW_YOU)
-	return SEND_FOLLOW_YOU
+  return SEND_FOLLOW_YOU
 #elif defined(SEND_DELFLY_CORRIDOR)
   return SEND_DELFLY_CORRIDOR
 #elif defined(SEND_HISTOGRAM)
@@ -123,7 +123,7 @@ const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
-uint8_t divergenceArray[18];
+uint8_t divergenceArray[22];
 
 void divergence_init()
 {
@@ -287,9 +287,9 @@ int main(void)
   uint16_t feature_count_limit = 10;
   uint8_t positionVelocityVector[12]; // 2-byte protocol, [Xh,Xl,Yh,Yl,Zh,Zl, Vxh,Vxl,Vyh,Vyl,Vzh,Vzl]
   int no_prev_measurment = 0;
-  int16_t pos_x,pos_y = 0;
-  uint8_t feature_image_locations [3*feature_count_limit];
-  float feature_XYZ_locations[3*feature_count_limit];
+  int16_t pos_x, pos_y = 0;
+  uint8_t feature_image_locations [3 * feature_count_limit];
+  float feature_XYZ_locations[3 * feature_count_limit];
   volatile uint16_t nr_of_features = 0;
   uint8_t target_location [3];
 
@@ -477,7 +477,7 @@ int main(void)
         led_toggle();
         // calculate the edge flow
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-                            previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 20, 0,
+                            &previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 20, 0,
                             IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
         // Filter flow
@@ -502,8 +502,9 @@ int main(void)
 
         divergenceArray[4] = (uint8_t)avg_disp;
 
+        //TODO: double check distance measure
         if (avg_disp > 0) {
-          avg_dist = RES * 6 * IMAGE_WIDTH / (avg_disp * FOVX);
+          avg_dist = RES * 3 * IMAGE_WIDTH / (avg_disp * FOVX);
         } else {
           avg_dist = 1477; // 2 * RES * 6 * IMAGE_WIDTH / 104;
         }
@@ -525,12 +526,12 @@ int main(void)
 
         divergenceArray[7] = hz_x;
         //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
-        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in dm/s
-        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in dm/s
+        divergenceArray[8] = (uint8_t)(vel_hor + 127); // in dm/s
+        divergenceArray[9] = (uint8_t)(vel_ver + 127); // in dm/s
 
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 
-		memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+        memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
 
 
         // move the indices for the edge hist structure
@@ -573,7 +574,7 @@ int main(void)
         SendArray(windowMsgBuf, WINDOWBUFSIZE, 1);
       }
       if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
-        SendArray(divergenceArray, 19, 1);
+        SendArray(divergenceArray, 23, 1);
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
         SendCommand(toSendCommand);
@@ -581,10 +582,10 @@ int main(void)
       if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
         SendCommand(toSendCommand);
       }
-      if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
-		 //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
-		 //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
-		 SendArray(target_location,3, 1); // send 3D location of target
+      if (current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
+        //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+        //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
+        SendArray(target_location, 3, 1); // send 3D location of target
       }
     }
   }
