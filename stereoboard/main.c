@@ -116,6 +116,7 @@ struct displacement_t displacement;
 uint8_t initialisedDivergence = 0;
 int32_t avg_disp = 0;
 int32_t avg_dist = 0;
+int32_t prev_avg_dist = 0;
 uint8_t previous_frame_offset[2] = {1, 1};
 uint8_t quality_measures_edgeflow[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -147,9 +148,11 @@ void divergence_init()
   covariance.flow_y = 20;
   covariance.div_x = 20;
   covariance.div_y = 20;
+  covariance.height = 20;
 
   avg_dist = 0;
   avg_disp = 0;
+  prev_avg_dist = 0;
 
   initialisedDivergence = 1;
 }
@@ -506,9 +509,11 @@ int main(void)
         if (avg_disp > 0) {
           avg_dist = RES * 3 * IMAGE_WIDTH / (avg_disp * FOVX);
         } else {
-          avg_dist = 1477; // 2 * RES * 6 * IMAGE_WIDTH / 104;
+          avg_dist = 10; // 2 * RES * 6 * IMAGE_WIDTH / 104;
         }
 
+        avg_dist =  simpleKalmanFilter(&(covariance.height), prev_avg_dist,
+                                       avg_dist, Q, R, RES);
         divergenceArray[4] = (uint8_t)avg_dist / 10;
         memcpy(divergenceArray + 5, previous_frame_offset, 2); // copy frame offset to output array
         divergenceArray[7] = frameRate;
@@ -532,6 +537,7 @@ int main(void)
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 
         memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+        prev_avg_dist = avg_dist;
 
 
         // move the indices for the edge hist structure

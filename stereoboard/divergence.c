@@ -94,10 +94,12 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
   calculate_edge_histogram(in, edge_histogram_x_right, image_width, image_height, 'x', 'r', edge_threshold);
 
   // Calculate displacement
-  calculate_displacement(edge_histogram_x, prev_edge_histogram_x, displacement->horizontal, image_width, window_size,
-                         disp_range);
-  calculate_displacement(edge_histogram_y, prev_edge_histogram_y, displacement->vertical, image_height, window_size,
-                         disp_range);
+  uint32_t min_error_hor = calculate_displacement(edge_histogram_x, prev_edge_histogram_x, displacement->horizontal,
+                           image_width, window_size,
+                           disp_range);
+  uint32_t min_error_ver = calculate_displacement(edge_histogram_y, prev_edge_histogram_y, displacement->vertical,
+                           image_height, window_size,
+                           disp_range);
   *avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
 
   //Calculate and Store quality values
@@ -118,23 +120,21 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
   quality_measures[6] = (uint8_t)(amountPeaks_ver);
 
   // Fit a linear line
-#ifdef RANSAC
-  line_fit_RANSAC(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width,
-                  window_size + disp_range, RES);
-  line_fit_RANSAC(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height,
-                  window_size + disp_range, RES);
-#else
-  line_fit(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width,
-           window_size + disp_range, RES);
-  line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height,
-           window_size + disp_range, RES);
-#endif
+  uint32_t line_error_fit_hor = line_fit(displacement->horizontal, &edge_flow->horizontal_div,
+                                         &edge_flow->horizontal_flow, image_width,
+                                         window_size + disp_range, RES);
+  uint32_t line_error_fit_ver = line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow,
+                                         image_height,
+                                         window_size + disp_range, RES);
 
-  // Correct Divergence slope and translation by the amount of frames skipped
-  /*  edge_flow->horizontal_flow  /= previous_frame_offset[0];
-  edge_flow->horizontal_div   /= previous_frame_offset[0];
-  edge_flow->vertical_flow    /= previous_frame_offset[1];
-  edge_flow->vertical_div     /= previous_frame_offset[1];*/
+  quality_measures[7] = (uint8_t)(line_error_fit_hor / 10);
+  quality_measures[8] = (uint8_t)(line_error_fit_ver / 10);
+
+  /*
+  if (abs(edge_flow->vertical_flow) > DISP_RANGE_MAX * RES)
+   edge_flow->vertical_flow = 0;
+  if (abs(edge_flow->horizontal_flow) > DISP_RANGE_MAX * RES)
+   edge_flow->horizontal_flow = 0;*/
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
@@ -205,8 +205,9 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
 // Calculate_displacement calculates the displacement between two histograms
 // D should be half the search disparity range
 // W is local search window
-void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement, uint16_t size,
-                            uint8_t window, uint8_t disp_range)
+uint32_t calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
+                                uint16_t size,
+                                uint8_t window, uint8_t disp_range)
 {
   int32_t c = 0, r = 0;
   uint32_t x = 0;
@@ -214,6 +215,8 @@ void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_pre
 
   int32_t W = window;
   int32_t D = disp_range;
+  uint32_t min_error = 0;
+  uint32_t min_error_tot = 0;
 
   memset(displacement, 0, size);
 
@@ -226,8 +229,10 @@ void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_pre
         SAD_temp[c + D] += abs(edge_histogram[x + r] - edge_histogram_prev[x + r + c]);
       }
     }
-    displacement[x] = (int32_t)getMinimum(SAD_temp, 2 * D + 1) - D;
+    displacement[x] = (int32_t)getMinimum2(SAD_temp, 2 * D + 1, &min_error) - D;
+    min_error_tot += min_error;
   }
+  return min_error_tot;
 }
 
 // Calculate_displacement calculates the displacement between two histograms
@@ -255,7 +260,8 @@ int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_
 
 
 // Line_fit fits a line using least squares to the histogram disparity map
-void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_t size, uint32_t border, uint16_t RES)
+uint32_t line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_t size, uint32_t border,
+                  uint16_t RES)
 {
   int32_t x;
 
@@ -266,8 +272,10 @@ void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_
   int32_t sumXY = 0;
   int32_t xMean = 0;
   int32_t yMean = 0;
+  int32_t divergence_int = 0;
   int32_t border_int = (int32_t)border;
   int32_t size_int = (int32_t)size;
+  uint32_t total_error = 0;
 
   *divergence = 0;
   *flow = 0;
@@ -279,15 +287,22 @@ void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_
   xMean = (size_int - 1) / 2;
   count = size_int - 2 * border_int;
 
-  for (x = border_int; x < size_int - border_int; x++) {
+  for (x = border_int; x < size - border_int; x++) {
     sumY += displacement[x];
     sumXY += x * displacement[x];
   }
 
   yMean = RES * sumY / count;
 
-  *divergence = (RES * sumXY - sumX * yMean) / (sumX2 - sumX * xMean);    // compute slope of line ax + b
+  divergence_int = (RES * sumXY - sumX * yMean) / (sumX2 - sumX * xMean);    // compute slope of line ax + b
+  *divergence = divergence_int;
   *flow = yMean - *divergence * xMean;  // compute b (or y) intercept of line ax + b
+
+  for (x = border_int; x < size - border_int; x++) {
+    total_error += abs(RES * displacement[x] - divergence_int * x + yMean);
+  }
+
+  return total_error / size;
 }
 
 int ipow(int base, int exp)
@@ -413,7 +428,7 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
 
 // Small supporting functions
 
-uint32_t getMinimum2(uint32_t *a, uint32_t n)
+uint32_t getMinimum2(uint32_t *a, uint32_t n, uint32_t *min_error)
 {
   uint32_t i;
   uint32_t min_ind = 0;
@@ -424,6 +439,7 @@ uint32_t getMinimum2(uint32_t *a, uint32_t n)
       min_err = a[i];
     }
   }
+  *min_error = min_err;
   return min_ind;
 }
 
