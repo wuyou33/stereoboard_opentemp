@@ -24,3 +24,10 @@ PROJECT=send_distance_matrix
 
  - Streams 9600 reduced size disparity image as a 11x11 matrix
  - use paparazzi stereocam.xml module to decode
+ 
+ PROJECT=follow_you
+--------------------------
+
+ - sens commands to follow person
+ - Streams 9600 messages
+ - use paparazzi stereocam.xml module to decod
