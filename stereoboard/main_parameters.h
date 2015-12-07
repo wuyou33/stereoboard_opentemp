@@ -88,6 +88,10 @@
 #define IMAGE_WIDTH 128
 #define IMAGE_HEIGHT 96
 #endif
+#ifdef LARGE_IMAGE
+#define IMAGE_WIDTH 640
+#define IMAGE_HEIGHT 60
+#endif
 #endif
 
 #ifndef CAPTURE_MODE_SNAPSHOT

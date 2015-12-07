@@ -153,11 +153,14 @@ void divergence_init()
 	initialisedDivergence = 1;
 }
 
+#ifdef SEND_WINDOW
+
 #define WINDOWBUFSIZE 8  // 8 for window and 8 for divergence
 
 uint8_t windowMsgBuf[WINDOWBUFSIZE];
 uint8_t coordinate[2];
 uint8_t window_size;
+
 uint32_t integral_image[IMAGE_WIDTH *IMAGE_HEIGHT];
 
 void window_init()
@@ -166,6 +169,9 @@ void window_init()
 	coordinate[1] = IMAGE_HEIGHT / 2;
 	memset(integral_image, 0, IMAGE_WIDTH * IMAGE_HEIGHT);
 }
+
+#endif
+
 
 /**
  * @brief  Main program
@@ -274,8 +280,12 @@ int main(void)
 
 	uint8_t histogramBuffer[pixelsPerLine];
 
+#ifdef SEND_WINDOW
+
 	// Initialize window
 	window_init();
+
+#endif
 
 	// Settings for SEND_TURN_COMMANDS
 	uint8_t n_disp_bins = 6;
@@ -330,7 +340,7 @@ int main(void)
 			camera_snapshot();
 
 #if defined(LARGE_IMAGE) || defined(CROPPING)
-			offset_crop += 80;
+			offset_crop += 60;
 			if (offset_crop == 480) {
 				offset_crop = 0;
 			}
@@ -531,6 +541,7 @@ int main(void)
 			if (current_stereoboard_algorithm == SEND_WINDOW) {
 				// XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
 
+#ifdef SEND_WINDOW
 				windowMsgBuf[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate,
 						&window_size, integral_image, MODE_DISPARITY, (uint8_t)(disparity_range - disparity_min));
 				windowMsgBuf[0] = coordinate[0];
@@ -543,6 +554,8 @@ int main(void)
 						127, 95, integral_image, 128, 96)) / windowMsgBuf[3]) + 127;
 				windowMsgBuf[6] = window_size;
 				windowMsgBuf[7] = (uint8_t)frameRate;
+
+#endif
 
 				//memcpy(windowMsgBuf + 8, divergenceArray, 8);
 			}
@@ -607,9 +620,14 @@ int main(void)
 			if (current_stereoboard_algorithm == SEND_MATRIX) {
 				SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 			}
+
+#ifdef SEND_WINDOW
+
 			if (current_stereoboard_algorithm == SEND_WINDOW) {
 				SendArray(windowMsgBuf, WINDOWBUFSIZE, 1);
 			}
+#endif
+
 			if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
 				SendArray(divergenceArray,10, 1);
 			}

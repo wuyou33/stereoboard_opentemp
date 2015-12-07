@@ -127,7 +127,7 @@ void camera_tcm8230_config(void)
 #define IMAGE_SIZE IMG_SIZE_subQCIF
 #elif (IMAGE_WIDTH==176) && (IMAGE_HEIGHT==144)
 #define IMAGE_SIZE IMG_SIZE_QCIF
-#elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==180)
+#elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==60)
 #define IMAGE_SIZE IMG_SIZE_VGA
 #else
 #ifdef USE_TCM8230
