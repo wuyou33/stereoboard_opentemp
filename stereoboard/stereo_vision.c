@@ -1523,7 +1523,193 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
   }
 }
 
-uint16_t getFeatureImageLocations(uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
+uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
+{
+	volatile uint8_t disp_min = 12;
+	volatile uint8_t max_disp_threshold = 10;
+	volatile uint8_t disp_window = 10;
+
+	volatile uint16_t x = 0;
+	volatile uint16_t y = 0;
+	volatile uint16_t i = 0;
+	volatile uint8_t disp = 0;
+	volatile uint8_t max_disp = 0;
+	volatile uint8_t max_disp_count = 0;
+	volatile uint8_t disp_hist [200];
+	volatile uint8_t disp_range_min = 0;
+	volatile uint8_t disp_range_max = 0;
+	volatile uint8_t Y_hist [image_height];
+	volatile uint8_t X_hist [image_width];
+	volatile uint8_t X_hist_max = 0;
+	volatile uint8_t X_hist_max_count = 0;
+	volatile uint8_t min_X = 0;
+	volatile uint8_t max_X = 0;
+	volatile uint16_t mean_X = 0;
+	volatile int16_t disp_mean = 0;
+	volatile uint16_t disp_count = 0;
+	volatile uint16_t distance = 0;
+
+	volatile int image_width_bytes = image_width*2;
+
+
+
+
+	// initialize histogram
+	for (i = 0; i < 200; i++ )
+	{
+		disp_hist[i] = 0;
+	}
+
+	// compute disparity histogram
+	for (y = min_y; y < max_y; y++) {
+		for (x = 0; x < image_width; x++) {
+
+			disp = disparity_image_buffer[x + y * image_width];
+			if (disp > disp_min)
+			{
+				disp_hist[disp]++;
+			}
+		}
+	}
+
+	// find disparity peak in histogram
+	for (i = 1; i < 200; i++ )
+	{
+		if ( disp_hist[i] > max_disp_count)
+		{
+			max_disp_count = disp_hist[i];
+			max_disp = i;
+		}
+	}
+
+	led_clear();
+
+	target_location[0] = (uint8_t) 65;
+	target_location[1] = (uint8_t) 48;
+	target_location[2] = (uint8_t) 100;
+
+	// check if there is a clear object
+	if ( (max_disp_count > max_disp_threshold) && (max_disp > disp_min + disp_window) )
+	{
+
+		led_set();
+
+		disp_range_min = max_disp-disp_window;
+		disp_range_max = max_disp+disp_window;
+		// create histogram for Y-direction
+		for (i = 0; i < image_height; i++ )
+		{
+			Y_hist[i] = 0;
+		}
+
+		for (y = min_y; y < max_y; y++) {
+			for (x = 0; x < image_width; x++) {
+
+				disp = disparity_image_buffer[x + y * image_width];
+				if ( (disp > disp_range_min) && (disp < disp_range_max) )
+				{
+					Y_hist[y]++;
+				}
+			}
+		}
+
+		for (i = 4; i < image_height-10; i++ )
+		{
+			if ( Y_hist[i] == 0 && Y_hist[i-1] == 0 && Y_hist[i-2] == 0 && Y_hist[i-3] == 0 && Y_hist[i-4] == 0 )
+			{
+				min_y = i;
+			}
+		}
+
+		// initialize histogram for X-direction
+		for (i = 0; i < image_width; i++ )
+		{
+			X_hist[i] = 0;
+		}
+
+		// compute histogram for X-direction
+		for (y = min_y; y < max_y; y++) {
+			for (x = 0; x < image_width; x++) {
+
+				disp = disparity_image_buffer[x + y * image_width];
+				if ( (disp > disp_range_min) && (disp < disp_range_max) )
+				{
+					X_hist[x]++;
+				}
+			}
+		}
+
+		// find peak and its location of X-histogram
+		for (i = 0; i < image_width; i++ )
+		{
+			if ( X_hist[i] > X_hist_max_count )
+			{
+				X_hist_max_count = X_hist[i];
+				X_hist_max = i;
+			}
+		}
+
+		// find most-right zero index on left side of X-histogram [
+		for (i = 4; i < X_hist_max; i++ )
+		{
+			if ( X_hist[i] == 0 && X_hist[i-1] == 0 && X_hist[i-2] == 0 && X_hist[i-3] == 0 && X_hist[i-4] == 0 )
+			{
+				min_X = i;
+			}
+		}
+
+		// find most-left zero index on right side of X-histogram ]
+		for (i = image_width-5; i > X_hist_max; i-- )
+		{
+			if ( X_hist[i] == 0 && X_hist[i+1] == 0 && X_hist[i+2] == 0 && X_hist[i+3] == 0 && X_hist[i+4] == 0 )
+			{
+				max_X = i;
+			}
+		}
+
+		// visualize left and right borders of object in image
+		for (y = min_y; y < max_y; y++)
+		{
+			current_image_buffer[(min_X*2) + 1 + (y * image_width_bytes)] = 255;
+			current_image_buffer[(max_X*2) + 1 + (y * image_width_bytes)] = 255;
+
+		}
+
+		// compute and visualize middle line of object
+		mean_X = (min_X+max_X)/2;
+		current_image_buffer[(mean_X*2) + 1 + (min_y * image_width_bytes)] = 255;
+
+		// compute average disparity of object
+		for (y = min_y; y < max_y; y++) {
+			for (x = min_X; x < max_X; x++) {
+
+				disp = disparity_image_buffer[x + y * image_width];
+				if ( (disp > disp_range_min) && (disp < disp_range_max) )
+				{
+					disp_mean += disp;
+					disp_count++;
+				}
+			}
+		}
+
+		disp_mean = disp_mean/disp_count;
+
+		// convert disparity to distance
+		distance = (120*6)/((disp_mean/RESOLUTION_FACTOR)*2); // [cm] divided by 2
+
+		target_location[0] = (uint8_t) mean_X;
+		target_location[1] = (uint8_t) min_y;
+		target_location[2] = (uint8_t) distance;
+
+
+	} // endif object found
+
+
+
+}
+
+
+uint16_t getFeatureImageLocations_old(uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
 {
 	// set minimum value for disparity
 	uint8_t disp_far = 19; // 29; // approx 1.5m

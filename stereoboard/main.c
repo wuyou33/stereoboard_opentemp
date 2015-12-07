@@ -589,16 +589,18 @@ int main(void)
 					min_y, max_y);
 
 				// subtract feature locations from disparitymap in specified range
-				nr_of_features = getFeatureImageLocations(disparity_image_buffer_8bit, feature_image_locations, image_width, image_height, min_y, max_y, feature_count_limit);
+				//nr_of_features = getFeatureImageLocations(disparity_image_buffer_8bit, feature_image_locations, image_width, image_height, min_y, max_y, feature_count_limit);
+				nr_of_features = getFeatureImageLocations(current_image_buffer, disparity_image_buffer_8bit, feature_image_locations, target_location, image_width, image_height, min_y, max_y, feature_count_limit);
+
 				// visualize features
 				if ( nr_of_features == feature_count_limit )
 				{
-					nr_of_features = visualizeBlobImageLocation(current_image_buffer, feature_image_locations, target_location, nr_of_features, image_width, feature_count_limit);
+					//nr_of_features = visualizeBlobImageLocation(current_image_buffer, feature_image_locations, target_location, nr_of_features, image_width, feature_count_limit);
 					//visualizeFeatureImageLocations(current_image_buffer, feature_image_locations, nr_of_features, image_width, feature_count_limit);
 
 				}
 				// rotate and convert image points to real world points
-				getFeatureXYZLocations(feature_image_locations, feature_XYZ_locations, nr_of_features, image_width, image_height);
+				//getFeatureXYZLocations(feature_image_locations, feature_XYZ_locations, nr_of_features, image_width, image_height);
 
 
 			}
@@ -641,9 +643,9 @@ int main(void)
 				SendCommand(toSendCommand);
 			}
 			if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
-				//SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
 				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
-				SendArray(target_location,3, 1); // send 3D location of target
+				//SendArray(target_location,3, 1); // send 3D location of target
 			}
 		}
 	}
