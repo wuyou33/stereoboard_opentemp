@@ -12,13 +12,14 @@
 #include <stdlib.h>
 
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
-                            struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
-                            uint8_t current_frame_nr, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
-                            uint16_t image_width, uint16_t image_height, uint16_t RES)
+                         struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
+                         uint8_t current_frame_nr, uint8_t *quality_measures, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
+                         uint16_t image_width, uint16_t image_height, uint16_t RES)
 {
   // check that inputs within allowable ranges
-  if (disp_range > DISP_RANGE_MAX)
+  if (disp_range > DISP_RANGE_MAX) {
     disp_range = DISP_RANGE_MAX;
+  }
 
   // Define arrays and pointers for edge histogram and displacements
   int32_t *edge_histogram_x = edge_hist[current_frame_nr].horizontal;
@@ -40,14 +41,14 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
     // TODO check which image we should pick
     // TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/some_size) boundary
     // TODO I currently use a switching limit of disparity range/4
-    if (4*flow_mag_x * (MAX_HORIZON - 1) > RES*disp_range) {
-      previous_frame_offset[0] = (RES*disp_range) / (4*flow_mag_x) + 1;
+    if (4 * flow_mag_x * (MAX_HORIZON - 1) > RES * disp_range) {
+      previous_frame_offset[0] = (RES * disp_range) / (4 * flow_mag_x) + 1;
     } else {
       previous_frame_offset[0] = MAX_HORIZON - 1;
     }
 
-    if (4*flow_mag_y * (MAX_HORIZON - 1) > RES*disp_range) {
-      previous_frame_offset[1] = (RES*disp_range)/ (4*flow_mag_y) + 1;
+    if (4 * flow_mag_y * (MAX_HORIZON - 1) > RES * disp_range) {
+      previous_frame_offset[1] = (RES * disp_range) / (4 * flow_mag_y) + 1;
     } else {
       previous_frame_offset[1] = MAX_HORIZON - 1;
     }
@@ -75,17 +76,38 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
                          disp_range);
   *avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
 
+  //Calculate and Store quality values
+  uint32_t totalIntensity = getTotalIntensityImage(in, image_width, image_height);
+  uint32_t mean_hor = getMean(edge_histogram_x, image_width);
+  uint32_t mean_ver = getMean(edge_histogram_y, image_height);
+  uint32_t median_hor = getMedian(edge_histogram_x, image_width);
+  uint32_t median_ver = getMedian(edge_histogram_y, image_height);
+  uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 500 , image_width);
+  uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 500 , image_height);
+
+  quality_measures[0] = (uint8_t)(totalIntensity / 20000);
+  quality_measures[1] = (uint8_t)(mean_hor / 20);
+  quality_measures[2] = (uint8_t)(mean_ver / 20);
+  quality_measures[3] = (uint8_t)(median_hor / 20);
+  quality_measures[4] = (uint8_t)(median_ver / 20);
+  quality_measures[5] = (uint8_t)(amountPeaks_hor);
+  quality_measures[6] = (uint8_t)(amountPeaks_ver);
+
   // Fit a linear line
 #ifdef RANSAC
-  line_fit_RANSAC(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width, window_size + disp_range, RES);
-  line_fit_RANSAC(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height, window_size + disp_range, RES);
+  line_fit_RANSAC(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width,
+                  window_size + disp_range, RES);
+  line_fit_RANSAC(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height,
+                  window_size + disp_range, RES);
 #else
-  line_fit(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width, window_size + disp_range, RES);
-  line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height, window_size + disp_range,RES);
+  line_fit(displacement->horizontal, &edge_flow->horizontal_div, &edge_flow->horizontal_flow, image_width,
+           window_size + disp_range, RES);
+  line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow, image_height,
+           window_size + disp_range, RES);
 #endif
 
   // Correct Divergence slope and translation by the amount of frames skipped
-/*  edge_flow->horizontal_flow  /= previous_frame_offset[0];
+  /*  edge_flow->horizontal_flow  /= previous_frame_offset[0];
   edge_flow->horizontal_div   /= previous_frame_offset[0];
   edge_flow->vertical_flow    /= previous_frame_offset[1];
   edge_flow->vertical_div     /= previous_frame_offset[1];*/
@@ -106,54 +128,54 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
 
   // set pixel offset based on which image needed from interlaced image
   uint32_t px_offset = 0;
-  if (side == 'l')
+  if (side == 'l') {
     px_offset = 0;
-  else if (side == 'r')
+  } else if (side == 'r') {
     px_offset = 1;
-  else
-    while(1); // let user know something is wrong
+  } else
+    while (1); // let user know something is wrong
 
   // compute edge histogram
   if (direction == 'x') {
     // set values that are not visited
-    edge_histogram[0] = edge_histogram[image_width-1] = 0;
-    for (x = 1; x < image_width-1; x++) {
+    edge_histogram[0] = edge_histogram[image_width - 1] = 0;
+    for (x = 1; x < image_width - 1; x++) {
       edge_histogram[x] = 0;
       for (y = 0; y < image_height; y++) {
         sobel_sum = 0;
 
         for (c = -1; c <= 1; c++) {
-          idx = 2*(image_width * y + (x + c));  // 2 for interlace
+          idx = 2 * (image_width * y + (x + c)); // 2 for interlace
 
           sobel_sum += Sobel[c + 1] * (int32_t)in[idx + px_offset];
         }
         sobel_sum = abs(sobel_sum);
-        if (sobel_sum > edge_threshold)
+        if (sobel_sum > edge_threshold) {
           edge_histogram[x] += sobel_sum;
+        }
       }
     }
-  }
-  else if (direction == 'y'){
+  } else if (direction == 'y') {
     // set values that are not visited
-    edge_histogram[0] = edge_histogram[image_height-1] = 0;
-    for (y = 1; y < image_height-1; y++) {
+    edge_histogram[0] = edge_histogram[image_height - 1] = 0;
+    for (y = 1; y < image_height - 1; y++) {
       edge_histogram[y] = 0;
       for (x = 0; x < image_width; x++) {
         sobel_sum = 0;
 
         for (c = -1; c <= 1; c++) {
-          idx = 2*(image_width * (y + c) + x);  // 2 for interlace
+          idx = 2 * (image_width * (y + c) + x); // 2 for interlace
 
           sobel_sum += Sobel[c + 1] * (int32_t)in[idx + px_offset];
         }
         sobel_sum = abs(sobel_sum);
-        if (sobel_sum > edge_threshold)
+        if (sobel_sum > edge_threshold) {
           edge_histogram[y] += sobel_sum;
+        }
       }
     }
-  }
-  else
-    while(1);   // hang to show user something isn't right
+  } else
+    while (1);  // hang to show user something isn't right
 }
 
 // Calculate_displacement calculates the displacement between two histograms
@@ -162,9 +184,9 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
 void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement, uint16_t size,
                             uint8_t window, uint8_t disp_range)
 {
-  int32_t c = 0,r = 0;
+  int32_t c = 0, r = 0;
   uint32_t x = 0;
-  uint32_t SAD_temp[2*DISP_RANGE_MAX+1];    // size must be at least 2*D + 1
+  uint32_t SAD_temp[2 * DISP_RANGE_MAX + 1]; // size must be at least 2*D + 1
 
   int32_t W = window;
   int32_t D = disp_range;
@@ -180,18 +202,19 @@ void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_pre
         SAD_temp[c + D] += abs(edge_histogram[x + r] - edge_histogram_prev[x + r + c]);
       }
     }
-    displacement[x] = (int32_t)getMinimum(SAD_temp, 2*D+1) - D;
+    displacement[x] = (int32_t)getMinimum(SAD_temp, 2 * D + 1) - D;
   }
 }
 
 // Calculate_displacement calculates the displacement between two histograms
 // D should be disparity range
 // TODO: for height should always look to the positive disparity range, can ignore negative
-int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_histogram_2, uint16_t size, uint8_t disp_range)
+int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_histogram_2, uint16_t size,
+    uint8_t disp_range)
 {
   int32_t c = 0;
   uint32_t x = 0;
-  uint32_t SAD_temp[2*DISP_RANGE_MAX+1];    // size must be at least 2*D + 1
+  uint32_t SAD_temp[2 * DISP_RANGE_MAX + 1]; // size must be at least 2*D + 1
 
   int32_t D = disp_range;
 
@@ -203,7 +226,7 @@ int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_
     }
   }
 
-  return D - (int32_t)getMinimum(SAD_temp, 2*D+1);
+  return D - (int32_t)getMinimum(SAD_temp, 2 * D + 1);
 }
 
 
@@ -225,10 +248,10 @@ void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_
 
   // compute fixed sums
   int32_t xend = size - border - 1;
-  sumX = xend*(xend+1)/2 - border*(border+1)/2 + border;
-  sumX2 = xend * (xend+1) * (2*xend+1) / 6;
-  xMean = (size-1) / 2;
-  count = size - 2*border;
+  sumX = xend * (xend + 1) / 2 - border * (border + 1) / 2 + border;
+  sumX2 = xend * (xend + 1) * (2 * xend + 1) / 6;
+  xMean = (size - 1) / 2;
+  count = size - 2 * border;
 
   for (x = border; x < size - border; x++) {
     sumY += displacement[x];
@@ -243,19 +266,20 @@ void line_fit(int32_t *displacement, int32_t *divergence, int32_t *flow, uint32_
 
 int ipow(int base, int exp)
 {
-    int result = 1;
-    while (exp)
-    {
-        if (exp & 1)
-            result *= base;
-        exp >>= 1;
-        base *= base;
+  int result = 1;
+  while (exp) {
+    if (exp & 1) {
+      result *= base;
     }
+    exp >>= 1;
+    base *= base;
+  }
 
-    return result;
+  return result;
 }
 
-void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, uint16_t size, uint32_t border, uint32_t RES)
+void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, uint16_t size, uint32_t border,
+                     uint32_t RES)
 {
   //Fit a linear line with RANSAC (from Guido's code)
   uint8_t ransac_iter = 20;
@@ -268,7 +292,7 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, 
   int32_t b[ransac_iter];
   uint32_t errors[ransac_iter];
 
-  uint16_t entries = size - 2*border;
+  uint16_t entries = size - 2 * border;
 
   for (it = 0; it < ransac_iter; it++) {
     ind1 = rand() % entries + border;
@@ -293,10 +317,10 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow, 
     b[it] = RES * displacement[ind1] - (a[it] * ind1);
     // evaluate fit:
     total_error = 0;
-    for (entry = border; entry < size-border; entry++) {
+    for (entry = border; entry < size - border; entry++) {
       predicted_flow = a[it] * entry + b[it];
       //total_error += ipow(RES*displacement[entry] - predicted_flow,2);
-      total_error += RES*displacement[entry] - predicted_flow;
+      total_error += RES * displacement[entry] - predicted_flow;
     }
     errors[it] = total_error;
   }
@@ -311,13 +335,13 @@ void totalKalmanFilter(struct covariance_t *coveriance, struct edge_flow_t *prev
                        struct edge_flow_t *edge_flow, uint32_t Q, uint32_t R, uint32_t RES)
 {
   edge_flow->horizontal_flow = simpleKalmanFilter(&(coveriance->flow_x), prev_edge_flow->horizontal_flow,
-                                edge_flow->horizontal_flow, Q, R, RES);
+                               edge_flow->horizontal_flow, Q, R, RES);
   edge_flow->vertical_flow = simpleKalmanFilter(&(coveriance->flow_y), prev_edge_flow->vertical_flow,
-                              edge_flow->vertical_flow, Q, R, RES);
+                             edge_flow->vertical_flow, Q, R, RES);
   edge_flow->horizontal_div = simpleKalmanFilter(&(coveriance->div_x), prev_edge_flow->horizontal_div,
-                                edge_flow->horizontal_div, Q, R, RES);
+                              edge_flow->horizontal_div, Q, R, RES);
   edge_flow->vertical_div = simpleKalmanFilter(&(coveriance->div_y), prev_edge_flow->vertical_div,
-                              edge_flow->vertical_div, Q, R, RES);
+                            edge_flow->vertical_div, Q, R, RES);
 }
 
 int32_t simpleKalmanFilter(int32_t *cov, int32_t previous_est, int32_t current_meas, int32_t Q, int32_t R, int32_t RES)
@@ -346,7 +370,7 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
     //line_check1=(uint32_t)(Slope*(float)x+(Yint)+(float)image_height/2);
     //line_check2=(uint32_t)(displacement[x]+image_height/2);
     for (x = 0; x < image_width; x++) {
-      idx =  2*(image_width * y + x);
+      idx =  2 * (image_width * y + x);
 
       /*if(y==line_check1)
         out[idx]=255;
@@ -360,3 +384,106 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
     }
   }
 }
+
+// Small supporting functions
+
+uint32_t getMinimum2(uint32_t *a, uint32_t n)
+{
+  uint32_t i;
+  uint32_t min_ind = 0;
+  uint32_t min_err = a[min_ind];
+  for (i = 1; i < n; i++) {
+    if (a[i] <= min_err) {
+      min_ind = i;
+      min_err = a[i];
+    }
+  }
+  return min_ind;
+}
+
+uint32_t getMaximum(uint32_t *a, uint32_t n)
+{
+  uint32_t c;
+  uint32_t max_error = a[0];
+  uint32_t max_ind = 0;
+
+  for (c = 1; c < n; c++) {
+    if (a[c] > max_error) {
+      max_ind = c;
+      max_error = a[c];
+    }
+  }
+  return max_ind;
+}
+
+uint32_t getMedian(int32_t *daArray, int32_t iSize)
+{
+  // Allocate an array of the same size and sort it.
+  int32_t i, j;
+
+  int dpSorted[iSize];
+  for (i = 0; i < iSize; ++i) {
+    dpSorted[i] = daArray[i];
+  }
+  for (i = iSize - 1; i > 0; --i) {
+    for (j = 0; j < i; ++j) {
+      if (dpSorted[j] > dpSorted[j + 1]) {
+        int32_t dTemp = dpSorted[j];
+        dpSorted[j] = dpSorted[j + 1];
+        dpSorted[j + 1] = dTemp;
+      }
+    }
+  }
+
+  // Middle or average of middle values in the sorted array.
+  int32_t dMedian = 0;
+  if ((iSize % 2) == 0) {
+    dMedian = (dpSorted[iSize / 2] + dpSorted[(iSize / 2) - 1]) / 2.0;
+  } else {
+    dMedian = dpSorted[iSize / 2];
+  }
+  return dMedian;
+}
+
+uint32_t getMean(int32_t *daArray, int32_t iSize)
+{
+  int32_t dSum = daArray[0];
+  int32_t i;
+  for (i = 1; i < iSize; ++i) {
+    dSum += daArray[i];
+  }
+  return dSum / iSize;
+}
+
+uint32_t getTotalIntensityImage(uint8_t *in, uint32_t image_height, uint32_t image_width)
+{
+
+  uint32_t y = 0, x = 0;
+  uint32_t idx = 0;
+  uint32_t px_offset = 0;
+  uint32_t totalIntensity = 0;
+  for (x = 1; x < image_width - 1; x++) {
+    for (y = 0; y < image_height; y++) {
+      idx = 2 * (image_width * y + (x)); // 2 for interlace
+
+
+      totalIntensity += (uint32_t)in[idx + px_offset];
+    }
+  }
+  return totalIntensity;
+}
+
+uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size)
+{
+  uint32_t  amountPeaks = 0;
+  uint32_t i = 0;
+
+  for (i = 1; i < size + 1;  i ++) {
+    if (edgehist[i - 1] < edgehist[i] && edgehist[i] > edgehist[i + 1] && edgehist[i] > median) {
+      amountPeaks ++;
+    }
+  }
+  return amountPeaks;
+}
+
+

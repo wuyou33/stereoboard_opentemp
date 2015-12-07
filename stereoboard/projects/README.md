@@ -1,7 +1,7 @@
 Stereocam projects
 ==================
 
-BOARD=calibrate
+PROJECT=calibrate
 ---------------
 
  - Send pixmuxed stereo image pair
@@ -9,18 +9,25 @@ BOARD=calibrate
  - save the calibration values into a BOARD file
 
 
-BOARD=explorer
+PROJECT=explorer
 --------------
 
  - Droplet: sends 9600 bps 'a' 'b' 'c' 'd' stages of droplet avoidance manoeuvre
 
-BOARD=stereo_avoid_demo
+PROJECT=stereo_avoid_demo
 -----------------------
 
  - Sends disparity value
 
-BOARD=send_distance_matrix
+PROJECT=send_distance_matrix
 --------------------------
 
  - Streams 9600 reduced size disparity image as a 11x11 matrix
  - use paparazzi stereocam.xml module to decode
+ 
+ PROJECT=follow_you
+--------------------------
+
+ - sens commands to follow person
+ - Streams 9600 messages
+ - use paparazzi stereocam.xml module to decod
