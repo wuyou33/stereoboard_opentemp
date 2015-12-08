@@ -64,17 +64,19 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE))
 	return DEFAULT_BOARD_FUNCTION;
 
 #elif defined(SEND_FOLLOW_YOU)
 	return SEND_FOLLOW_YOU
+#elif defined(SEND_SINGLE_DISTANCE)
+	return SEND_SINGLE_DISTANCE
 #elif defined(SEND_DELFLY_CORRIDOR)
 	return SEND_DELFLY_CORRIDOR
 #elif defined(SEND_HISTOGRAM)
@@ -124,6 +126,22 @@ const int8_t FOVY = 79;    // 45deg = 0.785 rad
 //send array with flow parameters
 uint8_t divergenceArray[10];
 
+void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY, uint8_t imagePartWidth, uint8_t imagePartHeight,uint8_t image_width_bytes){
+//	int indexX;
+//	int indexY;
+//	int indexNewImage=0;
+//	for(indexY=0; indexY < 30; indexY++){
+//		for(indexX=0; indexX < imagePartWidth; indexX++){
+//			//newImage[indexNewImage++]=originalImage[(imagePartY+indexY)*originalImageWidth*2+(imagePartX*2+indexX)];
+//			originalImage[((indexX+imagePartX)*2) + 1 + ((indexY+30) * image_width_bytes)] = 255;
+//		}
+//
+//	}
+	originalImage[((imagePartX+1)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
+	originalImage[((imagePartX+2)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
+	originalImage[((imagePartX+3)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
+
+}
 void divergence_init()
 {
 	//Define arrays and pointers for edge histogram and displacements
@@ -235,6 +253,8 @@ int main(void)
 	/***********
 	 * MAIN LOOP
 	 ***********/
+	uint8_t maxDisparityFound=133;
+
 
 	stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
 	volatile int processed = 0;
@@ -385,7 +405,7 @@ int main(void)
 			if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm == SEND_MATRIX
 					|| current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
 					current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
-					current_stereoboard_algorithm==SEND_HISTOGRAM || current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR) {
+					current_stereoboard_algorithm==SEND_HISTOGRAM || current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE) {
 				// Determine disparities:
 				min_y = 0;
 				max_y = 96;
@@ -404,11 +424,12 @@ int main(void)
 				}
 			}
 
-			if( current_stereoboard_algorithm==SEND_HISTOGRAM || current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR){
+			if( current_stereoboard_algorithm==SEND_HISTOGRAM || current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR ){
 				calculateHistogram(disparity_image_buffer_8bit, histogramBuffer, blackBorderSize, pixelsPerLine,image_height);
 
 				if( current_stereoboard_algorithm==SEND_DELFLY_CORRIDOR)
 					toSendCommand = calculateHeadingFromHistogram(histogramBuffer);
+
 			}
 
 			// determine phase of flight
@@ -457,7 +478,7 @@ int main(void)
 			}
 
 			// send matrix buffer
-			if (current_stereoboard_algorithm == SEND_MATRIX) {
+			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE) {
 
 				// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
 				memset(matrixBuffer, 0, sizeof matrixBuffer);
@@ -465,6 +486,11 @@ int main(void)
 				// Create the distance matrix by summing pixels per bin
 				calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+			}
+
+
+			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE){
+				maxDisparityFound=maxInArray(toSendBuffer,sizeof toSendBuffer);
 			}
 
 			// compute and send divergence
@@ -546,7 +572,9 @@ int main(void)
 
 				//memcpy(windowMsgBuf + 8, divergenceArray, 8);
 			}
-
+			int imagePartWidth=15;
+			int imagePartHeight=15;
+			uint8_t imageFollowingPart[imagePartWidth*imagePartHeight];
 			if (current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
 
 				uint8_t search_window = 10;
@@ -584,7 +612,7 @@ int main(void)
 				// rotate and convert image points to real world points
 				getFeatureXYZLocations(feature_image_locations, feature_XYZ_locations, nr_of_features, image_width, image_height);
 
-
+				getPartOfImage(current_image_buffer, imageFollowingPart, feature_image_locations[0], feature_image_locations[1],imagePartWidth, imagePartHeight,image_width*2);
 			}
 
 
@@ -619,10 +647,25 @@ int main(void)
 			if( current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 				SendCommand(toSendCommand);
 			}
+
+			if( current_stereoboard_algorithm == SEND_SINGLE_DISTANCE) {
+				if(maxDisparityFound>50){
+					led_set();
+				}
+				else{
+					led_clear();
+				}
+				uint8_t toSend[3];
+				toSend[0]=maxDisparityFound;
+				SendArray(toSend,1, 1); // send 3D location of target
+
+			}
 			if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
 				//SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
 				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
 				SendArray(target_location,3, 1); // send 3D location of target
+			//	SendArray(imageFollowingPart,30, 30); // send 3D location of target
+
 			}
 		}
 	}

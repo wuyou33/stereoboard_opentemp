@@ -1,6 +1,7 @@
 TARGET        = MultiGaze
 CAMERA	      = StereoBoard
-PROJECT       = multigaze_histogram
+PROJECT       = multigaze
+#PROJECT       = multigaze_histogram
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
 
