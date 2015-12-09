@@ -514,6 +514,7 @@ int main(void)
 
         avg_dist =  simpleKalmanFilter(&(covariance.height), prev_avg_dist,
                                        avg_dist, Q, R, RES);
+
         divergenceArray[4] = (uint8_t)avg_dist / 10;
         memcpy(divergenceArray + 5, previous_frame_offset, 2); // copy frame offset to output array
         divergenceArray[7] = frameRate;
@@ -531,8 +532,8 @@ int main(void)
 
         divergenceArray[7] = hz_x;
         //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
-        divergenceArray[8] = (uint8_t)(vel_hor + 127); // in dm/s
-        divergenceArray[9] = (uint8_t)(vel_ver + 127); // in dm/s
+        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in dm/s
+        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in dm/s
 
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 
