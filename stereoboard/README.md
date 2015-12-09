@@ -1,6 +1,6 @@
 StereoBoard
 ###########
 
- ```make BOARD=001```
+ ```make BOARD=001 PROJECT=calibrate ```
 
 
