@@ -71,7 +71,7 @@ while True:
             print height_meters
              
             velocity_x_stereoboard = (img[0,8]-127)/100
-            velocity_y_stereoboard = (img[0,9]-127)/100
+            velocity_y_stereoboard = (img[0,17])/500
 
             velocity_xHistory.append(velocity_x_stereoboard)
             velocity_yHistory.append(velocity_y_stereoboard)

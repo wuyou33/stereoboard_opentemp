@@ -118,6 +118,7 @@ struct displacement_t displacement;
 uint8_t initialisedDivergence = 0;
 int32_t avg_disp = 0;
 int32_t avg_dist = 0;
+int32_t prev_avg_dist = 0;
 uint8_t previous_frame_offset[2] = {1, 1};
 uint8_t quality_measures_edgeflow[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -125,7 +126,7 @@ const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
-uint8_t divergenceArray[18];
+uint8_t divergenceArray[22];
 
 void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY, uint8_t imagePartWidth, uint8_t imagePartHeight,uint8_t image_width_bytes){
 //	int indexX;
@@ -165,9 +166,11 @@ void divergence_init()
   covariance.flow_y = 20;
   covariance.div_x = 20;
   covariance.div_y = 20;
+  covariance.height = 20;
 
   avg_dist = 0;
   avg_disp = 0;
+  prev_avg_dist = 0;
 
   initialisedDivergence = 1;
 }
@@ -261,44 +264,43 @@ int main(void)
 	 ***********/
 	uint8_t maxDisparityFound=250;
 
+  stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
+  volatile int processed = 0;
 
-	stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
-	volatile int processed = 0;
+  // Disparity image buffer, initialised with zeros
+  //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
+  memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
-	// Disparity image buffer, initialised with zeros
-	//uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-	memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
+  // Stereo parameters:
+  uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8. disp = Npix*cam_separation /(2*dist*tan(FOV/2))
+  uint32_t disparity_min = 0;
+  uint32_t disparity_step = 1;
+  uint8_t thr1 = 7;
+  uint8_t thr2 = 4;
+  uint8_t diff_threshold = 4; // for filtering
 
-	// Stereo parameters:
-	uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8. disp = Npix*cam_separation /(2*dist*tan(FOV/2))
-	uint32_t disparity_min = 0;
-	uint32_t disparity_step = 1;
-	uint8_t thr1 = 7;
-	uint8_t thr2 = 4;
-	uint8_t diff_threshold = 4; // for filtering
+  // init droplet parameters
+  volatile uint16_t current_phase = 1;
 
-	// init droplet parameters
-	volatile uint16_t current_phase = 1;
+  // Settings for the depth matrix algorithm, calculated based on other settings
+  // Settings of the camera... used by the distance matrix algorithm
+  uint8_t blackBorderSize = 22;
+  uint8_t pixelsPerLine = 128;
+  uint8_t pixelsPerColumn = 96;
 
-	// Settings for the depth matrix algorithm, calculated based on other settings
-	// Settings of the camera... used by the distance matrix algorithm
-	uint8_t blackBorderSize = 22;
-	uint8_t pixelsPerLine = 128;
-	uint8_t pixelsPerColumn = 96;
+  uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
+                        / MATRIX_WIDTH_BINS;
+  uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
-	uint8_t widthPerBin = (pixelsPerLine - 2 * blackBorderSize)
-                        				/ MATRIX_WIDTH_BINS;
-	uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
+  // Initialize matrixbuffer
+  int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+  uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+  uint8_t toSendCommand = 0;
+  uint32_t sys_time_prev = sys_time_get();
+  uint32_t freq_counter = 0;
+  int32_t frameRate = 0;
 
-	// Initialize matrixbuffer
-	int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-	uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
-	uint8_t toSendCommand = 0;
-	uint32_t sys_time_prev = sys_time_get();
-	uint32_t freq_counter = 0;
-	int32_t frameRate = 0;
-
-	uint8_t histogramBuffer[pixelsPerLine];
+  uint8_t histogramBuffer[pixelsPerLine];
 
 #ifdef SEND_WINDOW
 
@@ -501,75 +503,91 @@ int main(void)
 			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE){
 				uint8_t maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
 				uint8_t toSendNow[1];
+				led_clear();
+				if(maxDispFound>60){
+					led_set();
+				}
 				toSendNow[0]=maxDispFound;
 				SendArray(toSendNow, 1, 1);
 			}
-			// compute and send divergence
-			if (current_stereoboard_algorithm == SEND_DIVERGENCE){// || current_stereoboard_algorithm == SEND_WINDOW) {
-				//if (initialisedDivergence == 0) {
-				//  initialiseDivergence();
-				//}
-                led_toggle();
-				// calculate the edge flow
-				calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-						previous_frame_offset, current_frame_nr , &quality_measures_edgeflow, 10, 10, 10,
-						IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
-				// Filter flow
-				// totalKalmanFilter(&covariance, &prev_edge_flow, &edge_flow, Q, R, RES);
 
-				divergenceArray[0] = (uint8_t)(edge_flow.horizontal_div/ previous_frame_offset[0] + 127);           // should be in 0.01px/frame
-				divergenceArray[1] = (uint8_t)(edge_flow.horizontal_flow/(10*previous_frame_offset[0]) + 127);       // should be in 0.1px/frame
+      // compute and send divergence
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE) { // || current_stereoboard_algorithm == SEND_WINDOW) {
+        //if (initialisedDivergence == 0) {
+        //  initialiseDivergence();
+        //}
+        led_toggle();
+        // calculate the edge flow
+        calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
+                            &previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 20, 0,
+                            IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
-				divergenceArray[2] = (uint8_t)(edge_flow.vertical_div/previous_frame_offset[1] + 127);             // should be in 0.01px/frame
-				divergenceArray[3] = (uint8_t)(edge_flow.vertical_flow/(10*previous_frame_offset[1]) + 127);         // should be in 0.1px/frame
+        // Filter flow
+        // totalKalmanFilter(&covariance, &prev_edge_flow, &edge_flow, Q, R, RES);
 
-				// disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
-				// d =  Npix*cam_separation /(2*disp*tan(FOV/2))
-				// d = 0.06*128 / (2*tan(disp*1.042/2))
-				// d = 0.06*128 / (2*disp*1.042/2)
-				// d = RES*0.06*128 / (disp*RES*1.042)
-				// d = RES*0.06*PIX / (disp*FOVX)
+        divergenceArray[0] = (uint8_t)(edge_flow.horizontal_div / previous_frame_offset[0] +
+                                       127);          // should be in 0.01px/frame
+        divergenceArray[1] = (uint8_t)(edge_flow.horizontal_flow / (10 * previous_frame_offset[0]) +
+                                       127);   // should be in 0.1px/frame
 
-				divergenceArray[4] = (uint8_t)avg_disp;
+        divergenceArray[2] = (uint8_t)(edge_flow.vertical_div / previous_frame_offset[1] +
+                                       127);           // should be in 0.01px/frame
+        divergenceArray[3] = (uint8_t)(edge_flow.vertical_flow / (10 * previous_frame_offset[1]) +
+                                       127);     // should be in 0.1px/frame
 
-				if (avg_disp > 0) {
-					avg_dist = RES * 6 * IMAGE_WIDTH / (avg_disp * FOVX);
-				}
-				else {
-					avg_dist = 1477; // 2 * RES * 6 * IMAGE_WIDTH / 104;
-				}
+        // disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
+        // d =  Npix*cam_separation /(2*disp*tan(FOV/2))
+        // d = 0.06*128 / (2*tan(disp*1.042/2))
+        // d = 0.06*128 / (2*disp*1.042/2)
+        // d = RES*0.06*128 / (disp*RES*1.042)
+        // d = RES*0.06*PIX / (disp*FOVX)
 
-				divergenceArray[4] = (uint8_t)avg_dist/10;
-				memcpy(divergenceArray+5, previous_frame_offset, 2);  // copy frame offset to output array
-				divergenceArray[7] = frameRate;
+        divergenceArray[4] = (uint8_t)avg_disp;
 
-				//store the time of the frame
-				edge_hist[current_frame_nr].frame_time = sys_time_get();
+        //TODO: double check distance measure
+        if (avg_disp > 0) {
+          avg_dist = RES * 3 * IMAGE_WIDTH / (avg_disp * FOVX);
+        } else {
+          avg_dist = 100; // 2 * RES * 6 * IMAGE_WIDTH / 104;
+        }
 
-				// Calculate velocity
-				int32_t hz_x = 2000/((int32_t)sys_time_get() - edge_hist[(current_frame_nr-previous_frame_offset[0]+MAX_HORIZON)%MAX_HORIZON].frame_time); // in s
-				int32_t hz_y = 2000/((int32_t)sys_time_get() - edge_hist[(current_frame_nr-previous_frame_offset[1]+MAX_HORIZON)%MAX_HORIZON].frame_time); // in s
-				 //int32_t frequency = 26; //TODO Fix frame rate
-				 int32_t vel_hor = edge_flow.horizontal_flow * avg_dist * hz_x *  FOVX / (RES*RES*IMAGE_WIDTH);
-				 int32_t vel_ver = edge_flow.vertical_flow  * avg_dist * hz_y  *  FOVY / (RES*RES*IMAGE_HEIGHT);
+        avg_dist =  simpleKalmanFilter(&(covariance.height), prev_avg_dist,
+                                       avg_dist, Q, R, RES);
+
+        divergenceArray[4] = (uint8_t)avg_dist / 10;
+        memcpy(divergenceArray + 5, previous_frame_offset, 2); // copy frame offset to output array
+        divergenceArray[7] = frameRate;
+
+        //store the time of the frame
+        edge_hist[current_frame_nr].frame_time = sys_time_get();
+
+        // Calculate velocity
+        int32_t hz_x = 2000 / ((int32_t)sys_time_get() - edge_hist[(current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
+                               MAX_HORIZON].frame_time); // in s
+        int32_t hz_y = 2000 / ((int32_t)sys_time_get() - edge_hist[(current_frame_nr - previous_frame_offset[1] + MAX_HORIZON) %
+                               MAX_HORIZON].frame_time); // in s
+        int32_t vel_hor = edge_flow.horizontal_flow * avg_dist * hz_x *  FOVX / (RES * RES * IMAGE_WIDTH);
+        int32_t vel_ver = edge_flow.vertical_flow  * avg_dist * hz_y  *  FOVY / (RES * RES * IMAGE_HEIGHT);
 
         divergenceArray[7] = hz_x;
         //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
-        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in cm/s
-        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in cm/s
+        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in dm/s
+        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in dm/s
 
-		        memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
+        memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 
-				memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+        memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
+        prev_avg_dist = avg_dist;
 
-				// move the indices for the edge hist structure
-				current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
-			}
 
-			// compute and send window detection parameters
-			if (current_stereoboard_algorithm == SEND_WINDOW) {
-				// XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
+        // move the indices for the edge hist structure
+        current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
+      }
+
+      // compute and send window detection parameters
+      if (current_stereoboard_algorithm == SEND_WINDOW) {
+        // XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
 
 #ifdef SEND_WINDOW
 				windowMsgBuf[2] = (uint8_t)detect_window_sizes(disparity_image_buffer_8bit, image_width, image_height, coordinate,
@@ -661,7 +679,7 @@ int main(void)
 #endif
 
 			if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
-				SendArray(divergenceArray, 19, 1);
+				SendArray(divergenceArray, 23, 1);
 			}
 			if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 				SendCommand(toSendCommand);

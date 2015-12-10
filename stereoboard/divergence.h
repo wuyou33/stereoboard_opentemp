@@ -12,7 +12,7 @@
 #include "main_parameters.h"
 
 #ifndef MAX_HORIZON
-#define MAX_HORIZON 2
+#define MAX_HORIZON 10
 #endif
 #ifndef DISP_RANGE_MAX 20
 #define DISP_RANGE_MAX 20
@@ -46,25 +46,26 @@ struct covariance_t {
   int32_t flow_y;
   int32_t div_x;
   int32_t div_y;
+  int32_t height;
 };
 
 void divergence_init();
 void calculate_edge_flow_simple(uint8_t *in, int32_t *edge_histogram, int32_t *edge_histogram_prev,
                                 int32_t *displacement, float *slope, float *yint, uint32_t image_width, uint32_t image_height);
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
-                         struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
+                         struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t *previous_frame_offset,
                          uint8_t current_frame_nr, uint8_t *quality_measures, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
                          uint16_t image_width, uint16_t image_height, uint16_t RES);
 void image_difference(uint8_t *in, uint8_t *in_prev, uint8_t *out, uint16_t image_width, uint16_t image_height);
 void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t image_width, uint16_t image_height,
                               char direction, char side, uint16_t edge_threshold);
-void calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
-                            uint16_t size, uint8_t window, uint8_t disp_range);
+uint32_t calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
+                                uint16_t size, uint8_t window, uint8_t disp_range);
 int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_histogram_2, uint16_t size,
     uint8_t disp_range);
 
-void line_fit(int32_t *displacement, int32_t *Slope, int32_t *Yint, uint32_t image_width, uint32_t border,
-              uint16_t RES);
+uint32_t line_fit(int32_t *displacement, int32_t *Slope, int32_t *Yint, uint32_t image_width, uint32_t border,
+                  uint16_t RES);
 void line_fit_RANSAC(int32_t *displacement, int32_t *slope, int32_t *yInt, uint16_t size, uint32_t border,
                      uint32_t RES);
 
@@ -76,7 +77,7 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
                           uint32_t image_height);
 
 //Helpfull functions
-uint32_t getMinimum2(uint32_t *a, uint32_t n);
+uint32_t getMinimum2(uint32_t *a, uint32_t n, uint32_t *min_error);
 uint32_t getMaximum(uint32_t *a, uint32_t n);
 uint32_t getMedian(int32_t *daArray, int32_t iSize);
 uint32_t getMean(int32_t *daArray, int32_t iSize);
