@@ -11,7 +11,9 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_FOLLOW_YOU
+#define DEFAULT_BOARD_FUNCTION SEND_SINGLE_DISTANCE
+#define HISTOGRAM_FUNCTION HISTOGRAM_FOLLOW_ME_DRONE
+#define HISTOGRAM_WIDTH 5
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 
@@ -53,7 +55,7 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 1000000 //9600
+#define USART4_BAUD 115200
 
 //////////////////////////////////////////////////////
 // Image Encoding

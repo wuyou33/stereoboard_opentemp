@@ -415,7 +415,8 @@ int main(void)
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm == SEND_MATRIX
           || current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
-          current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
+          current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
+		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE) {
         // Determine disparities:
         min_y = 0;
         max_y = 96;
@@ -488,7 +489,7 @@ int main(void)
       }
 
 			// send matrix buffer
-			if (current_stereoboard_algorithm == SEND_MATRIX) {
+			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE) {
 
 				// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
 				memset(matrixBuffer, 0, sizeof matrixBuffer);
@@ -497,7 +498,12 @@ int main(void)
 				calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 			}
-
+			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE){
+				uint8_t maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
+				uint8_t toSendNow[1];
+				toSendNow[0]=maxDispFound;
+				SendArray(toSendNow, 1, 1);
+			}
 			// compute and send divergence
 			if (current_stereoboard_algorithm == SEND_DIVERGENCE){// || current_stereoboard_algorithm == SEND_WINDOW) {
 				//if (initialisedDivergence == 0) {
@@ -664,9 +670,9 @@ int main(void)
 				SendCommand(toSendCommand);
 			}
 			if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
-				//SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
 				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
-				SendArray(target_location,3, 1); // send 3D location of target
+				//SendArray(target_location,3, 1); // send 3D location of target
 			}
 		}
 	}
