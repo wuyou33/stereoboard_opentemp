@@ -64,22 +64,24 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE,DISPARITY_BASED_VELOCITY} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE,DISPARITY_BASED_VELOCITY, STEREO_VELOCITY} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY))
 	return DEFAULT_BOARD_FUNCTION;
 #elif defined(DISPARITY_BASED_VELOCITY)
-	return DISPARITY_BASED_VELOCITY
+	return DISPARITY_BASED_VELOCITY;
+#elif defined( STEREO_VELOCITY)
+	return  STEREO_VELOCITY;
 #elif defined(SEND_FOLLOW_YOU)
-	return SEND_FOLLOW_YOU
+	return SEND_FOLLOW_YOU;
 #elif defined(SEND_SINGLE_DISTANCE)
-	return SEND_SINGLE_DISTANCE
+	return SEND_SINGLE_DISTANCE;
 #elif defined(SEND_DELFLY_CORRIDOR)
-	return SEND_DELFLY_CORRIDOR
+	return SEND_DELFLY_CORRIDOR;
 #elif defined(SEND_HISTOGRAM)
 	return SEND_HISTOGRAM;
 #elif defined(SEND_COMMANDS)
@@ -346,6 +348,7 @@ int main(void)
   msg_start = 0;
 
   // Disparity based velocity estimation variables
+  uint8_t maxDispFound = 0;
   int disparity_velocity_step=0;
   int disparity_velocity_max_time = 500;
   int distancesRecorded=0;
@@ -432,7 +435,8 @@ int main(void)
           || current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
-		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY) {
+		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY
+		  || current_stereoboard_algorithm==STEREO_VELOCITY ) {
         // Determine disparities:
         min_y = 0;
         max_y = 96;
@@ -505,7 +509,7 @@ int main(void)
       }
 
 			// send matrix buffer
-			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY) {
+			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY) {
 
 				// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
 				memset(matrixBuffer, 0, sizeof matrixBuffer);
@@ -571,20 +575,23 @@ int main(void)
 				 }
 
 			}
-			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE){
-				uint8_t maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
-				uint8_t toSendNow[1];
-				led_clear();
-				if(maxDispFound>60){
-					led_set();
+			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY){
+				maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
+				if(current_stereoboard_algorithm != STEREO_VELOCITY)
+				{
+					uint8_t toSendNow[1];
+					led_clear();
+					if(maxDispFound>60){
+						led_set();
+					}
+					toSendNow[0]=maxDispFound;
+					SendArray(toSendNow, 1, 1);
 				}
-				toSendNow[0]=maxDispFound;
-				SendArray(toSendNow, 1, 1);
 			}
 
 
       // compute and send divergence
-      if (current_stereoboard_algorithm == SEND_DIVERGENCE) { // || current_stereoboard_algorithm == SEND_WINDOW) {
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) { // || current_stereoboard_algorithm == SEND_WINDOW) {
         //if (initialisedDivergence == 0) {
         //  initialiseDivergence();
         //}
@@ -643,8 +650,17 @@ int main(void)
 
         divergenceArray[7] = hz_x;
         //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
-        divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in dm/s
-        divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in dm/s
+        if(current_stereoboard_algorithm == STEREO_VELOCITY)
+        {
+        	divergenceArray[8] = (uint8_t)(vel_hor + 127); // in cm/s
+        	divergenceArray[9] = (uint8_t)(vel_ver + 127); // in cm/s
+        }
+        else
+        {
+        	divergenceArray[8] = (uint8_t)(vel_hor / 10 + 127); // in dm/s
+        	divergenceArray[9] = (uint8_t)(vel_ver / 10 + 127); // in dm/s
+        }
+
 
         memcpy(divergenceArray + 10, &quality_measures_edgeflow, 10 * sizeof(uint8_t)); // copy quality measures to output array
 
@@ -748,6 +764,11 @@ int main(void)
 				SendArray(windowMsgBuf, WINDOWBUFSIZE, 1);
 			}
 #endif
+
+			if (current_stereoboard_algorithm == STEREO_VELOCITY) {
+				divergenceArray[4] = maxDispFound;
+				SendArray(divergenceArray, 23, 1);
+			}
 
 			if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
 				SendArray(divergenceArray, 23, 1);
