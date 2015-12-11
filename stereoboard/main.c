@@ -64,15 +64,16 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE,DISPARITY_BASED_VELOCITY} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY))
 	return DEFAULT_BOARD_FUNCTION;
-
+#elif defined(DISPARITY_BASED_VELOCITY)
+	return DISPARITY_BASED_VELOCITY
 #elif defined(SEND_FOLLOW_YOU)
 	return SEND_FOLLOW_YOU
 #elif defined(SEND_SINGLE_DISTANCE)
@@ -193,7 +194,12 @@ void window_init()
 
 #endif
 
-
+void array_pop(float* array, int lengthArray){
+	int index;
+	for(index=1; index < lengthArray; index++){
+		array[index-1]=array[index];
+	}
+}
 /**
  * @brief  Main program
  * @param  None
@@ -339,6 +345,14 @@ int main(void)
   extract_loc = 0;
   msg_start = 0;
 
+  // Disparity based velocity estimation variables
+  int disparity_velocity_step=0;
+  int disparity_velocity_max_time = 500;
+  int distancesRecorded=0;
+  int timeStepsRecorded=0;
+  int velocity_disparity_outliers=0;
+  float distancesHistory[disparity_velocity_max_time];
+  float timeStepHistory[disparity_velocity_max_time];
 	// initialize divergence
 	divergence_init();
 	led_clear();
@@ -418,7 +432,7 @@ int main(void)
           || current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
-		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE) {
+		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY) {
         // Determine disparities:
         min_y = 0;
         max_y = 96;
@@ -491,7 +505,7 @@ int main(void)
       }
 
 			// send matrix buffer
-			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE) {
+			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY) {
 
 				// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
 				memset(matrixBuffer, 0, sizeof matrixBuffer);
@@ -499,6 +513,63 @@ int main(void)
 				// Create the distance matrix by summing pixels per bin
 				calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+			}
+			if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
+				 //Disparity based velocity estimate
+				 //# keep a time step list and average disparity list for plotting:
+//				 step += 1;
+				 disparity_velocity_step += 1;
+				 //# for now maximum disparity, later the average:
+				 int max_disparity=maxInArray(toSendBuffer, sizeof toSendBuffer);
+				 float dist = 1.0 / (max_disparity + 0.1);
+				 float alpha = 0.95;
+				 float new_dist =0.0;
+				 if(distancesRecorded>0){
+					 float new_dist = alpha*distancesHistory[distancesRecorded-1] + (1-alpha)*dist;
+				 }
+				 //				 # Deal with outliers:
+//				 # Single outliers are discarded, while persisting outliers will lead to an array reset:
+				 int MAX_SUBSEQUENT_OUTLIERS = 5;
+
+				 if(distancesRecorded>0 && abs(dist - distancesHistory[distancesRecorded-1]) > 1.5){
+					 velocity_disparity_outliers+=1;
+					 if(velocity_disparity_outliers >= MAX_SUBSEQUENT_OUTLIERS){
+//						 # The drone has probably turned in a new direction:
+//						 print '*** TURNED!!! ***'
+
+					 	 distancesHistory[0]=dist;
+					 	 distancesRecorded=1;
+
+					 	timeStepHistory[0]= disparity_velocity_step;
+					 	timeStepsRecorded=1;
+						 velocity_disparity_outliers = 0;
+					 }
+				 }
+				 else{
+					 velocity_disparity_outliers = 0;
+//					 # append:
+					 timeStepHistory[timeStepsRecorded++]= disparity_velocity_step;
+					 distancesHistory[distancesRecorded++]=new_dist;
+				 }
+//				 # determine velocity (very simple method):
+				 int n_steps_velocity = 20;
+				 if(distancesRecorded > n_steps_velocity){
+					 float velocity = distancesHistory[distancesRecorded-n_steps_velocity] - distancesHistory[distancesRecorded-1];
+//			            int32_t *pointer = (int32_t *)msg_buf;
+			          uint8_t toSendArrayVel[20];
+			          float *pointer = (float *)toSendArrayVel;
+			          pointer[0]=velocity;
+			          SendArray(toSendArrayVel, 1,sizeof(float));
+				 }
+
+//				 # keep maximum array size:
+				 if(distancesRecorded > disparity_velocity_max_time){
+				 	 array_pop(distancesHistory,disparity_velocity_max_time);
+				 }
+				 if(timeStepsRecorded > disparity_velocity_max_time){
+					 array_pop(timeStepHistory,disparity_velocity_max_time);
+				 }
+
 			}
 			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE){
 				uint8_t maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
