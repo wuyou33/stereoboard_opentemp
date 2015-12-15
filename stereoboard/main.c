@@ -429,7 +429,6 @@ int main(void)
 
 			// New frame code: Vertical blanking = ON
 
-
       // Calculate the disparity map, only when we need it
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm == SEND_MATRIX
           || current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
@@ -519,61 +518,17 @@ int main(void)
 						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 			}
 			if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
-				 //Disparity based velocity estimate
-				 //# keep a time step list and average disparity list for plotting:
-//				 step += 1;
-				 disparity_velocity_step += 1;
-				 //# for now maximum disparity, later the average:
-				 int max_disparity=maxInArray(toSendBuffer, sizeof toSendBuffer);
-				 float dist = 1.0 / (max_disparity + 0.1);
-				 float alpha = 0.95;
-				 float new_dist =0.0;
-				 if(distancesRecorded>0){
-					 float new_dist = alpha*distancesHistory[distancesRecorded-1] + (1-alpha)*dist;
-				 }
-				 //				 # Deal with outliers:
-//				 # Single outliers are discarded, while persisting outliers will lead to an array reset:
-				 int MAX_SUBSEQUENT_OUTLIERS = 5;
+				float  BASELINE_STEREO_MM = 60.0;
+				float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
+				disparity_velocity_step += 1;
+				// for now maximum disparity, later the average:
+				int max_disparity2 = maxInArray(toSendBuffer,sizeof toSendBuffer);
 
-				 if(distancesRecorded>0 && abs(dist - distancesHistory[distancesRecorded-1]) > 1.5){
-					 velocity_disparity_outliers+=1;
-					 if(velocity_disparity_outliers >= MAX_SUBSEQUENT_OUTLIERS){
-//						 # The drone has probably turned in a new direction:
-//						 print '*** TURNED!!! ***'
-
-					 	 distancesHistory[0]=dist;
-					 	 distancesRecorded=1;
-
-					 	timeStepHistory[0]= disparity_velocity_step;
-					 	timeStepsRecorded=1;
-						 velocity_disparity_outliers = 0;
-					 }
-				 }
-				 else{
-					 velocity_disparity_outliers = 0;
-//					 # append:
-					 timeStepHistory[timeStepsRecorded++]= disparity_velocity_step;
-					 distancesHistory[distancesRecorded++]=new_dist;
-				 }
-//				 # determine velocity (very simple method):
-				 int n_steps_velocity = 20;
-				 if(distancesRecorded > n_steps_velocity){
-					 float velocity = distancesHistory[distancesRecorded-n_steps_velocity] - distancesHistory[distancesRecorded-1];
-//			            int32_t *pointer = (int32_t *)msg_buf;
-			          uint8_t toSendArrayVel[20];
-			          float *pointer = (float *)toSendArrayVel;
-			          pointer[0]=velocity;
-			          SendArray(toSendArrayVel, 1,sizeof(float));
-				 }
-
-//				 # keep maximum array size:
-				 if(distancesRecorded > disparity_velocity_max_time){
-				 	 array_pop(distancesHistory,disparity_velocity_max_time);
-				 }
-				 if(timeStepsRecorded > disparity_velocity_max_time){
-					 array_pop(timeStepHistory,disparity_velocity_max_time);
-				 }
-
+				float dist = 5.0;
+				if (max_disparity2 > 0) {
+				  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)max_disparity2)) / 1000;
+				}
+				calculateForwardVelocity(dist,0.65, 5,5);
 			}
 			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY){
 				maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
