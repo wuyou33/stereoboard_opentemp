@@ -141,6 +141,9 @@ system_stm32f4xx.c \
 ../common/stereoprotocol.h\
 forward_velocity_estimator.c \
 forward_velocity_estimator.h \
+disparity_map_functions.c \
+disparity_map_functions.h \
+forward_velocity_estimator.h \
 usart.c \
 usart.h \
 dcmi.c \

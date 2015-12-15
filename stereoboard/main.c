@@ -50,6 +50,7 @@
 #include "window_detection.h"
 #include "../common/stereoprotocol.h"
 #include "forward_velocity_estimator.h"
+#include "disparity_map_functions.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -305,7 +306,6 @@ int main(void)
   uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendCommand = 0;
   uint32_t sys_time_prev = sys_time_get();
-  uint32_t freq_counter = 0;
   int32_t frameRate = 0;
 
   uint8_t histogramBuffer[pixelsPerLine];
@@ -351,8 +351,6 @@ int main(void)
   // Disparity based velocity estimation variables
   uint8_t maxDispFound = 0;
   int disparity_velocity_step=0;
-  int disparity_velocity_max_time = 500;
-
 	// initialize divergence
 	divergence_init();
 	led_clear();
@@ -452,7 +450,15 @@ int main(void)
       }
 
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
-        calculateHistogram(disparity_image_buffer_8bit, histogramBuffer, blackBorderSize, pixelsPerLine, image_height);
+    	  horizontal_histogram_type histogram_type;
+    	  if(HISTOGRAM_FUNCTION==HISTOGRAM_FOLLOW_ME_DRONE){
+    		  histogram_type = FOLLOW_ME_HISTOGRAM;
+    	  }
+    	  else{
+    		  histogram_type = AVOID_ME_HISTOGRAM;
+    	  }
+
+    	  histogram_x_direction(disparity_image_buffer_8bit, histogramBuffer, histogram_type,blackBorderSize, pixelsPerLine, image_height);
 
         if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
           toSendCommand = calculateHeadingFromHistogram(histogramBuffer);
