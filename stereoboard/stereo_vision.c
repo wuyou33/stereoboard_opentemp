@@ -1525,9 +1525,9 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
 
 uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
 {
-	volatile uint8_t disp_min = 12;
+	volatile uint8_t disp_min = 13;
 	volatile uint8_t max_disp_threshold = 10;
-	volatile uint8_t disp_window = 10;
+	volatile uint8_t disp_window = 7;
 
 	volatile uint16_t x = 0;
 	volatile uint16_t y = 0;
@@ -1568,12 +1568,14 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 			if (disp > disp_min)
 			{
 				disp_hist[disp]++;
+				disp_hist[disp-1]++;
+				disp_hist[disp+1]++;
 			}
 		}
 	}
 
 	// find disparity peak in histogram
-	for (i = 1; i < 200; i++ )
+	for ( i = disp_min + disp_window; i < 200; i++ )
 	{
 		if ( disp_hist[i] > max_disp_count)
 		{
@@ -1678,6 +1680,7 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 		// compute and visualize middle line of object
 		mean_X = (min_X+max_X)/2;
 		current_image_buffer[(mean_X*2) + 1 + (min_y * image_width_bytes)] = 255;
+
 
 		// compute average disparity of object
 		for (y = min_y; y < max_y; y++) {

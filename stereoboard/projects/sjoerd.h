@@ -19,7 +19,7 @@
 // Settings
 #define MAX_RATIO 10 // 10
 #define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
-#define LARGE_IMAGE
+//#define LARGE_IMAGE
 
 
 
