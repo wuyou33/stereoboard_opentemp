@@ -97,7 +97,7 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
       //    // make image gradients absolute such that we can look for maximum values in the next step
       arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
 
-      for (i = half_horizontal_block_size + abs(disparity_min); i < half_imageWidth; i++) {
+      for (i = half_horizontal_block_size + MAX(disparity_min,0); i < half_imageWidth; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
@@ -312,13 +312,13 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
   int half_horizontal_block_size = (horizontal_block_size - 1) / 2;
 
   int fakeShitImageWidth = 128;
-  int half_imageWidth = fakeShitImageWidth / 2;
+  //int half_imageWidth = fakeShitImageWidth / 2;
   int idx0 = 0; // line starting point index
   int idx_SAD = -1; // SAD block index
   int idx_line = 100; // SAD block index
   uint32_t lineIndex = 0;
   volatile int i = 0; // iterator
-  volatile int ii = 0; // iterator
+  //volatile int ii = 0; // iterator
   // int d = 0; // iterator
   volatile int h = 0; // iterator
   volatile int v = 0; // iterator
@@ -380,7 +380,7 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
       arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth-1);
 
 
-      for (i = half_horizontal_block_size + abs(disparity_min); i < fakeShitImageWidth-half_horizontal_block_size-disparity_range; i++) {
+      for (i = half_horizontal_block_size + MAX(disparity_min,0); i < fakeShitImageWidth-half_horizontal_block_size-disparity_range; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
@@ -1526,9 +1526,9 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
 
 uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
 {
-	volatile uint8_t disp_min = 12;
+	volatile uint8_t disp_min = 13;
 	volatile uint8_t max_disp_threshold = 10;
-	volatile uint8_t disp_window = 10;
+	volatile uint8_t disp_window = 7;
 
 	volatile uint16_t x = 0;
 	volatile uint16_t y = 0;
@@ -1569,12 +1569,14 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 			if (disp > disp_min)
 			{
 				disp_hist[disp]++;
+				disp_hist[disp-1]++;
+				disp_hist[disp+1]++;
 			}
 		}
 	}
 
 	// find disparity peak in histogram
-	for (i = 1; i < 200; i++ )
+	for ( i = disp_min + disp_window; i < 200; i++ )
 	{
 		if ( disp_hist[i] > max_disp_count)
 		{
@@ -1680,6 +1682,7 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 		mean_X = (min_X+max_X)/2;
 		current_image_buffer[(mean_X*2) + 1 + (min_y * image_width_bytes)] = 255;
 
+
 		// compute average disparity of object
 		for (y = min_y; y < max_y; y++) {
 			for (x = min_X; x < max_X; x++) {
@@ -1704,6 +1707,8 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 
 
 	} // endif object found
+
+	return disp_count;
 
 }
 
@@ -1818,7 +1823,7 @@ uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_
 	volatile int16_t disp_mean = 0;
 	volatile uint16_t z_mean = 0;
 
-	volatile uint16_t nr_of_features = feature_count_limit;
+	//volatile uint16_t nr_of_features = feature_count_limit;
 	volatile uint16_t nr_of_features2 = feature_count_limit;
 	volatile uint16_t count_features = 0;
 
