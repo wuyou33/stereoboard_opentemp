@@ -1705,8 +1705,6 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 
 	} // endif object found
 
-
-
 }
 
 
@@ -1717,10 +1715,6 @@ uint16_t getFeatureImageLocations_old(uint8_t *disparity_image_buffer, uint8_t *
 	uint8_t disp_close = 86; //86; // approx 0.5m
 	const uint8_t nr_bins = 10;
 	volatile uint8_t bin_min_value = 30;
-
-	volatile uint8_t method = 1;
-
-
 	volatile uint8_t disp = 0;
 	volatile uint8_t disp_bins [nr_bins];
 	volatile uint8_t bin_width = (disp_close-disp_far)/nr_bins;

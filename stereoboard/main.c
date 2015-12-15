@@ -271,7 +271,6 @@ int main(void)
 	/***********
 	 * MAIN LOOP
 	 ***********/
-	uint8_t maxDisparityFound=250;
 
   stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
   volatile int processed = 0;
@@ -353,8 +352,6 @@ int main(void)
   uint8_t maxDispFound = 0;
   int disparity_velocity_step=0;
   int disparity_velocity_max_time = 500;
-  int distancesRecorded=0;
-  int velocity_disparity_outliers=0;
 
 	// initialize divergence
 	divergence_init();
