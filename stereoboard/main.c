@@ -517,7 +517,7 @@ int main(void)
       }
 
 			// send matrix buffer
-			if (current_stereoboard_algorithm == SEND_MATRIX || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY) {
+			if (current_stereoboard_algorithm == SEND_MATRIX ) {
 
 				// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
 				memset(matrixBuffer, 0, sizeof matrixBuffer);
@@ -526,32 +526,37 @@ int main(void)
 				calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
 						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 			}
+			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
+			{
+				// Determine the maximum disparity using the disparity map
+				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
+				int amountDisparitiesRejected=20;
+				int histogramIndex=pixelsPerLine;
+				int amountDisparitiesCount=0;
+				maxDispFound=0;
+				for(histogramIndex=pixelsPerLine;histogramIndex>0;histogramIndex--){
+					amountDisparitiesCount+=histogramBuffer[histogramIndex];
+					if(amountDisparitiesCount>amountDisparitiesRejected){
+						maxDispFound=histogramIndex;
+						break;
+					}
+				}
+			}
+
+
 			if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
 				float  BASELINE_STEREO_MM = 60.0;
 				float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
 				disparity_velocity_step += 1;
 				// for now maximum disparity, later the average:
-				int max_disparity2 = maxInArray(toSendBuffer,sizeof toSendBuffer);
 
 				float dist = 5.0;
-				if (max_disparity2 > 0) {
-				  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)max_disparity2)) / 1000;
+				if (maxDispFound > 0) {
+				  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
 				}
 				calculateForwardVelocity(dist,0.65, 5,5);
 			}
-			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY){
-				maxDispFound = maxInArray(toSendBuffer, sizeof toSendBuffer);
-				if(current_stereoboard_algorithm != STEREO_VELOCITY)
-				{
-					uint8_t toSendNow[1];
-					led_clear();
-					if(maxDispFound>60){
-						led_set();
-					}
-					toSendNow[0]=maxDispFound;
-					SendArray(toSendNow, 1, 1);
-				}
-			}
+
 
       // compute and send divergence
       if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) { // || current_stereoboard_algorithm == SEND_WINDOW) {
@@ -720,6 +725,16 @@ int main(void)
 			if (current_stereoboard_algorithm == SEND_MATRIX) {
 				SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
 			}
+			if(current_stereoboard_algorithm == SEND_SINGLE_DISTANCE)
+			{
+				uint8_t toSendNow[1];
+				led_clear();
+				if(maxDispFound>60){
+					led_set();
+				}
+				toSendNow[0]=maxDispFound;
+				SendArray(toSendNow, 1, 1);
+			}
 
 #ifdef SEND_WINDOW
 
@@ -730,6 +745,10 @@ int main(void)
 
 			if (current_stereoboard_algorithm == STEREO_VELOCITY) {
 				divergenceArray[4] = maxDispFound;
+				led_clear();
+				if(maxDispFound>60){
+					led_set();
+				}
 				SendArray(divergenceArray, 23, 1);
 			}
 

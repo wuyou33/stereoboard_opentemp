@@ -103,7 +103,10 @@ void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, u
 	uint8_t max_y=90;
 	uint8_t disp_min=1;
 	uint8_t disp;
+	for (x = 0; x < pixelsPerLine; x++) {
+			histogramBuffer[x]=0;
 
+	}
 	for (y = 0; y < max_y; y++) {
 		for (x = 0; x < pixelsPerLine; x++) {
 
