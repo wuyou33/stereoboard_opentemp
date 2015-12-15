@@ -324,14 +324,14 @@ int main(void)
 
 	// Settings and initialisation for FOLLOW_YOU
 	uint16_t feature_count_limit = 10;
-	uint8_t positionVelocityVector[12]; // 2-byte protocol, [Xh,Xl,Yh,Yl,Zh,Zl, Vxh,Vxl,Vyh,Vyl,Vzh,Vzl]
 	int no_prev_measurment = 0;
-	int16_t pos_x,pos_y = 0;
 	uint8_t feature_image_locations [3*feature_count_limit];
 	float feature_XYZ_locations[3*feature_count_limit];
 	volatile uint16_t nr_of_features = 0;
 	uint8_t target_location [3];
 
+
+	int pos_y=0;
 
   // Stereo communication input protocol
   uint8_t ser_read_buf[STEREO_BUF_SIZE];           // circular buffer for incoming data
@@ -352,10 +352,8 @@ int main(void)
   int disparity_velocity_step=0;
   int disparity_velocity_max_time = 500;
   int distancesRecorded=0;
-  int timeStepsRecorded=0;
   int velocity_disparity_outliers=0;
-  float distancesHistory[disparity_velocity_max_time];
-  float timeStepHistory[disparity_velocity_max_time];
+
 	// initialize divergence
 	divergence_init();
 	led_clear();

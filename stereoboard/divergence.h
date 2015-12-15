@@ -14,7 +14,7 @@
 #ifndef MAX_HORIZON
 #define MAX_HORIZON 10
 #endif
-#ifndef DISP_RANGE_MAX 20
+#ifndef DISP_RANGE_MAX
 #define DISP_RANGE_MAX 20
 #endif
 
