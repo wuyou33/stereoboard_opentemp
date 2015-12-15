@@ -22,6 +22,7 @@ void calculateDistanceMatrix(uint8_t *disparity_image,
 void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t heightPerLine);
 
 uint8_t calculateHeadingFromHistogram(uint8_t *histogramBuffer);
+uint8_t maxInArray(uint8_t *array, int length);
 
 
 #endif /* DISTANCE_MATRIX_H_ */

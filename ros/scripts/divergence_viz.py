@@ -6,11 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import math
-plt.axis([0,300, 0 , 255])
+plt.axis([0,300, -0.5,0.5])
 plt.ion()
 plt.show()
    
-ser = serial.Serial('/dev/ttyUSB0',115200,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 height = 0
 radperpx = 0
 distance_pinhole = 0.03
@@ -25,8 +25,6 @@ velocity_x=0
 velocity_y=0
 velocity_xHistory=[]
 velocity_yHistory=[]
-
-counter = 0;
 while True:
     try:
         # Read the image
@@ -53,7 +51,6 @@ while True:
 	    slope_y=(img[0,2]-100)/1000
             yint_y=(img[0,3]-100)/100
             height=img[0,4]
-
             
             radperpx=(FOV_x*math.pi/180)/128
             angle_disp=height/2*radperpx
@@ -69,31 +66,18 @@ while True:
             print velocity_x
             print velocity_y
             print height_meters
-             
-            velocity_x_stereoboard = (img[0,8]-127)/100
-            velocity_y_stereoboard = (img[0,17])/500
 
-            velocity_xHistory.append(velocity_x_stereoboard)
-            velocity_yHistory.append(velocity_y_stereoboard)
-            #velocity_xHistory.append(img[0,15])            
-            #velocity_yHistory.append(img[0,16])            
 
-            if counter > 100:
-                del velocity_xHistory[0]
-            	del velocity_yHistory[0]
-            else:
-                counter = counter + 1
-
-            plt.cla()
-	    plt.axis([0,100, -1,1])
+            velocity_xHistory.append(velocity_x)
+            velocity_yHistory.append(velocity_y)
 	    plt.plot(velocity_xHistory)
 	    plt.draw()
             plt.plot(velocity_yHistory)
 	    plt.draw()
 
-	    #time.sleep(0.05)
+	    time.sleep(0.05)
         
-            
+
     except Exception as excep:
         stereoboard_tools.PrintException()
         print 'error! ' , excep

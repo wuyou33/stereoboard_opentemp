@@ -99,7 +99,11 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
 
   // Fill the disparity histogram:
   int histoIndex;
+#ifdef HISTOGRAM_WIDTH
+  uint8_t dist=HISTOGRAM_WIDTH;
+#else
   uint8_t dist=3;
+#endif
   for (histoIndex = 0; histoIndex < pixelsPerLine ; histoIndex++) {
 	histogramBuffer[histoIndex] = 0;
   }
@@ -160,6 +164,32 @@ void calculateHistogram(uint8_t *disparity_image, uint8_t *histogramBuffer, uint
 		  }
 	  }
   }
+}
+
+
+uint8_t calculateClosestDisparityFromHistogram(uint8_t *histogramBuffer, int histogramLength)
+{
+	uint8_t maxFound=0;
+	int index;
+	int border=30;
+	for(index=border; index < histogramLength-border; index++){
+		if(histogramBuffer[index] > maxFound){
+			maxFound=histogramBuffer[index];
+		}
+	}
+	return maxFound;
+//	return ;
+}
+uint8_t maxInArray(uint8_t *array, int length)
+{
+	uint8_t maxFound=0;
+	int index;
+	for(index=0; index < length; index++){
+		if(array[index] > maxFound){
+			maxFound=array[index];
+		}
+	}
+	return maxFound;
 }
 
 uint8_t calculateHeadingFromHistogram(uint8_t *histogramBuffer)

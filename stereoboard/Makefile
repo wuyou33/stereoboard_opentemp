@@ -139,6 +139,8 @@ system_stm32f4xx.c \
 ../common/led.h \
 ../common/stereoprotocol.c\
 ../common/stereoprotocol.h\
+forward_velocity_estimator.c \
+forward_velocity_estimator.h \
 usart.c \
 usart.h \
 dcmi.c \
