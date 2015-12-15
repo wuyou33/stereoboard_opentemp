@@ -1,6 +1,7 @@
 // Stereo vision code
 
 #include "stereo_vision.h"
+#include "../common/led.h"
 #include BOARD_FILE
 
 /**

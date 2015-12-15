@@ -94,6 +94,7 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
   calculate_edge_histogram(in, edge_histogram_x_right, image_width, image_height, 'x', 'r', edge_threshold);
 
   // Calculate displacement
+#pragma GCC diagnostic ignored "-Wunused-variable"
   uint32_t min_error_hor = calculate_displacement(edge_histogram_x, prev_edge_histogram_x, displacement->horizontal,
                            image_width, window_size,
                            disp_range);

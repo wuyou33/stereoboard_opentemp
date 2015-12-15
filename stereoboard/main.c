@@ -48,7 +48,8 @@
 #include "filter_color.h"
 #include "stereo_vision.h"
 #include "window_detection.h"
-
+#include "../common/stereoprotocol.h"
+#include "forward_velocity_estimator.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -338,10 +339,11 @@ int main(void)
   uint8_t msg_buf[STEREO_BUF_SIZE];         // define local data
   typedef struct {
     uint8_t len;
+    uint8_t height;
     uint8_t *data;
     uint8_t data_new;
   } uint8array;
-  uint8array stereocam_data = {.len = 0, .data = msg_buf, .data_new = 0};  // buffer used to contain image without line endings
+  uint8array stereocam_data = {.len = 0, .data = msg_buf, .data_new = 0,.height=0};  // buffer used to contain image without line endings
   uint16_t insert_loc, extract_loc, msg_start;   // place holders for buffer read and write
   insert_loc = 0;
   extract_loc = 0;
@@ -411,7 +413,7 @@ int main(void)
         readChar = UsartRx();
         uint16_t length = STEREO_BUF_SIZE;
         if (handleStereoPackage(readChar, length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
-                                &stereocam_data.data_new, &stereocam_data.len)) {
+                                &stereocam_data.data_new, &stereocam_data.len,&stereocam_data.height)) {
           if (stereocam_data.len > 50) {
 
             int32_t *pointer = (int32_t *)msg_buf;
@@ -542,7 +544,6 @@ int main(void)
 				}
 			}
 
-
       // compute and send divergence
       if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) { // || current_stereoboard_algorithm == SEND_WINDOW) {
         //if (initialisedDivergence == 0) {
@@ -604,7 +605,7 @@ int main(void)
         divergenceArray[7] = hz_x;
         //TODO: Find where the multi. of 10 comes from, the optitrack gives a lower value in speed.
         if(current_stereoboard_algorithm == STEREO_VELOCITY)
-        {
+       {
         	divergenceArray[8] = (uint8_t)(vel_hor + 127); // in cm/s
         	divergenceArray[9] = (uint8_t)(vel_ver + 127); // in cm/s
         }
