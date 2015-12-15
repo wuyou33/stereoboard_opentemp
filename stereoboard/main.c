@@ -285,7 +285,7 @@ int main(void)
   uint32_t disparity_step = 1;
   uint8_t thr1 = 7;
   uint8_t thr2 = 4;
-  uint8_t diff_threshold = 4; // for filtering
+  //uint8_t diff_threshold = 4; // for filtering
 
   // init droplet parameters
   volatile uint16_t current_phase = 1;
@@ -305,9 +305,12 @@ int main(void)
   uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendCommand = 0;
   uint32_t sys_time_prev = sys_time_get();
-  uint32_t freq_counter = 0;
-  int32_t frameRate = 0;
 
+#ifdef AVG_FREQ
+  uint32_t freq_counter = 0;
+#endif
+
+  int32_t frameRate = 0;
   uint8_t histogramBuffer[pixelsPerLine];
 
 #ifdef SEND_WINDOW
@@ -326,7 +329,7 @@ int main(void)
 	uint16_t feature_count_limit = 10;
 	int no_prev_measurment = 0;
 	uint8_t feature_image_locations [3*feature_count_limit];
-	float feature_XYZ_locations[3*feature_count_limit];
+	//float feature_XYZ_locations[3*feature_count_limit];
 	volatile uint16_t nr_of_features = 0;
 	uint8_t target_location [3];
 
