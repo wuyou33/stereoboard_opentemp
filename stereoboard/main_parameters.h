@@ -34,6 +34,10 @@
 
 //////////////////////////////////////////////////////
 // Settings
+#ifndef USE_MONOCAM
+#define USE_MONOCAM 0
+#endif
+
 #ifndef STEREO_BUF_SIZE
 #define STEREO_BUF_SIZE 400
 #endif

@@ -54,6 +54,7 @@
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
+#define DIVERGENCE_QUALITY_MEASURES_LENGTH 18
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -125,8 +126,7 @@ int32_t avg_disp = 0;
 int32_t avg_dist = 0;
 int32_t prev_avg_dist = 0;
 uint8_t previous_frame_offset[2] = {1, 1};
-uint8_t quality_measures_edgeflow[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
+uint8_t quality_measures_edgeflow[DIVERGENCE_QUALITY_MEASURES_LENGTH];
 const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
@@ -360,6 +360,12 @@ int main(void)
 	// initialize divergence
 	divergence_init();
 	led_clear();
+	uint8_t quality_measures_index;
+	for(quality_measures_index=0;quality_measures_index<DIVERGENCE_QUALITY_MEASURES_LENGTH;quality_measures_index++){
+		quality_measures_edgeflow[quality_measures_index++]=0;
+	}
+
+
 	while (1) {
 		if (current_stereoboard_algorithm == SEND_PROXIMITY) {
 			/*
@@ -527,14 +533,13 @@ int main(void)
 						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 			}
 			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
-			{
-				// Determine the maximum disparity using the disparity map
+			{	// Determine the maximum disparity using the disparity map
 				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
 				int amountDisparitiesRejected=20;
 				int histogramIndex=pixelsPerLine;
 				int amountDisparitiesCount=0;
 				maxDispFound=0;
-				for(histogramIndex=pixelsPerLine;histogramIndex>0;histogramIndex--){
+				for(histogramIndex=pixelsPerLine-20;histogramIndex>0;histogramIndex--){
 					amountDisparitiesCount+=histogramBuffer[histogramIndex];
 					if(amountDisparitiesCount>amountDisparitiesRejected){
 						maxDispFound=histogramIndex;
@@ -563,7 +568,6 @@ int main(void)
         //if (initialisedDivergence == 0) {
         //  initialiseDivergence();
         //}
-        led_toggle();
         // calculate the edge flow
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
                             &previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 20, 0,
@@ -597,7 +601,9 @@ int main(void)
         } else {
           avg_dist = 100; // 2 * RES * 6 * IMAGE_WIDTH / 104;
         }
-
+        if(USE_MONOCAM){
+        	avg_dist=1.0;
+        }
         avg_dist =  simpleKalmanFilter(&(covariance.height), prev_avg_dist,
                                        avg_dist, Q, R, RES);
 
