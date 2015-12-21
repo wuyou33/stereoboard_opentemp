@@ -232,6 +232,62 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
 			10 * sizeof(uint8_t)); // copy quality measures to output array
 }
 
+int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
+		int32_t * avg_disp, int32_t * avg_dist, int32_t * prev_avg_dist,
+		struct covariance_t* covariance, uint8_t * current_frame_nr,
+		uint8_t previous_frame_offset[2],
+		struct edge_hist_t edge_hist[MAX_HORIZON],
+		const struct edge_flow_t* edge_flow, int32_t *hz_x, int32_t *hz_y,
+		int32_t * prev_vel_hor, int32_t * prev_vel_ver,
+		struct edge_flow_t* prev_edge_flow, const uint32_t Q, const uint32_t R,
+		const int8_t FOVX, const int8_t FOVY, const int32_t RES) {
+	// disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
+	// d =  Npix*cam_separation /(2*disp*tan(FOV/2))
+	// d = 0.06*128 / (2*tan(disp*1.042/2))
+	// d = 0.06*128 / (2*disp*1.042/2)
+	// d = RES*0.06*128 / (disp*RES*1.042)
+	// d = RES*0.06*PIX / (disp*FOVX)
+	if (avg_disp > 0) {
+		*avg_dist = RES * 3 * IMAGE_WIDTH / (*avg_disp * FOVX);
+	} else {
+		*avg_dist = 100; // 2 * RES * 6 * IMAGE_WIDTH / 104;
+	}
+	if (USE_MONOCAM) {
+		*avg_dist = 1.0;
+	}
+	//filter height: TODO: use height directly from lisa s
+	*avg_dist = simpleKalmanFilter(&(covariance->height), *prev_avg_dist,
+			*avg_dist, Q, R, RES);
+	//store the time of the frame
+	edge_hist[*current_frame_nr].frame_time = sys_time_get();
+	// Calculate velocity TODO:: Find a way to use extract function correctly for this, since the results is different with than without
+	*hz_x = 2000
+			/ ((int32_t) sys_time_get()
+					- edge_hist[(*current_frame_nr - previous_frame_offset[0]
+							+ MAX_HORIZON) %
+					MAX_HORIZON].frame_time);
+	*hz_y = 2000
+			/ ((int32_t) sys_time_get()
+					- edge_hist[(*current_frame_nr - previous_frame_offset[1]
+							+ MAX_HORIZON) %
+					MAX_HORIZON].frame_time);
+	*vel_hor = edge_flow->horizontal_flow * (*avg_dist) * (*hz_x) * FOVX
+			/ (RES * RES * IMAGE_WIDTH);
+	*vel_ver = edge_flow->vertical_flow * (*avg_dist) * (*hz_y) * FOVY
+			/ (RES * RES * IMAGE_HEIGHT);
+	*vel_hor = simpleKalmanFilter(&(covariance->flow_x), *prev_vel_hor, *vel_hor,
+			Q, R, RES);
+	*vel_ver = simpleKalmanFilter(&(covariance->flow_y), *prev_vel_ver, *vel_ver,
+			Q, R, RES);
+	// Store previous values
+	*prev_avg_dist = *avg_dist;
+	*prev_vel_hor = *vel_hor;
+	*prev_vel_ver = *vel_ver;
+	// move the indices for the edge hist structure
+	* current_frame_nr = (*current_frame_nr + 1) % MAX_HORIZON;
+	return *hz_x;
+}
+
 /**
  * @brief  Main program
  * @param  None
@@ -602,53 +658,15 @@ int main(void)
         // calculate the edge flow
 
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-                            &previous_frame_offset, current_frame_nr, &quality_measures_edgeflow, 10, 20, 0,
+                            previous_frame_offset, current_frame_nr, quality_measures_edgeflow, 10, 20, 0,
                             IMAGE_WIDTH, IMAGE_HEIGHT, RES);
 
-        // disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
-        // d =  Npix*cam_separation /(2*disp*tan(FOV/2))
-        // d = 0.06*128 / (2*tan(disp*1.042/2))
-        // d = 0.06*128 / (2*disp*1.042/2)
-        // d = RES*0.06*128 / (disp*RES*1.042)
-        // d = RES*0.06*PIX / (disp*FOVX)
 
-        if (avg_disp > 0) {
-          avg_dist = RES * 3 * IMAGE_WIDTH / (avg_disp * FOVX);
-        } else {
-          avg_dist = 100; // 2 * RES * 6 * IMAGE_WIDTH / 104;
-        }
-        if(USE_MONOCAM){
-        	avg_dist=1.0;
-        }
-        //filter height: TODO: use height directly from lisa s
-        avg_dist =  simpleKalmanFilter(&(covariance.height), prev_avg_dist,
-                                       avg_dist, Q, R, RES);
-
-        //store the time of the frame
-        edge_hist[current_frame_nr].frame_time = sys_time_get();
-
-        // Calculate velocity TODO:: Find a way to use extract function correctly for this, since the results is different with than without
-        hz_x = 2000 / ((int32_t)sys_time_get() - edge_hist[(current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
-                               MAX_HORIZON].frame_time); // in s
-        hz_y = 2000 / ((int32_t)sys_time_get() - edge_hist[(current_frame_nr - previous_frame_offset[1] + MAX_HORIZON) %
-                               MAX_HORIZON].frame_time); // in s
-        vel_hor = edge_flow.horizontal_flow * avg_dist * hz_x *  FOVX / (RES * RES * IMAGE_WIDTH);
-        vel_ver = edge_flow.vertical_flow  * avg_dist * hz_y  *  FOVY / (RES * RES * IMAGE_HEIGHT);
-
-        vel_hor =  simpleKalmanFilter(&(covariance.flow_x),prev_vel_hor ,
-                                                    vel_hor, Q, R, RES);
-        vel_ver =  simpleKalmanFilter(&(covariance.flow_y),prev_vel_ver ,
-                                                              vel_ver, Q, R, RES);
-
-        // Store previous values
-        memcpy(&prev_edge_flow, &edge_flow, sizeof(struct edge_flow_t));
-        prev_avg_dist = avg_dist;
-        prev_vel_hor = vel_hor;
-        prev_vel_ver = vel_ver;
-
-        // move the indices for the edge hist structure
-        current_frame_nr = (current_frame_nr + 1) % MAX_HORIZON;
-
+				hz_x = divergence_calc_vel(&vel_hor, &vel_ver, &avg_disp,
+						&avg_dist, &prev_avg_dist, &covariance, &current_frame_nr,
+						previous_frame_offset, edge_hist, &edge_flow, &hz_x,
+						&hz_y, &prev_vel_hor, &prev_vel_ver, &prev_edge_flow, Q, R,
+						FOVX, FOVY, RES);
         divergence_to_sendarray(divergenceArray, &edge_flow,
 						previous_frame_offset, avg_dist, frameRate, hz_x,
 						vel_hor, vel_ver, quality_measures_edgeflow);
