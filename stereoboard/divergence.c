@@ -73,8 +73,6 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
     if (flow_mag_y < min_flow && previous_frame_offset_y < MAX_HORIZON - 1) {
       previous_frame_offset[1] = previous_frame_offset_y + 1;
     }
-
-
   }
 
 
@@ -102,6 +100,14 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
                            disp_range);
   *avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
 
+  // Fit a linear line
+  uint32_t line_error_fit_hor = line_fit(displacement->horizontal, &edge_flow->horizontal_div,
+                                         &edge_flow->horizontal_flow, image_width,
+                                         window_size + disp_range, RES);
+  uint32_t line_error_fit_ver = line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow,
+                                         image_height,
+                                         window_size + disp_range, RES);
+
   //Calculate and Store quality values
   uint32_t totalIntensity = getTotalIntensityImage(in, image_width, image_height);
   uint32_t mean_hor = getMean(edge_histogram_x, image_width);
@@ -118,26 +124,12 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
   quality_measures[4] = (uint8_t)(median_ver / 20);
   quality_measures[5] = (uint8_t)(amountPeaks_hor);
   quality_measures[6] = (uint8_t)(amountPeaks_ver);
-
-  // Fit a linear line
-  uint32_t line_error_fit_hor = line_fit(displacement->horizontal, &edge_flow->horizontal_div,
-                                         &edge_flow->horizontal_flow, image_width,
-                                         window_size + disp_range, RES);
-  uint32_t line_error_fit_ver = line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow,
-                                         image_height,
-                                         window_size + disp_range, RES);
-
   quality_measures[7] = (uint8_t)(line_error_fit_hor / 10);
   quality_measures[8] = (uint8_t)(line_error_fit_ver / 10);
+
   int32_t* pointer = (int32_t*)quality_measures+9;
   pointer[0]=min_error_hor;
   pointer[1]=min_error_ver;
-
-  /*
-  if (abs(edge_flow->vertical_flow) > DISP_RANGE_MAX * RES)
-   edge_flow->vertical_flow = 0;
-  if (abs(edge_flow->horizontal_flow) > DISP_RANGE_MAX * RES)
-   edge_flow->horizontal_flow = 0;*/
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
@@ -406,9 +398,6 @@ void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int
   uint32_t y = 0;
   uint32_t x = 0;
   uint32_t idx = 0;
-
-  uint32_t line_check1 = 0;
-  uint32_t line_check2 = 0;
 
   for (y = 0; y < image_height; y++) {
     //line_check1=(uint32_t)(Slope*(float)x+(Yint)+(float)image_height/2);
