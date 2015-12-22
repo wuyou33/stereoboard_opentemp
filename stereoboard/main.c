@@ -572,10 +572,7 @@ int main(void)
 
 
       // compute and send divergence
-      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) { // || current_stereoboard_algorithm == SEND_WINDOW) {
-        //if (initialisedDivergence == 0) {
-        //  initialiseDivergence();
-        //}
+      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) {
         int32_t vel_hor, vel_ver, hz_x, hz_y;
 
         led_toggle();

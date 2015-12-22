@@ -11,27 +11,28 @@
 
 #include <stdlib.h>
 
+
 void divergence_to_sendarray(uint8_t divergenceArray[24],
 		const struct edge_flow_t* edge_flow, uint8_t previous_frame_offset[2],
 		int32_t avg_dist, int32_t frameRate, int32_t hz_x, int32_t vel_hor,
 		int32_t vel_ver,
 		uint8_t quality_measures_edgeflow[]) {
-	divergenceArray[0] = (uint8_t) (edge_flow->horizontal_div
+	divergenceArray[0] = boundint8(edge_flow->horizontal_div
 			/ previous_frame_offset[0] + 127); // should be in 0.01px/frame
-	divergenceArray[1] = (uint8_t) (edge_flow->horizontal_flow
+	divergenceArray[1] = boundint8(edge_flow->horizontal_flow
 			/ (10 * previous_frame_offset[0]) + 127); // should be in 0.1px/frame
-	divergenceArray[2] = (uint8_t) (edge_flow->vertical_div
+	divergenceArray[2] = boundint8(edge_flow->vertical_div
 			/ previous_frame_offset[1] + 127); // should be in 0.01px/frame
-	divergenceArray[3] = (uint8_t) (edge_flow->vertical_flow
+	divergenceArray[3] = boundint8(edge_flow->vertical_flow
 			/ (10 * previous_frame_offset[1]) + 127); // should be in 0.1px/frame
 	// divergenceArray[4] = (uint8_t)avg_disp;
-	divergenceArray[4] = (uint8_t) avg_dist / 10;
-	divergenceArray[7] = frameRate;
+	divergenceArray[4] = boundint8(avg_dist / 10);
+	divergenceArray[7] = boundint8(frameRate);
 	memcpy(divergenceArray + 5, previous_frame_offset, 2); // copy frame offset to output array
-	divergenceArray[7] = hz_x;
-	divergenceArray[8] = (uint8_t) (vel_hor + 127); // in cm/s
-	divergenceArray[9] = (uint8_t) (vel_ver + 127); // in cm/s
-	memcpy(divergenceArray + 10, &quality_measures_edgeflow,
+	divergenceArray[7] = boundint8(hz_x);
+	divergenceArray[8] = boundint8(vel_hor + 127); // in cm/s
+	divergenceArray[9] = boundint8(vel_ver + 127); // in cm/s
+	memcpy(divergenceArray + 10, quality_measures_edgeflow,
 			10 * sizeof(uint8_t)); // copy quality measures to output array
 }
 
@@ -91,7 +92,7 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 }
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
 		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t *previous_frame_offset,
-		uint8_t current_frame_nr, uint8_t *quality_measures, uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
+		uint8_t current_frame_nr, uint8_t quality_measures[], uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
 		uint16_t image_width, uint16_t image_height, uint16_t RES)
 {
 	// check that inputs within allowable ranges
@@ -195,15 +196,15 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
 	uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 500 , image_width);
 	uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 500 , image_height);
 
-	quality_measures[0] = (uint8_t)(totalIntensity / 20000);
-	quality_measures[1] = (uint8_t)(mean_hor / 20);
-	quality_measures[2] = (uint8_t)(mean_ver / 20);
-	quality_measures[3] = (uint8_t)(median_hor / 20);
-	quality_measures[4] = (uint8_t)(median_ver / 20);
-	quality_measures[5] = (uint8_t)(amountPeaks_hor);
-	quality_measures[6] = (uint8_t)(amountPeaks_ver);
-	quality_measures[7] = (uint8_t)(line_error_fit_hor / 10);
-	quality_measures[8] = (uint8_t)(line_error_fit_ver / 10);
+	quality_measures[0] = boundint8(totalIntensity / 20000);
+	quality_measures[1] = boundint8(mean_hor / 20);
+	quality_measures[2] = boundint8(mean_ver / 20);
+	quality_measures[3] = boundint8(median_hor / 20);
+	quality_measures[4] = boundint8(median_ver / 20);
+	quality_measures[5] = boundint8(amountPeaks_hor);
+	quality_measures[6] = boundint8(amountPeaks_ver);
+	quality_measures[7] = boundint8(line_error_fit_hor / 10);
+	quality_measures[8] = boundint8(line_error_fit_ver / 10);
 
 	int32_t* pointer = (int32_t*)quality_measures+9;
 	pointer[0]=min_error_hor;
@@ -597,5 +598,21 @@ uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size)
 	}
 	return amountPeaks;
 }
+
+uint8_t boundint8(int32_t value)
+{
+	uint8_t value_uint8;
+	if(value > 255)
+	{
+		value_uint8 = 255;
+	}else if (value < 0)
+	{
+		value_uint8 = 0;
+	}else
+		value_uint8 =  (uint8_t)value;
+
+	return value_uint8;
+}
+
 
 
