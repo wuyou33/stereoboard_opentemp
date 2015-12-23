@@ -133,22 +133,6 @@ const int8_t FOVY = 79;    // 45deg = 0.785 rad
 //send array with flow parameters
 uint8_t divergenceArray[22];
 
-void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY, uint8_t imagePartWidth, uint8_t imagePartHeight,uint8_t image_width_bytes){
-//	int indexX;
-//	int indexY;
-//	int indexNewImage=0;
-//	for(indexY=0; indexY < 30; indexY++){
-//		for(indexX=0; indexX < imagePartWidth; indexX++){
-//			//newImage[indexNewImage++]=originalImage[(imagePartY+indexY)*originalImageWidth*2+(imagePartX*2+indexX)];
-//			originalImage[((indexX+imagePartX)*2) + 1 + ((indexY+30) * image_width_bytes)] = 255;
-//		}
-//
-//	}
-	originalImage[((imagePartX+1)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
-	originalImage[((imagePartX+2)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
-	originalImage[((imagePartX+3)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
-
-}
 void divergence_init()
 {
   //Define arrays and pointers for edge histogram and displacements
@@ -535,7 +519,7 @@ int main(void)
 			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
 			{	// Determine the maximum disparity using the disparity map
 				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
-				int amountDisparitiesRejected=20;
+				int amountDisparitiesRejected=30;
 				int histogramIndex=pixelsPerLine;
 				int amountDisparitiesCount=0;
 				maxDispFound=0;
@@ -751,6 +735,14 @@ int main(void)
 
 			if (current_stereoboard_algorithm == STEREO_VELOCITY) {
 				divergenceArray[4] = maxDispFound;
+		        int disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
+		        if(disparities_high>100){
+		        	divergenceArray[5] = 100;
+		        }
+		        else
+		        {
+		        	divergenceArray[5]=(uint8_t)disparities_high;
+		        }
 				led_clear();
 				if(maxDispFound>60){
 					led_set();
