@@ -53,25 +53,9 @@ while True:
 	    slope_y=(img[0,2]-100)/1000
             yint_y=(img[0,3]-100)/100
             height=img[0,4]
-
-            
-            radperpx=(FOV_x*math.pi/180)/128
-            angle_disp=height/2*radperpx
-            height_meters=distance_pinhole/math.tan(angle_disp);
-            
-            radperpx=(FOV_x*math.pi/180)/128
-            angle_disp=yint_x*radperpx
-            velocity_x=height_meters*math.tan(angle_disp)*25
-
-            radperpx=(FOV_y*math.pi/180)/96
-            angle_disp=yint_y*radperpx
-            velocity_y=height_meters*math.tan(angle_disp)*25
-            print velocity_x
-            print velocity_y
-            print height_meters
              
             velocity_x_stereoboard = (img[0,8]-127)/100
-            velocity_y_stereoboard = (img[0,17])/500
+            velocity_y_stereoboard = (img[0,9]-127)/100
 
             velocity_xHistory.append(velocity_x_stereoboard)
             velocity_yHistory.append(velocity_y_stereoboard)
