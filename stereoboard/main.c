@@ -54,7 +54,6 @@
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
-#define DIVERGENCE_QUALITY_MEASURES_LENGTH 10
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -106,9 +105,14 @@ stereoboard_algorithm_type getBoardFunction(void)
 	int front = 0;
 #endif
 }
+///NEW!!!
+//struct edgeflow_parameters_t edgeflow_parameters;
+//struct edgeflow_results_t edgeflow_results;
+////
 
 //Initializing all structures and elements for the optical flow algorithm (divergence.c)
 // TODO: put every structure & variable divergence.c, except for the to send array
+
 const int32_t RES = 100;   // resolution scaling for integer math
 
 struct covariance_t covariance;
@@ -367,6 +371,7 @@ int main(void)
 
 	// initialize divergence
 	divergence_init();
+	//divergence_init_2(&edgeflow_parameters,&edgeflow_results,FOVX,FOVY,IMAGE_WIDTH,IMAGE_HEIGHT,USE_MONOCAM);
 	led_clear();
 	uint8_t quality_measures_index;
 	for(quality_measures_index=0;quality_measures_index<DIVERGENCE_QUALITY_MEASURES_LENGTH;quality_measures_index++){
@@ -577,20 +582,19 @@ int main(void)
 
         led_toggle();
         // calculate the edge flow
+    	//divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results,sys_time_get());
     	edge_hist[current_frame_nr].frame_time = sys_time_get();
 
         calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
                             previous_frame_offset, current_frame_nr, quality_measures_edgeflow, 10, 20, 0,
                             IMAGE_WIDTH, IMAGE_HEIGHT, RES);
-
-
 		hz_x = divergence_calc_vel(&vel_hor, &vel_ver, &avg_disp,
 						&avg_dist, &prev_avg_dist, &covariance, &current_frame_nr,
 						previous_frame_offset, edge_hist, &edge_flow, &hz_x,
 						&hz_y, &prev_vel_hor, &prev_vel_ver, &prev_edge_flow, Q, R,
 						FOVX, FOVY, RES, USE_MONOCAM);
         divergence_to_sendarray(divergenceArray, &edge_flow,
-						previous_frame_offset, avg_dist, frameRate, hz_x,
+						previous_frame_offset, avg_dist, hz_x,
 						vel_hor, vel_ver, quality_measures_edgeflow);
       }
 
