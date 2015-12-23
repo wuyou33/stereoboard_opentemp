@@ -54,6 +54,7 @@
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
+#define DIVERGENCE_QUALITY_MEASURES_LENGTH 10
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
 //uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
@@ -352,10 +353,6 @@ int main(void)
 				;
 			processed = frame_counter;
 
-
-			current_image_buffer[0] = 0;
-			current_image_buffer[1] = 0;
-
 			// compute run frequency
 #ifdef AVG_FREQ
 			freq_counter++;
@@ -489,7 +486,7 @@ int main(void)
 			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
 			{	// Determine the maximum disparity using the disparity map
 				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
-				int amountDisparitiesRejected=20;
+				int amountDisparitiesRejected=30;
 				int histogramIndex=pixelsPerLine;
 				int amountDisparitiesCount=0;
 				maxDispFound=0;
@@ -630,6 +627,14 @@ int main(void)
 
 			if (current_stereoboard_algorithm == STEREO_VELOCITY) {
 				divergenceArray[4] = maxDispFound;
+		        int disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
+		        if(disparities_high>100){
+		        	divergenceArray[5] = 100;
+		        }
+		        else
+		        {
+		        	divergenceArray[5]=(uint8_t)disparities_high;
+		        }
 				led_clear();
 				if(maxDispFound>60){
 					led_set();
