@@ -390,10 +390,6 @@ int main(void)
 				;
 			processed = frame_counter;
 
-
-			current_image_buffer[0] = 0;
-			current_image_buffer[1] = 0;
-
 			// compute run frequency
 #ifdef AVG_FREQ
 			freq_counter++;
