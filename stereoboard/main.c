@@ -105,38 +105,10 @@ stereoboard_algorithm_type getBoardFunction(void)
 	int front = 0;
 #endif
 }
-///NEW!!!
-struct edgeflow_parameters_t edgeflow_parameters;
-struct edgeflow_results_t edgeflow_results;
-////
 
 //Initializing all structures and elements for the optical flow algorithm (divergence.c)
-// TODO: put every structure & variable divergence.c, except for the to send array
-
-const int32_t RES = 100;   // resolution scaling for integer math
-
-struct covariance_t covariance;
-const uint32_t Q = 50;    // motion model; 0.25*RES
-const uint32_t R = 100;   // measurement model  1*RES
-
-uint8_t current_frame_nr = 0;
-
-struct edge_hist_t edge_hist[MAX_HORIZON];
-struct edge_flow_t edge_flow;
-struct edge_flow_t prev_edge_flow;
-
-struct displacement_t displacement;
-uint8_t initialisedDivergence = 0;
-int32_t avg_disp = 0;
-int32_t avg_dist = 0;
-
-
-int32_t prev_avg_dist = 0;
-int32_t prev_vel_hor = 0;
-int32_t prev_vel_ver = 0;
-
-uint8_t previous_frame_offset[2] = {1, 1};
-uint8_t quality_measures_edgeflow[DIVERGENCE_QUALITY_MEASURES_LENGTH];
+struct edgeflow_parameters_t edgeflow_parameters;
+struct edgeflow_results_t edgeflow_results;
 const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
@@ -158,36 +130,6 @@ void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePart
 	originalImage[((imagePartX+2)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
 	originalImage[((imagePartX+3)*2) + 1 + ((imagePartY+1) * image_width_bytes)] = 255;
 
-}
-void divergence_init()
-{
-  //Define arrays and pointers for edge histogram and displacements
-  // memset(displacement.horizontal, 0, IMAGE_WIDTH);
-  // memset(displacement.vertical, 0, IMAGE_WIDTH);
-
-  //Initializing the dynamic parameters and the edge histogram structure
-  current_frame_nr = 0;
-
-  // Intializing edge histogram structure
-  // memset(edge_hist, 0, MAX_HORIZON * sizeof(struct edge_hist_t));
-
-  //Initializing for divergence and flow parameters
-  edge_flow.horizontal_flow = prev_edge_flow.horizontal_flow = 0;
-  edge_flow.horizontal_div = prev_edge_flow.horizontal_div = 0;
-  edge_flow.vertical_flow = prev_edge_flow.vertical_flow = 0;
-  edge_flow.vertical_div = prev_edge_flow.vertical_div = 0;
-
-  covariance.flow_x = 20;
-  covariance.flow_y = 20;
-  covariance.div_x = 20;
-  covariance.div_y = 20;
-  covariance.height = 20;
-
-  avg_dist = 0;
-  avg_disp = 0;
-  prev_avg_dist = 0;
-
-  initialisedDivergence = 1;
 }
 
 #ifdef SEND_WINDOW
@@ -370,12 +312,11 @@ int main(void)
   int disparity_velocity_step=0;
 
 	// initialize divergence
-//	divergence_init();
-	divergence_init_2(&edgeflow_parameters,&edgeflow_results,FOVX,FOVY,IMAGE_WIDTH,IMAGE_HEIGHT,USE_MONOCAM);
+	divergence_init(&edgeflow_parameters,&edgeflow_results,FOVX,FOVY,IMAGE_WIDTH,IMAGE_HEIGHT,USE_MONOCAM);
 	led_clear();
 	uint8_t quality_measures_index;
 	for(quality_measures_index=0;quality_measures_index<DIVERGENCE_QUALITY_MEASURES_LENGTH;quality_measures_index++){
-		quality_measures_edgeflow[quality_measures_index++]=0;
+		edgeflow_results.quality_measures_edgeflow[quality_measures_index++]=0;
 	}
 
 
@@ -578,25 +519,10 @@ int main(void)
 
       // compute and send divergence
       if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) {
-        int32_t vel_hor, vel_ver, hz_x, hz_y;
 
         led_toggle();
         // calculate the edge flow
-    	divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results,sys_time_get());
-
-       /* edge_hist[current_frame_nr].frame_time = sys_time_get();
-
-        calculate_edge_flow(current_image_buffer, &displacement, &edge_flow, edge_hist, &avg_disp,
-                            previous_frame_offset, current_frame_nr, quality_measures_edgeflow, 10, 20, 0,
-                            IMAGE_WIDTH, IMAGE_HEIGHT, RES);
-		hz_x = divergence_calc_vel(&vel_hor, &vel_ver, &avg_disp,
-						&avg_dist, &prev_avg_dist, &covariance, &current_frame_nr,
-						previous_frame_offset, edge_hist, &edge_flow, &hz_x,
-						&hz_y, &prev_vel_hor, &prev_vel_ver, &prev_edge_flow, Q, R,
-						FOVX, FOVY, RES, USE_MONOCAM);
-        divergence_to_sendarray(divergenceArray, &edge_flow,
-						previous_frame_offset, avg_dist, hz_x,
-						vel_hor, vel_ver, quality_measures_edgeflow);*/
+    	divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results, sys_time_get());
       }
 
       // compute and send window detection parameters

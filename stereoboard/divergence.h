@@ -51,20 +51,20 @@ struct covariance_t {
 };
 
 struct edgeflow_parameters_t {
-int8_t FOVX;
-int8_t FOVY;
-int8_t image_width;
-int8_t image_height;
-int8_t max_disparity_range;
-int8_t max_horizon;
-int8_t disparity_range;
-int8_t window_size;
-int8_t edge_flow_kalman;
-int32_t Q;
-int32_t R;
-uint8_t initialisedDivergence;
-int32_t RES;
-int32_t use_monocam;
+	int8_t FOVX;
+	int8_t FOVY;
+	int8_t image_width;
+	int8_t image_height;
+	int8_t max_disparity_range;
+	int8_t max_horizon;
+	int8_t disparity_range;
+	int8_t window_size;
+	int8_t edge_flow_kalman;
+	int32_t Q;
+	int32_t R;
+	uint8_t initialisedDivergence;
+	int32_t RES;
+	int32_t use_monocam;
 };
 
 struct edgeflow_results_t {
@@ -92,10 +92,9 @@ struct edgeflow_results_t {
 
 
 
-
-void divergence_init_2(struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,
+// Global Functions divergence
+void divergence_init(struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,
 		const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
-void divergence_init();
 void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, struct edgeflow_parameters_t* edgeflow_parameters,
 		struct edgeflow_results_t* edgeflow_results,uint32_t time);
 int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
@@ -113,7 +112,7 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
 		int32_t vel_ver,
 		uint8_t quality_measures_edgeflow[]);
 
-
+// Calculation functions
 void calculate_edge_flow_simple(uint8_t *in, int32_t *edge_histogram, int32_t *edge_histogram_prev,
 		int32_t *displacement, float *slope, float *yint, uint32_t image_width, uint32_t image_height);
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
