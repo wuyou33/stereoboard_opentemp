@@ -16,7 +16,7 @@ void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, s
 
 	 calculate_edge_flow(current_image_buffer, &edgeflow_results->displacement, &edgeflow_results->edge_flow, edgeflow_results->edge_hist, &edgeflow_results->avg_disp,
 			 edgeflow_results->previous_frame_offset, edgeflow_results->current_frame_nr, edgeflow_results->quality_measures_edgeflow, edgeflow_parameters->window_size, edgeflow_parameters->disparity_range, 0,
-			 edgeflow_parameters->image_width, edgeflow_parameters->image_height,edgeflow_parameters->RES);
+			 IMAGE_WIDTH, IMAGE_HEIGHT,edgeflow_parameters->RES);
 
 
 	edgeflow_results->hz_x = divergence_calc_vel(&edgeflow_results->vel_hor, &edgeflow_results->vel_ver, &edgeflow_results->avg_disp,
@@ -34,9 +34,10 @@ void divergence_init_2(struct edgeflow_parameters_t* edgeflow_parameters, struct
 {
 	edgeflow_parameters->FOVX = FOVX;
 	edgeflow_parameters->FOVY = FOVY;
-	edgeflow_parameters->image_height = image_height;
-	edgeflow_parameters->image_width = image_width;
+	edgeflow_parameters->image_height = IMAGE_HEIGHT;
+	edgeflow_parameters->image_width = IMAGE_WIDTH;
     edgeflow_parameters->Q = 50;
+    edgeflow_parameters->R = 100;
     edgeflow_parameters->max_horizon = MAX_HORIZON;
     edgeflow_parameters->max_disparity_range = DISP_RANGE_MAX;
     edgeflow_parameters->disparity_range = 20;
@@ -44,11 +45,13 @@ void divergence_init_2(struct edgeflow_parameters_t* edgeflow_parameters, struct
     edgeflow_parameters->edge_flow_kalman = 1;
     edgeflow_parameters->RES = 100;
     edgeflow_parameters->use_monocam = use_monocam;
+
     edgeflow_results->R_height = 100;
     edgeflow_results->R_hor = 100;
     edgeflow_results->R_ver = 100;
     edgeflow_results->current_frame_nr = 0;
-
+    edgeflow_results->previous_frame_offset[0] = 1;
+    edgeflow_results->previous_frame_offset[1] = 1;
     edgeflow_results->edge_flow.horizontal_flow =  edgeflow_results->prev_edge_flow.horizontal_flow = 0;
     edgeflow_results->edge_flow.horizontal_div =  edgeflow_results->prev_edge_flow.horizontal_div = 0;
     edgeflow_results->edge_flow.vertical_flow =  edgeflow_results->prev_edge_flow.vertical_flow = 0;
@@ -146,124 +149,125 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 	return *hz_x;
 }
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
-		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t *previous_frame_offset,
+		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
 		uint8_t current_frame_nr, uint8_t quality_measures[], uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
 		uint16_t image_width, uint16_t image_height, uint16_t RES)
 {
-//	// check that inputs within allowable ranges
-//	if (disp_range > DISP_RANGE_MAX) {
-//		disp_range = DISP_RANGE_MAX;
-//	}
-//
-//	// Define arrays and pointers for edge histogram and displacements
-//	int32_t *edge_histogram_x = edge_hist[current_frame_nr].horizontal;
-//	int32_t *prev_edge_histogram_x;
-//	int32_t edge_histogram_x_right[IMAGE_WIDTH];
-//
-//	int32_t *edge_histogram_y = edge_hist[current_frame_nr].vertical;
-//	int32_t *prev_edge_histogram_y;
-//
-//	// Calculate previous frame number
-//	//previous_frame_offset[0] = previous_frame_offset[1] = 1;
-//
-//	// TODO confirm below
-//	if (MAX_HORIZON > 2) {
-//		uint32_t flow_mag_x, flow_mag_y;
-//		flow_mag_x = abs(edge_flow->horizontal_flow);
-//		flow_mag_y = abs(edge_flow->vertical_flow);
-//
-//		// TODO check which image we should pick
-//		// TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/some_size) boundary
-//		// TODO I currently use a switching limit of disparity range/4
-//		/* if (4 * flow_mag_x * (MAX_HORIZON - 1) > RES * disp_range) {
-//        previous_frame_offset[0] = (RES * disp_range) / (4 * flow_mag_x) + 1;
-//      } else {
-//        previous_frame_offset[0] = MAX_HORIZON - 1;
-//      }
-//
-//      if (4 * flow_mag_y * (MAX_HORIZON - 1) > RES * disp_range) {
-//        previous_frame_offset[1] = (RES * disp_range) / (4 * flow_mag_y) + 1;
-//      } else {
-//        previous_frame_offset[1] = MAX_HORIZON - 1;
-//      }*/
-//		uint32_t min_flow = 3;
-//		uint32_t max_flow = 18;
-//		uint8_t previous_frame_offset_x = previous_frame_offset[0];
-//		uint8_t previous_frame_offset_y = previous_frame_offset[1];
-//
-//		if (flow_mag_x > max_flow && previous_frame_offset_x > 1) {
-//			previous_frame_offset[0] = previous_frame_offset_x - 1;
-//		}
-//
-//		if (flow_mag_x < min_flow && previous_frame_offset_x < MAX_HORIZON - 1) {
-//			previous_frame_offset[0] = previous_frame_offset_x + 1;
-//		}
-//
-//
-//		if (flow_mag_y > max_flow && previous_frame_offset_y > 1) {
-//			previous_frame_offset[1] = previous_frame_offset_y - 1;
-//		}
-//
-//		if (flow_mag_y < min_flow && previous_frame_offset_y < MAX_HORIZON - 1) {
-//			previous_frame_offset[1] = previous_frame_offset_y + 1;
-//		}
-//	}
-//
-//
-//	// the previous frame number relative to dynamic parameters
-//	uint8_t previous_frame_x = (current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
-//			MAX_HORIZON; // wrap index
-//	uint8_t previous_frame_y = (current_frame_nr - previous_frame_offset[1] + MAX_HORIZON) %
-//			MAX_HORIZON; // wrap index
-//
-//	// copy previous edge histogram based on previous frame number
-//	prev_edge_histogram_x = edge_hist[previous_frame_x].horizontal;
-//	prev_edge_histogram_y = edge_hist[previous_frame_y].vertical;
-//
-//	// Calculate Edge Histogram
-//	calculate_edge_histogram(in, edge_histogram_x, image_width, image_height, 'x', 'l', edge_threshold);
-//	calculate_edge_histogram(in, edge_histogram_y, image_width, image_height, 'y', 'l', edge_threshold);
-//	calculate_edge_histogram(in, edge_histogram_x_right, image_width, image_height, 'x', 'r', edge_threshold);
-//
-//	// Calculate displacement
-//	uint32_t min_error_hor = calculate_displacement(edge_histogram_x, prev_edge_histogram_x, displacement->horizontal,
-//			image_width, window_size,
-//			disp_range);
-//	uint32_t min_error_ver = calculate_displacement(edge_histogram_y, prev_edge_histogram_y, displacement->vertical,
-//			image_height, window_size,
-//			disp_range);
-//	*avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
-//
-//	// Fit a linear line
-//	uint32_t line_error_fit_hor = line_fit(displacement->horizontal, &edge_flow->horizontal_div,
-//			&edge_flow->horizontal_flow, image_width,
-//			window_size + disp_range, RES);
-//	uint32_t line_error_fit_ver = line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow,
-//			image_height,
-//			window_size + disp_range, RES);
-//
-//	//Calculate and Store quality values
-//	uint32_t totalIntensity = getTotalIntensityImage(in, image_width, image_height);
-//	uint32_t mean_hor = getMean(edge_histogram_x, image_width);
-//	uint32_t mean_ver = getMean(edge_histogram_y, image_height);
-//	uint32_t median_hor = getMedian(edge_histogram_x, image_width);
-//	uint32_t median_ver = getMedian(edge_histogram_y, image_height);
-//	uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 500 , image_width);
-//	uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 500 , image_height);
-//
-//	quality_measures[0] = boundint8(totalIntensity / 20000);
-//	quality_measures[1] = boundint8(mean_hor / 20);
-//	quality_measures[2] = boundint8(mean_ver / 20);
-//	quality_measures[3] = boundint8(median_hor / 20);
-//	quality_measures[4] = boundint8(median_ver / 20);
-//	quality_measures[5] = boundint8(amountPeaks_hor);
-//	quality_measures[6] = boundint8(amountPeaks_ver);
-//	quality_measures[7] = boundint8(line_error_fit_hor / 10);
-//	quality_measures[8] = boundint8(line_error_fit_ver / 10);
-//
-//	int32_t* pointer = (int32_t*)quality_measures+9;
-//	pointer[0]=min_error_hor;
-//	pointer[1]=min_error_ver;
+	// check that inputs within allowable ranges
+	if (disp_range > DISP_RANGE_MAX) {
+		disp_range = DISP_RANGE_MAX;
+	}
+
+	// Define arrays and pointers for edge histogram and displacements
+	int32_t *edge_histogram_x = edge_hist[current_frame_nr].horizontal;
+	int32_t *prev_edge_histogram_x;
+	int32_t edge_histogram_x_right[IMAGE_WIDTH];
+
+	int32_t *edge_histogram_y = edge_hist[current_frame_nr].vertical;
+	int32_t *prev_edge_histogram_y;
+
+	// Calculate previous frame number
+	//previous_frame_offset[0] = previous_frame_offset[1] = 1;
+
+	// TODO confirm below
+	if (MAX_HORIZON > 2) {
+		uint32_t flow_mag_x, flow_mag_y;
+		flow_mag_x = abs(edge_flow->horizontal_flow);
+		flow_mag_y = abs(edge_flow->vertical_flow);
+
+		// TODO check which image we should pick
+		// TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/some_size) boundary
+		// TODO I currently use a switching limit of disparity range/4
+		/* if (4 * flow_mag_x * (MAX_HORIZON - 1) > RES * disp_range) {
+        previous_frame_offset[0] = (RES * disp_range) / (4 * flow_mag_x) + 1;
+      } else {
+        previous_frame_offset[0] = MAX_HORIZON - 1;
+      }
+
+      if (4 * flow_mag_y * (MAX_HORIZON - 1) > RES * disp_range) {
+        previous_frame_offset[1] = (RES * disp_range) / (4 * flow_mag_y) + 1;
+      } else {
+        previous_frame_offset[1] = MAX_HORIZON - 1;
+      }*/
+		uint32_t min_flow = 3;
+		uint32_t max_flow = 18;
+		uint8_t previous_frame_offset_x = previous_frame_offset[0];
+		uint8_t previous_frame_offset_y = previous_frame_offset[1];
+
+		if (flow_mag_x > max_flow && previous_frame_offset_x > 1) {
+			previous_frame_offset[0] = previous_frame_offset_x - 1;
+		}
+
+		if (flow_mag_x < min_flow && previous_frame_offset_x < MAX_HORIZON - 1) {
+			previous_frame_offset[0] = previous_frame_offset_x + 1;
+		}
+
+
+		if (flow_mag_y > max_flow && previous_frame_offset_y > 1) {
+			previous_frame_offset[1] = previous_frame_offset_y - 1;
+		}
+
+		if (flow_mag_y < min_flow && previous_frame_offset_y < MAX_HORIZON - 1) {
+			previous_frame_offset[1] = previous_frame_offset_y + 1;
+		}
+	}
+
+
+	// the previous frame number relative to dynamic parameters
+	uint8_t previous_frame_x = (current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
+			MAX_HORIZON; // wrap index
+	uint8_t previous_frame_y = (current_frame_nr - previous_frame_offset[1] + MAX_HORIZON) %
+			MAX_HORIZON; // wrap index
+
+	// copy previous edge histogram based on previous frame number
+	prev_edge_histogram_x = edge_hist[previous_frame_x].horizontal;
+	prev_edge_histogram_y = edge_hist[previous_frame_y].vertical;
+
+	// Calculate Edge Histogram
+	calculate_edge_histogram(in, edge_histogram_x, image_width, image_height, 'x', 'l', edge_threshold);
+	calculate_edge_histogram(in, edge_histogram_y, image_width, image_height, 'y', 'l', edge_threshold);
+	calculate_edge_histogram(in, edge_histogram_x_right, image_width, image_height, 'x', 'r', edge_threshold);
+
+	// Calculate displacement
+	uint32_t min_error_hor = calculate_displacement(edge_histogram_x, prev_edge_histogram_x, displacement->horizontal,
+			image_width, window_size,
+			disp_range);
+	uint32_t min_error_ver = calculate_displacement(edge_histogram_y, prev_edge_histogram_y, displacement->vertical,
+			image_height, window_size,
+			disp_range);
+	*avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
+
+	// Fit a linear line
+	uint32_t line_error_fit_hor = line_fit(displacement->horizontal, &edge_flow->horizontal_div,
+			&edge_flow->horizontal_flow, image_width,
+			window_size + disp_range, RES);
+	uint32_t line_error_fit_ver = line_fit(displacement->vertical, &edge_flow->vertical_div, &edge_flow->vertical_flow,
+			image_height,
+			window_size + disp_range, RES);
+
+	//Calculate and Store quality values
+	uint32_t totalIntensity = getTotalIntensityImage(in, image_width, image_height);
+	uint32_t mean_hor = getMean(edge_histogram_x, image_width);
+	uint32_t mean_ver = getMean(edge_histogram_y, image_height);
+	uint32_t median_hor = getMedian(edge_histogram_x, image_width);
+	uint32_t median_ver = getMedian(edge_histogram_y, image_height);
+	uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 500 , image_width);
+	uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 500 , image_height);
+
+
+	quality_measures[0] = boundint8(totalIntensity / 20000);
+	quality_measures[1] = boundint8(mean_hor / 20);
+	quality_measures[2] = boundint8(mean_ver / 20);
+	quality_measures[3] = boundint8(median_hor / 20);
+	quality_measures[4] = boundint8(median_ver / 20);
+	quality_measures[5] = boundint8(amountPeaks_hor);
+	quality_measures[6] = boundint8(amountPeaks_ver);
+	quality_measures[7] = boundint8(line_error_fit_hor / 10);
+	quality_measures[8] = boundint8(line_error_fit_ver / 10);
+
+	int32_t* pointer = (int32_t*)quality_measures+9;
+	pointer[0]=min_error_hor;
+	pointer[1]=min_error_ver;
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
