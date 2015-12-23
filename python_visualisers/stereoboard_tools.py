@@ -247,11 +247,11 @@ def determine_image_and_line_length(raw):
 
 
  # Fill the image arrays
-def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disparity_offset_left,disparity_offset_right,disparity_border):
+def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disparity_offset_left,disparity_offset_right,disparity_border,horizontalOffset):
     try:
         line=0
         # Initialise images
-        img = np.zeros((heigth+max(abs(disparity_offset_left),abs(disparity_offset_right))*3,width*2))
+        img = np.zeros((heigth+max(abs(disparity_offset_left),abs(disparity_offset_right))*3,width*2+2*abs(horizontalOffset)))
         leftImage=np.zeros((heigth,width))
         rightImage=np.zeros((heigth,width))
 
@@ -269,12 +269,32 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
 		            halfWay = disparity_border
 
 		            # Line indicates the horizontal line
-		            img[line,1:2*halfWay:2]=leftLine[0:halfWay]
-		            img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
-		            img[line,2*halfWay+1::2]=leftLine[halfWay::]
-		            img[line+disparity_offset_right,2*halfWay+0::2]=rightLine[halfWay::]
-		            leftImage[line,:]=leftLine
-		            rightImage[line,:]=rightLine
+			    if horizontalOffset>0:
+                              indexStart=1+horizontalOffset*2
+		              img[line,1:2*halfWay:2]=leftLine[0:halfWay]
+			      indexStart=0
+		              img[line+disparity_offset_left,0:2*halfWay:2]=rightLine[0:halfWay]
+			      indexStart=2*halfWay+1+horizontalOffset*2
+		              img[line,indexStart:indexStart+width:2]=leftLine[halfWay::]
+                              indexStart=2*halfWay
+		              img[line+disparity_offset_right,indexStart:indexStart+width:2]=rightLine[halfWay::]
+		              
+			      leftImage[line,:]=leftLine
+		              rightImage[line,:]=rightLine
+			    else:
+                              indexStart=1
+		              img[line,1:2*halfWay:2]=leftLine[0:halfWay]
+			      indexStart=0+abs(horizontalOffset)*2
+			      print indexStart
+		              img[line+disparity_offset_left,indexStart:indexStart+2*halfWay:2]=rightLine[0:halfWay]
+			      indexStart=2*halfWay+1
+		              img[line,indexStart:indexStart+width:2]=leftLine[halfWay::]
+                              indexStart=2*halfWay+abs(horizontalOffset)*2
+		              print indexStart
+			      img[line+disparity_offset_right,indexStart:indexStart+width:2]=rightLine[halfWay::]
+		             
+			      leftImage[line,:]=leftLine
+		              rightImage[line,:]=rightLine
 		            line+=1
 		        else:
 		            if (raw[i+3] == 171):
