@@ -43,7 +43,7 @@ void evaluate_central_disparities2(uint8_t *in, uint32_t image_width, uint32_t i
                                    uint8_t n_disp_bins, uint8_t min_y, uint8_t max_y, uint8_t disp_threshold, uint8_t border);
 void evaluate_central_disparities_bins(uint8_t *in, uint32_t image_width, uint32_t image_height,
                                        uint32_t disparity_range, uint32_t *disparities, uint8_t n_disp_bins, uint8_t min_y, uint8_t max_y, uint8_t border);
-uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height);
+uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height,uint8_t max_height_check);
 void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_width, uint32_t image_height,
                           uint8_t min_y, uint8_t max_y);
 uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *in, uint8_t *out, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit);
