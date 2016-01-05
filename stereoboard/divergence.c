@@ -6,17 +6,76 @@
  */
 
 #include "divergence.h"
-
 #include "optic_flow.h"
 
 #include <stdlib.h>
+void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time)
+{
+	edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].frame_time = time;
+
+	calculate_edge_flow(current_image_buffer, &edgeflow_results->displacement, &edgeflow_results->edge_flow, edgeflow_results->edge_hist, &edgeflow_results->avg_disp,
+			edgeflow_results->previous_frame_offset, edgeflow_results->current_frame_nr, edgeflow_results->quality_measures_edgeflow, edgeflow_parameters->window_size, edgeflow_parameters->disparity_range, 0,
+			IMAGE_WIDTH, IMAGE_HEIGHT,edgeflow_parameters->RES);
 
 
+	edgeflow_results->hz_x = divergence_calc_vel(&edgeflow_results->vel_hor, &edgeflow_results->vel_ver, &edgeflow_results->avg_disp,
+			&edgeflow_results->avg_dist, &edgeflow_results->prev_avg_dist, &edgeflow_results->covariance, &edgeflow_results->current_frame_nr,
+			edgeflow_results->previous_frame_offset, edgeflow_results->edge_hist, &edgeflow_results->edge_flow, &edgeflow_results->hz_x,
+			&edgeflow_results->hz_y, &edgeflow_results->prev_vel_hor, &edgeflow_results->prev_vel_ver, &edgeflow_results->prev_edge_flow, edgeflow_parameters->Q, edgeflow_parameters->R,
+			edgeflow_parameters->FOVX, edgeflow_parameters->FOVY, edgeflow_parameters->RES, edgeflow_parameters->use_monocam);
+
+	divergence_to_sendarray(divergenceArray, &edgeflow_results->edge_flow,
+			edgeflow_results->previous_frame_offset, edgeflow_results->avg_dist, edgeflow_results->hz_x,
+			edgeflow_results->vel_hor, edgeflow_results->vel_ver, edgeflow_results->quality_measures_edgeflow);
+}
+void divergence_init(struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,
+		const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam)
+{
+	edgeflow_parameters->FOVX = FOVX;
+	edgeflow_parameters->FOVY = FOVY;
+	edgeflow_parameters->image_height = IMAGE_HEIGHT;
+	edgeflow_parameters->image_width = IMAGE_WIDTH;
+	edgeflow_parameters->Q = 50;
+	edgeflow_parameters->R = 100;
+	edgeflow_parameters->max_horizon = MAX_HORIZON;
+	edgeflow_parameters->max_disparity_range = DISP_RANGE_MAX;
+	edgeflow_parameters->disparity_range = 20;
+	edgeflow_parameters->window_size = 10;
+	edgeflow_parameters->edge_flow_kalman = 1;
+	edgeflow_parameters->RES = 100;
+	edgeflow_parameters->use_monocam = use_monocam;
+
+	edgeflow_results->R_height = 100;
+	edgeflow_results->R_hor = 100;
+	edgeflow_results->R_ver = 100;
+	edgeflow_results->current_frame_nr = 0;
+	edgeflow_results->previous_frame_offset[0] = 1;
+	edgeflow_results->previous_frame_offset[1] = 1;
+	edgeflow_results->edge_flow.horizontal_flow =  edgeflow_results->prev_edge_flow.horizontal_flow = 0;
+	edgeflow_results->edge_flow.horizontal_div =  edgeflow_results->prev_edge_flow.horizontal_div = 0;
+	edgeflow_results->edge_flow.vertical_flow =  edgeflow_results->prev_edge_flow.vertical_flow = 0;
+	edgeflow_results->edge_flow.vertical_div =  edgeflow_results->prev_edge_flow.vertical_div = 0;
+
+	edgeflow_results->covariance.flow_x = 20;
+	edgeflow_results->covariance.flow_y = 20;
+	edgeflow_results->covariance.div_x = 20;
+	edgeflow_results->covariance.div_y = 20;
+	edgeflow_results->covariance.height = 20;
+
+	edgeflow_results->avg_dist = 0;
+	edgeflow_results->avg_disp = 0;
+	edgeflow_results->prev_avg_dist = 0;
+	edgeflow_results->vel_hor = 0;
+	edgeflow_results->prev_vel_hor = 0;
+	edgeflow_results->vel_ver = 0;
+	edgeflow_results->prev_vel_ver = 0;
+}
 void divergence_to_sendarray(uint8_t divergenceArray[24],
 		const struct edge_flow_t* edge_flow, uint8_t previous_frame_offset[2],
-		int32_t avg_dist, int32_t frameRate, int32_t hz_x, int32_t vel_hor,
+		int32_t avg_dist, int32_t hz_x, int32_t vel_hor,
 		int32_t vel_ver,
-		uint8_t quality_measures_edgeflow[]) {
+		uint8_t quality_measures_edgeflow[])
+{
 	divergenceArray[0] = boundint8(edge_flow->horizontal_div
 			/ previous_frame_offset[0] + 127); // should be in 0.01px/frame
 	divergenceArray[1] = boundint8(edge_flow->horizontal_flow
@@ -27,7 +86,6 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
 			/ (10 * previous_frame_offset[1]) + 127); // should be in 0.1px/frame
 	// divergenceArray[4] = (uint8_t)avg_disp;
 	divergenceArray[4] = boundint8(avg_dist / 10);
-	divergenceArray[7] = boundint8(frameRate);
 	memcpy(divergenceArray + 5, previous_frame_offset, 2); // copy frame offset to output array
 	divergenceArray[7] = boundint8(hz_x);
 	divergenceArray[8] = boundint8(vel_hor + 127); // in cm/s
@@ -44,7 +102,8 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 		const struct edge_flow_t* edge_flow, int32_t *hz_x, int32_t *hz_y,
 		int32_t * prev_vel_hor, int32_t * prev_vel_ver,
 		struct edge_flow_t* prev_edge_flow, const uint32_t Q, const uint32_t R,
-		const int8_t FOVX, const int8_t FOVY, const int32_t RES, const int32_t monocam) {
+		const int8_t FOVX, const int8_t FOVY, const int32_t RES, const int32_t monocam)
+{
 	// disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
 	// d =  Npix*cam_separation /(2*disp*tan(FOV/2))
 	// d = 0.06*128 / (2*tan(disp*1.042/2))
@@ -91,7 +150,7 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 	return *hz_x;
 }
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
-		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t *previous_frame_offset,
+		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
 		uint8_t current_frame_nr, uint8_t quality_measures[], uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
 		uint16_t image_width, uint16_t image_height, uint16_t RES)
 {
@@ -195,6 +254,7 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
 	uint32_t median_ver = getMedian(edge_histogram_y, image_height);
 	uint32_t amountPeaks_hor = getAmountPeaks(edge_histogram_x, 500 , image_width);
 	uint32_t amountPeaks_ver = getAmountPeaks(edge_histogram_y, 500 , image_height);
+
 
 	quality_measures[0] = boundint8(totalIntensity / 20000);
 	quality_measures[1] = boundint8(mean_hor / 20);

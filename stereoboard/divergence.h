@@ -17,6 +17,7 @@
 #ifndef DISP_RANGE_MAX
 #define DISP_RANGE_MAX 20
 #endif
+#define DIVERGENCE_QUALITY_MEASURES_LENGTH 10
 
 // #define MAX_FLOW 1.0
 // #define RANSAC 1
@@ -49,7 +50,53 @@ struct covariance_t {
 	int32_t height;
 };
 
-void divergence_init();
+struct edgeflow_parameters_t {
+	int8_t FOVX;
+	int8_t FOVY;
+	int8_t image_width;
+	int8_t image_height;
+	int8_t max_disparity_range;
+	int8_t max_horizon;
+	int8_t disparity_range;
+	int8_t window_size;
+	int8_t edge_flow_kalman;
+	int32_t Q;
+	int32_t R;
+	uint8_t initialisedDivergence;
+	int32_t RES;
+	int32_t use_monocam;
+};
+
+struct edgeflow_results_t {
+	struct edge_hist_t edge_hist[MAX_HORIZON];
+	struct edge_flow_t edge_flow;
+	struct edge_flow_t prev_edge_flow;
+	struct displacement_t displacement;
+	struct covariance_t covariance;
+	uint8_t quality_measures_edgeflow[DIVERGENCE_QUALITY_MEASURES_LENGTH];
+	uint8_t current_frame_nr;
+	uint32_t R_height;
+	uint32_t R_hor;
+	uint32_t R_ver;
+	int32_t avg_disp;
+	int32_t avg_dist;
+	int32_t prev_avg_dist;
+	int32_t vel_hor;
+	int32_t vel_ver;
+	int32_t prev_vel_hor;
+	int32_t prev_vel_ver;
+	uint8_t previous_frame_offset[2];
+	int32_t hz_x;
+	int32_t hz_y;
+};
+
+
+
+// Global Functions divergence
+void divergence_init(struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,
+		const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
+void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, struct edgeflow_parameters_t* edgeflow_parameters,
+		struct edgeflow_results_t* edgeflow_results,uint32_t time);
 int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 		int32_t * avg_disp, int32_t * avg_dist, int32_t * prev_avg_dist,
 		struct covariance_t* covariance, uint8_t * current_frame_nr,
@@ -61,15 +108,15 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 		const int8_t FOVX, const int8_t FOVY, const int32_t RES, const int32_t monocam);
 void divergence_to_sendarray(uint8_t divergenceArray[24],
 		const struct edge_flow_t* edge_flow, uint8_t previous_frame_offset[2],
-		int32_t avg_dist, int32_t frameRate, int32_t hz_x, int32_t vel_hor,
+		int32_t avg_dist, int32_t hz_x, int32_t vel_hor,
 		int32_t vel_ver,
 		uint8_t quality_measures_edgeflow[]);
 
-
+// Calculation functions
 void calculate_edge_flow_simple(uint8_t *in, int32_t *edge_histogram, int32_t *edge_histogram_prev,
 		int32_t *displacement, float *slope, float *yint, uint32_t image_width, uint32_t image_height);
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
-		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t *previous_frame_offset,
+		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
 		uint8_t current_frame_nr, uint8_t quality_measures[], uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
 		uint16_t image_width, uint16_t image_height, uint16_t RES);
 void image_difference(uint8_t *in, uint8_t *in_prev, uint8_t *out, uint16_t image_width, uint16_t image_height);
