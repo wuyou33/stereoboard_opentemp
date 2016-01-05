@@ -9,7 +9,7 @@
 #include "optic_flow.h"
 
 #include <stdlib.h>
-void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time)
+void divergence_total(uint8_t divergenceArray[],uint8_t current_image_buffer[], struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time)
 {
 	edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].frame_time = time;
 
@@ -149,7 +149,7 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 	* current_frame_nr = (*current_frame_nr + 1) % MAX_HORIZON;
 	return *hz_x;
 }
-void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
+void calculate_edge_flow(uint8_t in[], struct displacement_t *displacement, struct edge_flow_t *edge_flow,
 		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
 		uint8_t current_frame_nr, uint8_t quality_measures[], uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
 		uint16_t image_width, uint16_t image_height, uint16_t RES)
