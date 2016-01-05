@@ -437,11 +437,10 @@ int main(void)
       }
 
       // determine phase of flight
-      if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_DISPARITY_MAP ||
-          current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
+      if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 
         int disparities_high = 0;
-        disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
+        disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height,30);
         current_phase = run_droplet_algorithm(disparities_high, sys_time_get());
 
         if (current_phase == 1) {
@@ -635,9 +634,9 @@ int main(void)
 
 			if (current_stereoboard_algorithm == STEREO_VELOCITY) {
 				divergenceArray[4] = maxDispFound;
-		        int disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height);
-		        if(disparities_high>100){
-		        	divergenceArray[5] = 100;
+		        int disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height,80);
+		        if(disparities_high>200){
+		        	divergenceArray[5] = 200;
 		        }
 		        else
 		        {
