@@ -8,10 +8,12 @@
  * Function takes input and calculates disparity using a block
  * @author Sjoerd + Roland
  */
-void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
+uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
     uint32_t disparity_min,
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
+
+	uint16_t processed_pixels = 0;
 
 	disparity_min = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
 
@@ -101,6 +103,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
+
+        	processed_pixels++;
+
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
 
@@ -190,6 +195,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
+
+        	processed_pixels++;
+
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
 
@@ -286,6 +294,8 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
     led_clear();
   }
   */
+
+  return processed_pixels;
 
 }
 
