@@ -168,28 +168,12 @@ void calculate_edge_flow(uint8_t in[], struct displacement_t *displacement, stru
 	int32_t *prev_edge_histogram_y;
 
 	// Calculate previous frame number
-	//previous_frame_offset[0] = previous_frame_offset[1] = 1;
 
-	// TODO confirm below
 	if (MAX_HORIZON > 2) {
 		uint32_t flow_mag_x, flow_mag_y;
 		flow_mag_x = abs(edge_flow->horizontal_flow);
 		flow_mag_y = abs(edge_flow->vertical_flow);
 
-		// TODO check which image we should pick
-		// TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/some_size) boundary
-		// TODO I currently use a switching limit of disparity range/4
-		/* if (4 * flow_mag_x * (MAX_HORIZON - 1) > RES * disp_range) {
-        previous_frame_offset[0] = (RES * disp_range) / (4 * flow_mag_x) + 1;
-      } else {
-        previous_frame_offset[0] = MAX_HORIZON - 1;
-      }
-
-      if (4 * flow_mag_y * (MAX_HORIZON - 1) > RES * disp_range) {
-        previous_frame_offset[1] = (RES * disp_range) / (4 * flow_mag_y) + 1;
-      } else {
-        previous_frame_offset[1] = MAX_HORIZON - 1;
-      }*/
 		uint32_t min_flow = 3;
 		uint32_t max_flow = 18;
 		uint8_t previous_frame_offset_x = previous_frame_offset[0];
