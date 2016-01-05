@@ -224,6 +224,9 @@ int main(void)
 	uint32_t image_width = IMAGE_WIDTH;
 	uint32_t image_height = IMAGE_HEIGHT;
 
+	// for STEREO_VELOCITY:
+	uint8_t inv_freq_stereo = 5;
+
 	/***********
 	 * MAIN LOOP
 	 ***********/
@@ -394,22 +397,26 @@ int main(void)
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
 		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY
 		  || current_stereoboard_algorithm==STEREO_VELOCITY ) {
-        // Determine disparities:
-        min_y = 0;
-        max_y = 96;
-        memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
-        if (STEREO_ALGORITHM) {
-          stereo_vision_Kirk(current_image_buffer,
-                             disparity_image_buffer_8bit, image_width, image_height,
-                             disparity_min, disparity_range, disparity_step, thr1, thr2,
-                             min_y, max_y);
-        } else {
-          stereo_vision_sparse_block_two_sided(current_image_buffer,
-                                               disparity_image_buffer_8bit, image_width, image_height,
-                                               disparity_min, disparity_range, disparity_step, thr1, thr2,
-                                               min_y, max_y);
-        }
+    	if(current_stereoboard_algorithm != STEREO_VELOCITY || frame_counter % inv_freq_stereo == 0)
+    	{
+			// Determine disparities:
+			min_y = 0;
+			max_y = 96;
+			memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
+
+			if (STEREO_ALGORITHM) {
+			  stereo_vision_Kirk(current_image_buffer,
+								 disparity_image_buffer_8bit, image_width, image_height,
+								 disparity_min, disparity_range, disparity_step, thr1, thr2,
+								 min_y, max_y);
+			} else {
+			  stereo_vision_sparse_block_two_sided(current_image_buffer,
+												   disparity_image_buffer_8bit, image_width, image_height,
+												   disparity_min, disparity_range, disparity_step, thr1, thr2,
+												   min_y, max_y);
+			}
+    	}
       }
 
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
