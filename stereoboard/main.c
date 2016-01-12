@@ -235,6 +235,7 @@ int main(void)
 
 	// for STEREO_VELOCITY:
 	uint8_t inv_freq_stereo = 5;
+	uint8_t avg_disp_left, avg_disp_right;
 
 	/***********
 	 * MAIN LOOP
@@ -534,6 +535,7 @@ int main(void)
 				// Determine the maximum disparity using the disparity map
 				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer, pixelsPerLine, image_height);
 				histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
+				get_average_left_right(histogramBufferX, &avg_disp_left, &avg_disp_right, pixelsPerLine);
 			}
 			else
 			{
@@ -749,7 +751,8 @@ int main(void)
 		        	divergenceArray[5]=(uint8_t)disparities_high;
 		        }
 		        divergenceArray[6] = (uint8_t)(processed_pixels/100);
-
+		        divergenceArray[7] = avg_disp_left;
+		        divergenceArray[8] = avg_disp_right;
 				led_clear();
 				if(maxDispFound>60){
 					led_set();
