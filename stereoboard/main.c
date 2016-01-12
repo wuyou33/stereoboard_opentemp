@@ -264,7 +264,6 @@ int main(void)
   uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
   // Initialize matrixbuffer
-  int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendCommand = 0;
   volatile uint32_t sys_time_prev = sys_time_get();
@@ -454,7 +453,7 @@ int main(void)
 
     	  histogram_x_direction(disparity_image_buffer_8bit, histogramBuffer, histogram_type,blackBorderSize, pixelsPerLine, image_height);
 
-        if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
+    	if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
           toSendCommand = calculateHeadingFromHistogram(histogramBuffer);
         }
       }
@@ -504,18 +503,16 @@ int main(void)
       }
 		if (current_stereoboard_algorithm == SEND_MATRIX ) {
 			// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-			memset(matrixBuffer, 0, sizeof matrixBuffer);
 			memset(toSendBuffer, 0, sizeof toSendBuffer);
 			// Create the distance matrix by summing pixels per bin
-			calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
+			calculateDistanceMatrix(disparity_image_buffer_8bit, blackBorderSize,
 					pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 		}
 		if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
 		{	// Determine the maximum disparity using the disparity map
-			histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
-
-			histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
-
+			histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer, pixelsPerLine, image_height);
+//			histogram_z_direction_features(disparity_coordinates, histogramBuffer, featureCount, maxDisparityToMeasure);
+histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
 
 			int amountDisparitiesRejected=30;
 			int histogramIndex=pixelsPerLine;
@@ -531,18 +528,18 @@ int main(void)
 		}
 
 
-		if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
-			float  BASELINE_STEREO_MM = 60.0;
-			float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
-			disparity_velocity_step += 1;
-			// for now maximum disparity, later the average:
+	if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
+		float  BASELINE_STEREO_MM = 60.0;
+		float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
+		disparity_velocity_step += 1;
+		// for now maximum disparity, later the average:
 
-			float dist = 5.0;
-			if (maxDispFound > 0) {
-			  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
-			}
-			calculateForwardVelocity(dist,0.65, 5,5);
+		float dist = 5.0;
+		if (maxDispFound > 0) {
+		  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
 		}
+		calculateForwardVelocity(dist,0.65, 5,5);
+	}
 
 
       // compute and send divergence

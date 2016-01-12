@@ -8,7 +8,6 @@ void histogram_x_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, h
 {
   uint8_t valueInImageBuffer = 0;
   uint16_t positionInImageBuffer = 0;
-  uint8_t positionInMatrix = 0;
   uint8_t x;
   uint8_t y;
   uint8_t minimumPixelsPerColumn;
@@ -90,22 +89,17 @@ void histogram_x_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, h
   }
 }
 
-
-
-
-
-void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t heightPerLine)
+void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, uint8_t pixelsPerLine, uint8_t heightPerLine)
 {
-
 	// compute disparity histogram
 	uint8_t y;
 	uint8_t x;
 	uint8_t max_y=90;
 	uint8_t disp_min=1;
 	uint8_t disp;
+
 	for (x = 0; x < pixelsPerLine; x++) {
 			histogramBuffer[x]=0;
-
 	}
 	for (y = 0; y < max_y; y++) {
 		for (x = 0; x < pixelsPerLine; x++) {
@@ -117,7 +111,24 @@ void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, u
 			}
 		}
 	}
-
 }
 
+void histogram_z_direction_features(uint8_t disparity_coordinates[], uint8_t histogramBuffer[], uint8_t featureCount, uint8_t maxDisparityToMeasure)
+{
+	// compute disparity histogram
+	uint8_t indexInCoordinateMap;
+	uint8_t x;
+	uint8_t disp_min=1;
+	uint8_t disp;
 
+	for (x = 0; x < maxDisparityToMeasure; x++) {
+			histogramBuffer[x]=0;
+	}
+	for (indexInCoordinateMap = 0; indexInCoordinateMap < featureCount; indexInCoordinateMap++){
+		disp = disparity_coordinates[(indexInCoordinateMap)*3+2];
+		if (disp > disp_min && disp < maxDisparityToMeasure)
+		{
+			histogramBuffer[disp]++;
+		}
+	}
+}
