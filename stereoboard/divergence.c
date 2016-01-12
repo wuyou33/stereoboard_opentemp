@@ -9,7 +9,7 @@
 #include "optic_flow.h"
 
 #include <stdlib.h>
-void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time)
+void divergence_total(uint8_t divergenceArray[],uint8_t current_image_buffer[], struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time)
 {
 	edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].frame_time = time;
 
@@ -90,7 +90,13 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
 	divergenceArray[7] = boundint8(hz_x);
 	divergenceArray[8] = boundint8(vel_hor + 127); // in cm/s
 	divergenceArray[9] = boundint8(vel_ver + 127); // in cm/s
-	memcpy(divergenceArray + 10, quality_measures_edgeflow,
+
+	divergenceArray[10] = (vel_hor >> 8)&0xff;
+	divergenceArray[11] = (vel_hor)&0xff;
+	divergenceArray[12] = (vel_ver >> 8)&0xff;
+	divergenceArray[13] = (vel_ver)&0xff;
+
+	memcpy(divergenceArray + 14, quality_measures_edgeflow,
 			10 * sizeof(uint8_t)); // copy quality measures to output array
 }
 
@@ -149,7 +155,7 @@ int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 	* current_frame_nr = (*current_frame_nr + 1) % MAX_HORIZON;
 	return *hz_x;
 }
-void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
+void calculate_edge_flow(uint8_t in[], struct displacement_t *displacement, struct edge_flow_t *edge_flow,
 		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
 		uint8_t current_frame_nr, uint8_t quality_measures[], uint8_t window_size, uint8_t disp_range, uint16_t edge_threshold,
 		uint16_t image_width, uint16_t image_height, uint16_t RES)
@@ -168,28 +174,12 @@ void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struc
 	int32_t *prev_edge_histogram_y;
 
 	// Calculate previous frame number
-	//previous_frame_offset[0] = previous_frame_offset[1] = 1;
 
-	// TODO confirm below
 	if (MAX_HORIZON > 2) {
 		uint32_t flow_mag_x, flow_mag_y;
 		flow_mag_x = abs(edge_flow->horizontal_flow);
 		flow_mag_y = abs(edge_flow->vertical_flow);
 
-		// TODO check which image we should pick
-		// TODO I think you should switch when you go over the RES / flow_mag_x/(disparity_range/some_size) boundary
-		// TODO I currently use a switching limit of disparity range/4
-		/* if (4 * flow_mag_x * (MAX_HORIZON - 1) > RES * disp_range) {
-        previous_frame_offset[0] = (RES * disp_range) / (4 * flow_mag_x) + 1;
-      } else {
-        previous_frame_offset[0] = MAX_HORIZON - 1;
-      }
-
-      if (4 * flow_mag_y * (MAX_HORIZON - 1) > RES * disp_range) {
-        previous_frame_offset[1] = (RES * disp_range) / (4 * flow_mag_y) + 1;
-      } else {
-        previous_frame_offset[1] = MAX_HORIZON - 1;
-      }*/
 		uint32_t min_flow = 3;
 		uint32_t max_flow = 18;
 		uint8_t previous_frame_offset_x = previous_frame_offset[0];

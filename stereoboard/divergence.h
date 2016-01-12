@@ -95,7 +95,7 @@ struct edgeflow_results_t {
 // Global Functions divergence
 void divergence_init(struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,
 		const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
-void divergence_total(uint8_t divergenceArray[],uint8_t *current_image_buffer, struct edgeflow_parameters_t* edgeflow_parameters,
+void divergence_total(uint8_t divergenceArray[],uint8_t current_image_buffer[], struct edgeflow_parameters_t* edgeflow_parameters,
 		struct edgeflow_results_t* edgeflow_results,uint32_t time);
 int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 		int32_t * avg_disp, int32_t * avg_dist, int32_t * prev_avg_dist,
@@ -113,7 +113,7 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
 		uint8_t quality_measures_edgeflow[]);
 
 // Calculation functions
-void calculate_edge_flow_simple(uint8_t *in, int32_t *edge_histogram, int32_t *edge_histogram_prev,
+void calculate_edge_flow_simple(uint8_t in[], int32_t *edge_histogram, int32_t *edge_histogram_prev,
 		int32_t *displacement, float *slope, float *yint, uint32_t image_width, uint32_t image_height);
 void calculate_edge_flow(uint8_t *in, struct displacement_t *displacement, struct edge_flow_t *edge_flow,
 		struct edge_hist_t edge_hist[], int32_t *avg_disp, uint8_t previous_frame_offset[],
