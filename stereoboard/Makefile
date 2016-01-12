@@ -98,7 +98,15 @@ ${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
 ${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_copy_q31.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q31.c \
-${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c
+${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c \
+${DSP_LIB_PATH}/FastMathFunctions/arm_sin_f32.c \
+${DSP_LIB_PATH}/FastMathFunctions/arm_cos_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_f32.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_float_to_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_f32.c
+
 
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
@@ -189,7 +197,8 @@ hmc5883.c \
 divergence.h \
 divergence.c \
 droplet_algorithm.c \
-distance_matrix.c
+distance_matrix.c \
+odometry.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
