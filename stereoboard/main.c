@@ -401,22 +401,14 @@ int main(void)
       // Read from other device with the stereo communication protocol.
       uint8_t readChar = ' ';
       while (UsartCh()) {
-        readChar = UsartRx();
-        uint16_t length = STEREO_BUF_SIZE;
-        if (handleStereoPackage(readChar, length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
-                                &stereocam_data.data_new, &stereocam_data.len,&stereocam_data.height)) {
-          if (stereocam_data.len > 50) {
 
-            int32_t *pointer = (int32_t *)msg_buf;
-            int someHeightOnDrone = pointer[9];
-            if (someHeightOnDrone > 100) {
-              led_set();
-            } else {
-              led_clear();
-            }
-          }
-        }
+      readChar = UsartRx();
+        uint16_t length = STEREO_BUF_SIZE;
+        if(handleStereoPackage(readChar, length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
+                                &stereocam_data.data_new, &stereocam_data.len,&stereocam_data.height)) {}
+
       }
+
 
 			// New frame code: Vertical blanking = ON
 
@@ -542,10 +534,17 @@ int main(void)
 
       // compute and send divergence
       if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) {
+       led_toggle();
 
-        led_toggle();
-        // calculate the edge flow
+    	  // calculate the edge flow
     	divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results, sys_time_get());
+
+    	// Send received angles back to lisa s for double checking
+    	divergenceArray[4] = stereocam_data.data[0];
+        divergenceArray[5] = stereocam_data.data[1];
+        divergenceArray[6] = stereocam_data.data[2];
+
+        stereocam_data.data_new = 0;
       }
 
       // compute and send window detection parameters

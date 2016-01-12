@@ -110,7 +110,7 @@ static inline uint8_t usart_rx_ringbuffer_push_from_usart(struct UartDataStruct 
 {
   //USART_ITConfig(dev->device, USART_IT_TXE, DISABLE);
   dev->usart_rx_buffer[dev->usart_rx_counter_write] = USART_ReceiveData(dev->device);
-  int temp = (dev->usart_rx_counter_write + 1) % TXBUFFERSIZE;
+  int temp = (dev->usart_rx_counter_write + 1) % RXBUFFERSIZE;
 
   if (temp == dev->usart_rx_counter_read) {
     return 0;

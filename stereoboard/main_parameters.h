@@ -43,7 +43,7 @@
 #endif
 
 #ifndef STEREO_BUF_SIZE
-#define STEREO_BUF_SIZE 400
+#define STEREO_BUF_SIZE 4*64
 #endif
 
 #ifndef USE_COLOR
