@@ -223,6 +223,12 @@ int main(void)
 		filtered_image[ind] = 0;
 	}
 #endif
+
+
+#ifndef SUB_SAMPLING
+	#define SUB_SAMPLING 1
+#endif
+
 	uint8_t min_y, max_y;
 	uint32_t image_width = IMAGE_WIDTH;
 	uint32_t image_height = IMAGE_HEIGHT;
@@ -312,6 +318,11 @@ int main(void)
 	int number_of_rotations = rotation_step_number*rotation_step_number*rotation_step_number;
 	float32_t rotation_coefficients [number_of_rotations*9]; // 9 coefficients per rotation
 	rotation_coefficients[0] = 0;
+#endif
+
+#if SUB_SAMPLING
+	uint16_t features_max_number = 300;
+	uint8_t feature_image_coordinates [3*features_max_number];
 #endif
 
 
@@ -426,7 +437,7 @@ int main(void)
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
 		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY
-		  || current_stereoboard_algorithm==STEREO_VELOCITY ) {
+		  || (current_stereoboard_algorithm==STEREO_VELOCITY && !SUB_SAMPLING) ) {
 
     	if(current_stereoboard_algorithm != STEREO_VELOCITY || frame_counter % inv_freq_stereo == 0)
     	{
@@ -447,6 +458,14 @@ int main(void)
 												   min_y, max_y);
 			}
     	}
+      }
+
+      if(current_stereoboard_algorithm==STEREO_VELOCITY && SUB_SAMPLING)
+      {
+    	  nr_of_features = stereo_vision_sparse_block_features(current_image_buffer,
+    	  							disparity_image_buffer_8bit, feature_image_coordinates, features_max_number, image_width, image_height,
+    	  							disparity_min, disparity_range, disparity_step, thr1, thr2,
+    	  							min_y, max_y);
       }
 
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
