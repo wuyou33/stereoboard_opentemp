@@ -559,6 +559,8 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
     // de-interlace image lines and put them at correct place in the image blocks
     separate_image_line_offset_block(&in[idx0], block_right, block_left, image_width_bytes, idx_line, fakeShitImageWidth);
 
+    // 2000 ticks per second
+    // 31 frames per second as desired
     sys_time_ref = 2000*lineIndex/31/(max_y-min_y);
     sys_time_current = sys_time_get();
     if ( sys_time_current < sys_time_start)

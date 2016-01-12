@@ -223,12 +223,19 @@ int main(void)
 		filtered_image[ind] = 0;
 	}
 #endif
+
+
+#ifndef SUB_SAMPLING
+	#define SUB_SAMPLING 1
+#endif
+
 	uint8_t min_y, max_y;
 	uint32_t image_width = IMAGE_WIDTH;
 	uint32_t image_height = IMAGE_HEIGHT;
 
 	// for STEREO_VELOCITY:
 	uint8_t inv_freq_stereo = 5;
+	uint8_t avg_disp_left, avg_disp_right;
 
 	/***********
 	 * MAIN LOOP
@@ -264,7 +271,6 @@ int main(void)
   uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
   // Initialize matrixbuffer
-  int matrixBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
   uint8_t toSendCommand = 0;
   volatile uint32_t sys_time_prev = sys_time_get();
@@ -276,6 +282,7 @@ int main(void)
   volatile int32_t frameRate = 0;
 
   uint8_t histogramBuffer[pixelsPerLine];
+  uint8_t histogramBufferX[pixelsPerLine];
 
 #ifdef SEND_WINDOW
 
@@ -312,6 +319,11 @@ int main(void)
 	int number_of_rotations = rotation_step_number*rotation_step_number*rotation_step_number;
 	float32_t rotation_coefficients [number_of_rotations*9]; // 9 coefficients per rotation
 	rotation_coefficients[0] = 0;
+#endif
+
+#if SUB_SAMPLING
+	uint16_t features_max_number = 300;
+	uint8_t feature_image_coordinates [3*features_max_number];
 #endif
 
 
@@ -418,7 +430,7 @@ int main(void)
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
 		  || current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY
-		  || current_stereoboard_algorithm==STEREO_VELOCITY ) {
+		  || (current_stereoboard_algorithm==STEREO_VELOCITY && !SUB_SAMPLING) ) {
 
     	if(current_stereoboard_algorithm != STEREO_VELOCITY || frame_counter % inv_freq_stereo == 0)
     	{
@@ -441,11 +453,19 @@ int main(void)
     	}
       }
 
+      if(current_stereoboard_algorithm==STEREO_VELOCITY && SUB_SAMPLING)
+      {
+    	  nr_of_features = stereo_vision_sparse_block_features(current_image_buffer,
+    	  							disparity_image_buffer_8bit, feature_image_coordinates, features_max_number, image_width, image_height,
+    	  							disparity_min, disparity_range, disparity_step, thr1, thr2,
+    	  							min_y, max_y);
+      }
+
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 
     	  histogram_x_direction(disparity_image_buffer_8bit, histogramBuffer, histogram_type,blackBorderSize, pixelsPerLine, image_height);
 
-        if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
+    	if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
           toSendCommand = calculateHeadingFromHistogram(histogramBuffer);
         }
       }
@@ -495,15 +515,25 @@ int main(void)
       }
 		if (current_stereoboard_algorithm == SEND_MATRIX ) {
 			// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-			memset(matrixBuffer, 0, sizeof matrixBuffer);
 			memset(toSendBuffer, 0, sizeof toSendBuffer);
 			// Create the distance matrix by summing pixels per bin
-			calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
+			calculateDistanceMatrix(disparity_image_buffer_8bit, blackBorderSize,
 					pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 		}
 		if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
+
 		{	// Determine the maximum disparity using the disparity map
-			histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
+			if(!SUB_SAMPLING)
+			{
+				// Determine the maximum disparity using the disparity map
+				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer, pixelsPerLine, image_height);
+				histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
+				get_average_left_right(histogramBufferX, &avg_disp_left, &avg_disp_right, pixelsPerLine);
+			}
+			else
+			{
+				histogram_z_direction_features(feature_image_coordinates, histogramBuffer, nr_of_features, pixelsPerLine);
+			}
 			int amountDisparitiesRejected=30;
 			int histogramIndex=pixelsPerLine;
 			int amountDisparitiesCount=0;
@@ -518,18 +548,18 @@ int main(void)
 		}
 
 
-		if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
-			float  BASELINE_STEREO_MM = 60.0;
-			float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
-			disparity_velocity_step += 1;
-			// for now maximum disparity, later the average:
+	if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
+		float  BASELINE_STEREO_MM = 60.0;
+		float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
+		disparity_velocity_step += 1;
+		// for now maximum disparity, later the average:
 
-			float dist = 5.0;
-			if (maxDispFound > 0) {
-			  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
-			}
-			calculateForwardVelocity(dist,0.65, 5,5);
+		float dist = 5.0;
+		if (maxDispFound > 0) {
+		  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
 		}
+		calculateForwardVelocity(dist,0.65, 5,5);
+	}
 
 
       // compute and send divergence
@@ -721,7 +751,8 @@ int main(void)
 		        	divergenceArray[5]=(uint8_t)disparities_high;
 		        }
 		        divergenceArray[6] = (uint8_t)(processed_pixels/100);
-
+		        divergenceArray[7] = avg_disp_left;
+		        divergenceArray[8] = avg_disp_right;
 				led_clear();
 				if(maxDispFound>60){
 					led_set();

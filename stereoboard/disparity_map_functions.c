@@ -4,11 +4,29 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
+void get_average_left_right(uint8_t histogramBuffer[], uint8_t* avg_disp_left, uint8_t* avg_disp_right, uint8_t pixelsPerLine)
+{
+	uint8_t x;
+	long sum_left, sum_right;
+	uint8_t half_width;
+	// get the average of the left half of the image:
+	for (x = 0; x < half_width; x++ )
+	{
+		sum_left += histogramBuffer[x];
+	}
+	(*avg_disp_left) = sum_left / half_width;
+	// get the average of the right half of the image:
+	for (x = half_width; x < pixelsPerLine; x++ )
+	{
+		sum_right += histogramBuffer[x];
+	}
+	(*avg_disp_right) = sum_right / half_width;
+}
+
 void histogram_x_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, horizontal_histogram_type histogram_type,uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t heightPerLine)
 {
   uint8_t valueInImageBuffer = 0;
   uint16_t positionInImageBuffer = 0;
-  uint8_t positionInMatrix = 0;
   uint8_t x;
   uint8_t y;
   uint8_t minimumPixelsPerColumn;
@@ -90,22 +108,17 @@ void histogram_x_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, h
   }
 }
 
-
-
-
-
-void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t heightPerLine)
+void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, uint8_t pixelsPerLine, uint8_t heightPerLine)
 {
-
 	// compute disparity histogram
 	uint8_t y;
 	uint8_t x;
 	uint8_t max_y=90;
 	uint8_t disp_min=1;
 	uint8_t disp;
+
 	for (x = 0; x < pixelsPerLine; x++) {
 			histogramBuffer[x]=0;
-
 	}
 	for (y = 0; y < max_y; y++) {
 		for (x = 0; x < pixelsPerLine; x++) {
@@ -117,7 +130,24 @@ void histogram_z_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, u
 			}
 		}
 	}
-
 }
 
+void histogram_z_direction_features(uint8_t disparity_coordinates[], uint8_t histogramBuffer[], uint8_t featureCount, uint8_t maxDisparityToMeasure)
+{
+	// compute disparity histogram
+	uint8_t indexInCoordinateMap;
+	uint8_t x;
+	uint8_t disp_min=1;
+	uint8_t disp;
 
+	for (x = 0; x < maxDisparityToMeasure; x++) {
+			histogramBuffer[x]=0;
+	}
+	for (indexInCoordinateMap = 0; indexInCoordinateMap < featureCount; indexInCoordinateMap++){
+		disp = disparity_coordinates[(indexInCoordinateMap)*3+2];
+		if (disp > disp_min && disp < maxDisparityToMeasure)
+		{
+			histogramBuffer[disp]++;
+		}
+	}
+}
