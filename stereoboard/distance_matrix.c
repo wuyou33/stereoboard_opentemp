@@ -10,10 +10,9 @@
 #include "distance_matrix.h"
 #include "../common/led.h"
 
-void calculateDistanceMatrix(uint8_t *disparity_image,
-                             int *matrixBuffer,
+void calculateDistanceMatrix(uint8_t disparity_image[],
                              uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
-                             uint8_t heightPerBin, uint8_t *toSendBuffer, uint32_t disparity_range)
+                             uint8_t heightPerBin, uint8_t toSendBuffer[], uint32_t disparity_range)
 {
 
   uint8_t y;
