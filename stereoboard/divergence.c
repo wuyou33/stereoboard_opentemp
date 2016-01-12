@@ -90,7 +90,13 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
 	divergenceArray[7] = boundint8(hz_x);
 	divergenceArray[8] = boundint8(vel_hor + 127); // in cm/s
 	divergenceArray[9] = boundint8(vel_ver + 127); // in cm/s
-	memcpy(divergenceArray + 10, quality_measures_edgeflow,
+
+	divergenceArray[10] = (vel_hor >> 8)&0xff;
+	divergenceArray[11] = (vel_hor)&0xff;
+	divergenceArray[12] = (vel_ver >> 8)&0xff;
+	divergenceArray[13] = (vel_ver)&0xff;
+
+	memcpy(divergenceArray + 14, quality_measures_edgeflow,
 			10 * sizeof(uint8_t)); // copy quality measures to output array
 }
 
