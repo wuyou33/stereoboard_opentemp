@@ -6,6 +6,7 @@
  */
 
 #ifndef PROFILING_H_
+#ifndef SYS_TIME_H_
 #define SYS_TIME_H_
 
 inline static void sys_time_init(void)
@@ -26,5 +27,5 @@ inline static uint32_t sys_time_get(void)
   return TIM_GetCounter(TIM2);
 }
 
-
+#endif /* SYS_TIME_H_ */
 #endif /* SYS_TIME_H_ */
