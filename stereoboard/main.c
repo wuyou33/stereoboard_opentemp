@@ -276,6 +276,7 @@ int main(void)
   volatile int32_t frameRate = 0;
 
   uint8_t histogramBuffer[pixelsPerLine];
+  uint8_t histogramBufferX[pixelsPerLine];
 
 #ifdef SEND_WINDOW
 
@@ -512,6 +513,10 @@ int main(void)
 		if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
 		{	// Determine the maximum disparity using the disparity map
 			histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
+
+			histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
+
+
 			int amountDisparitiesRejected=30;
 			int histogramIndex=pixelsPerLine;
 			int amountDisparitiesCount=0;

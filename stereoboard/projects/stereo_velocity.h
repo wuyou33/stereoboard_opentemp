@@ -14,6 +14,7 @@
 #define DEFAULT_BOARD_FUNCTION STEREO_VELOCITY
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
+#define HISTOGRAM_FUNCTION HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE
 
 //////////////////////////////////////////////////////
 // Settings
