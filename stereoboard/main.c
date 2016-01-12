@@ -538,7 +538,7 @@ int main(void)
 			}
 			else
 			{
-				// histogram_z_direction_features(disparity_coordinates, histogramBuffer, featureCount, maxDisparityToMeasure);
+				histogram_z_direction_features(feature_image_coordinates, histogramBuffer, nr_of_features, pixelsPerLine);
 			}
 			int amountDisparitiesRejected=30;
 			int histogramIndex=pixelsPerLine;
