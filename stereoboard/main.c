@@ -528,11 +528,17 @@ int main(void)
 					pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
 		}
 		if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
-		{	// Determine the maximum disparity using the disparity map
-			histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer, pixelsPerLine, image_height);
-//			histogram_z_direction_features(disparity_coordinates, histogramBuffer, featureCount, maxDisparityToMeasure);
-histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
-
+		{
+			if(!SUB_SAMPLING)
+			{
+				// Determine the maximum disparity using the disparity map
+				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer, pixelsPerLine, image_height);
+				histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
+			}
+			else
+			{
+				// histogram_z_direction_features(disparity_coordinates, histogramBuffer, featureCount, maxDisparityToMeasure);
+			}
 			int amountDisparitiesRejected=30;
 			int histogramIndex=pixelsPerLine;
 			int amountDisparitiesCount=0;
