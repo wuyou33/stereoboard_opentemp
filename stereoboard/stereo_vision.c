@@ -8,10 +8,12 @@
  * Function takes input and calculates disparity using a block
  * @author Sjoerd + Roland
  */
-void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
+uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
     uint32_t disparity_min,
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
+
+	uint16_t processed_pixels = 0;
 
 	disparity_min = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
 
@@ -101,6 +103,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
+
+        	processed_pixels++;
+
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
 
@@ -190,6 +195,9 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
+
+        	processed_pixels++;
+
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
 
@@ -286,6 +294,8 @@ void stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image
     led_clear();
   }
   */
+
+  return processed_pixels;
 
 }
 
@@ -566,6 +576,7 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
       //    // make image gradients absolute such that we can look for maximum values in the next step
       arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth-1);
 
+      int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
       for (i = half_horizontal_block_size + MAX(disparity_min,0); i < fakeShitImageWidth-half_horizontal_block_size-disparity_range; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
@@ -603,7 +614,6 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
             sum_cost[c1_i + 1] = 16384;
           }
 
-
           // find second minimum cost
           arm_min_q15(sum_cost, disparity_range, &c2, &c2_i);
 
@@ -626,9 +636,11 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
                 h31 = (y3 - y1);
                 h21 = (y2 - y1) * 4;
                 sub_disp = ((h21 - h31) * RESOLUTION_FACTOR * 10) / (h21 - h31 * 2) / 10 + (x1 * RESOLUTION_FACTOR);
+                sub_disp = ((disparity_range - 1) * RESOLUTION_FACTOR) - sub_disp;
               }
 
               sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
+
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
               } else {
@@ -1593,19 +1605,18 @@ void evaluate_disparities_altitude(uint8_t *in, uint32_t image_width, uint32_t i
   }
 }
 
-uint32_t evaluate_disparities_droplet(uint8_t disparity_map[], uint32_t image_width, uint32_t image_height)
+uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t max_height_check)
 {
   volatile int x, y;
-  int y_max = 30;
+
   volatile uint32_t disparities_close = 0;
   //uint8_t maximum_disparities[640] = { 29,28,28,28,27,27,26,26,25,25,25,24,24,24,23,23,23,22,22,22,22,21,21,21,21,20,20,20,20,20,19,19,19,19,19,18,18,18,18,18,18,18,17,17,17,17,17,17,17,17,16,16,16,16,16,16,16,16,16,16,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,17,17,17,17,17,18,18,18,19,19,19,19,20,20,20,21 };
   //uint8_t maximum_disparities[640] = { 25,24,24,23,23,23,22,22,22,21,21,21,20,20,20,20,19,19,19,19,19,18,18,18,18,18,18,18,17,17,17,17,17,17,17,17,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,17,17,17,17,17,17,17,17,18,18,18,18,18,18,18,19,19,19,19,19,20,20,20,20,21,21,21,22,22,22,23,23,23,24,24,25,25};
   uint8_t maximum_disparities[640] = { 31, 30, 30, 29, 29, 29, 28, 28, 28, 27, 27, 27, 26, 26, 26, 26, 25, 25, 25, 25, 25, 24, 24, 24, 24, 24, 24, 24, 23, 23, 23, 23, 23, 23, 23, 23, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 28, 28, 28, 29, 29, 29, 30, 30, 31, 31};
   for (x = 0; x < image_width; x++) {
-    for (y = 0; y < y_max; y++) {
-      if (disparity_map[x + (y * image_width)] >= maximum_disparities[x] - 2) {
+    for (y = 0; y < max_height_check; y++) {
+      if (in[x + (y * image_width)] >= maximum_disparities[x] - 2) {
         disparities_close++;
-
       }
 
     }
