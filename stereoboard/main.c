@@ -312,6 +312,15 @@ int main(void)
   extract_loc = 0;
   msg_start = 0;
 
+  // Set the histogram type to what was defined in the
+  horizontal_histogram_type histogram_type;
+  if(HISTOGRAM_FUNCTION==HISTOGRAM_FOLLOW_ME_DRONE){
+	  histogram_type = FOLLOW_ME_HISTOGRAM;
+  }
+  else{
+	  histogram_type = AVOID_ME_HISTOGRAM;
+  }
+
   // Disparity based velocity estimation variables
   uint8_t maxDispFound = 0;
   int disparity_velocity_step=0;
@@ -421,13 +430,6 @@ int main(void)
       }
 
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
-    	  horizontal_histogram_type histogram_type;
-    	  if(HISTOGRAM_FUNCTION==HISTOGRAM_FOLLOW_ME_DRONE){
-    		  histogram_type = FOLLOW_ME_HISTOGRAM;
-    	  }
-    	  else{
-    		  histogram_type = AVOID_ME_HISTOGRAM;
-    	  }
 
     	  histogram_x_direction(disparity_image_buffer_8bit, histogramBuffer, histogram_type,blackBorderSize, pixelsPerLine, image_height);
 
@@ -479,46 +481,43 @@ int main(void)
         // percentage of x-location
         SendCommandNumber((uint8_t) disparities[1]);
       }
-
-			// send matrix buffer
-			if (current_stereoboard_algorithm == SEND_MATRIX ) {
-
-				// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-				memset(matrixBuffer, 0, sizeof matrixBuffer);
-				memset(toSendBuffer, 0, sizeof toSendBuffer);
-				// Create the distance matrix by summing pixels per bin
-				calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
-						pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
-			}
-			if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
-			{	// Determine the maximum disparity using the disparity map
-				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
-				int amountDisparitiesRejected=30;
-				int histogramIndex=pixelsPerLine;
-				int amountDisparitiesCount=0;
-				maxDispFound=0;
-				for(histogramIndex=pixelsPerLine-20;histogramIndex>0;histogramIndex--){
-					amountDisparitiesCount+=histogramBuffer[histogramIndex];
-					if(amountDisparitiesCount>amountDisparitiesRejected){
-						maxDispFound=histogramIndex;
-						break;
-					}
+		if (current_stereoboard_algorithm == SEND_MATRIX ) {
+			// Initialise matrixbuffer and sendbuffer by setting all values back to zero.
+			memset(matrixBuffer, 0, sizeof matrixBuffer);
+			memset(toSendBuffer, 0, sizeof toSendBuffer);
+			// Create the distance matrix by summing pixels per bin
+			calculateDistanceMatrix(disparity_image_buffer_8bit, matrixBuffer, blackBorderSize,
+					pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+		}
+		if(current_stereoboard_algorithm==SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY || current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY)
+		{	// Determine the maximum disparity using the disparity map
+			histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer,blackBorderSize, pixelsPerLine, image_height);
+			int amountDisparitiesRejected=30;
+			int histogramIndex=pixelsPerLine;
+			int amountDisparitiesCount=0;
+			maxDispFound=0;
+			for(histogramIndex=pixelsPerLine-20;histogramIndex>0;histogramIndex--){
+				amountDisparitiesCount+=histogramBuffer[histogramIndex];
+				if(amountDisparitiesCount>amountDisparitiesRejected){
+					maxDispFound=histogramIndex;
+					break;
 				}
 			}
+		}
 
 
-			if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
-				float  BASELINE_STEREO_MM = 60.0;
-				float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
-				disparity_velocity_step += 1;
-				// for now maximum disparity, later the average:
+		if(current_stereoboard_algorithm==DISPARITY_BASED_VELOCITY){
+			float  BASELINE_STEREO_MM = 60.0;
+			float BRANDSPUNTSAFSTAND_STEREO = 118.0 * 6.0 * 2.0;
+			disparity_velocity_step += 1;
+			// for now maximum disparity, later the average:
 
-				float dist = 5.0;
-				if (maxDispFound > 0) {
-				  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
-				}
-				calculateForwardVelocity(dist,0.65, 5,5);
+			float dist = 5.0;
+			if (maxDispFound > 0) {
+			  dist = ((BASELINE_STEREO_MM * BRANDSPUNTSAFSTAND_STEREO / (float)maxDispFound)) / 1000;
 			}
+			calculateForwardVelocity(dist,0.65, 5,5);
+		}
 
 
       // compute and send divergence
