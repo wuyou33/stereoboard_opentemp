@@ -7,8 +7,9 @@
 void get_average_left_right(uint8_t histogramBuffer[], uint8_t* avg_disp_left, uint8_t* avg_disp_right, uint8_t pixelsPerLine)
 {
 	uint8_t x;
-	long sum_left, sum_right;
-	uint8_t half_width;
+	long sum_left=0;
+	long sum_right=0;
+	uint8_t half_width=pixelsPerLine/2;
 	// get the average of the left half of the image:
 	for (x = 0; x < half_width; x++ )
 	{
@@ -22,6 +23,32 @@ void get_average_left_right(uint8_t histogramBuffer[], uint8_t* avg_disp_left, u
 	}
 	(*avg_disp_right) = sum_right / half_width;
 }
+void get_average_left_right_features(uint8_t featureBuffer[], int featureCount,uint8_t* avg_disp_left, uint8_t* avg_disp_right, uint8_t pixelsPerLine)
+{
+	uint8_t x;
+	long sum_left=0;
+	long sum_right=0;
+	int featureIndex;
+	int sumCountLeft=0;
+	int sumCountRight=0;
+	uint8_t half_width=pixelsPerLine/2;
+	for(featureIndex=0;featureIndex<featureCount; featureIndex++){
+		uint8_t indexy=featureBuffer[featureIndex*3];
+		uint8_t indexX=featureBuffer[featureIndex*3+1];
+		uint8_t value=featureBuffer[featureIndex*3+2];
+		if(indexX < half_width){
+			sum_left+=value;
+			sumCountLeft++;
+		}
+		else{
+			sum_right+=value;
+			sumCountRight++;
+		}
+	}
+	(*avg_disp_left) = sum_left / sumCountLeft;
+	(*avg_disp_right) = sum_right / sumCountRight;
+}
+
 
 void histogram_x_direction(uint8_t *disparity_image, uint8_t *histogramBuffer, horizontal_histogram_type histogram_type,uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t heightPerLine)
 {
