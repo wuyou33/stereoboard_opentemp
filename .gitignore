@@ -12,3 +12,7 @@
 .cproject
 .project
 stereoboard/.settings
+
+*.*~
+*/*.*~
+*/*/*.*~
