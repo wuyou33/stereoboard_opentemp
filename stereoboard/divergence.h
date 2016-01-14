@@ -27,6 +27,8 @@ struct edge_hist_t {
 	int32_t horizontal[IMAGE_WIDTH];
 	int32_t vertical[IMAGE_HEIGHT];
 	int32_t frame_time;
+	int16_t roll;
+	int16_t pitch;
 };
 
 //Edge Flow calculated from previous frame (adaptive frame selection)
@@ -96,7 +98,7 @@ struct edgeflow_results_t {
 void divergence_init(struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,
 		const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
 void divergence_total(uint8_t divergenceArray[],uint8_t current_image_buffer[], struct edgeflow_parameters_t* edgeflow_parameters,
-		struct edgeflow_results_t* edgeflow_results,uint32_t time);
+		struct edgeflow_results_t* edgeflow_results,uint32_t time, int16_t roll, int16_t pitch);
 int32_t divergence_calc_vel(int32_t* vel_hor, int32_t* vel_ver,
 		int32_t * avg_disp, int32_t * avg_dist, int32_t * prev_avg_dist,
 		struct covariance_t* covariance, uint8_t * current_frame_nr,

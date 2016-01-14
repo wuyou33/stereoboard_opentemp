@@ -9,9 +9,11 @@
 #include "optic_flow.h"
 
 #include <stdlib.h>
-void divergence_total(uint8_t divergenceArray[],uint8_t current_image_buffer[], struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time)
+void divergence_total(uint8_t divergenceArray[],uint8_t current_image_buffer[], struct edgeflow_parameters_t* edgeflow_parameters, struct edgeflow_results_t* edgeflow_results,uint32_t time, int16_t roll, int16_t pitch)
 {
 	edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].frame_time = time;
+	edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = pitch;
+	edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = roll;
 
 	calculate_edge_flow(current_image_buffer, &edgeflow_results->displacement, &edgeflow_results->edge_flow, edgeflow_results->edge_hist, &edgeflow_results->avg_disp,
 			edgeflow_results->previous_frame_offset, edgeflow_results->current_frame_nr, edgeflow_results->quality_measures_edgeflow, edgeflow_parameters->window_size, edgeflow_parameters->disparity_range, 0,
