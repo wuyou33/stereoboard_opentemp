@@ -321,10 +321,10 @@ int main(void)
 	rotation_coefficients[0] = 0;
 #endif
 
-#if SUB_SAMPLING
-	uint16_t features_max_number = 300;
-	uint8_t feature_image_coordinates [3*features_max_number];
-#endif
+
+uint16_t features_max_number = 300;
+uint8_t feature_image_coordinates [3*features_max_number];
+
 
 
 	int pos_y=0;
@@ -456,6 +456,8 @@ int main(void)
 
       if(current_stereoboard_algorithm==STEREO_VELOCITY && SUB_SAMPLING)
       {
+    	  min_y = 0;
+    	  max_y = 96;
     	  nr_of_features = stereo_vision_sparse_block_features(current_image_buffer,
     	  							disparity_image_buffer_8bit, feature_image_coordinates, features_max_number, image_width, image_height,
     	  							disparity_min, disparity_range, disparity_step, thr1, thr2,
@@ -530,16 +532,18 @@ int main(void)
 				histogram_z_direction(disparity_image_buffer_8bit, histogramBuffer, pixelsPerLine, image_height);
 				histogram_x_direction(disparity_image_buffer_8bit, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine, image_height);
 				get_average_left_right(histogramBufferX, &avg_disp_left, &avg_disp_right, pixelsPerLine);
+
 			}
 			else
 			{
 				histogram_z_direction_features(feature_image_coordinates, histogramBuffer, nr_of_features, pixelsPerLine);
+				get_average_left_right_features(feature_image_coordinates,nr_of_features,&avg_disp_left,&avg_disp_right,pixelsPerLine);
 			}
-			int amountDisparitiesRejected=30;
+			int amountDisparitiesRejected=processed_pixels/8;
 			int histogramIndex=pixelsPerLine;
 			int amountDisparitiesCount=0;
 			maxDispFound=0;
-			for(histogramIndex=pixelsPerLine-20;histogramIndex>0;histogramIndex--){
+			for(histogramIndex=pixelsPerLine-2;histogramIndex>0;histogramIndex--){
 				amountDisparitiesCount+=histogramBuffer[histogramIndex];
 				if(amountDisparitiesCount>amountDisparitiesRejected){
 					maxDispFound=histogramIndex;
@@ -750,8 +754,8 @@ int main(void)
 		        	divergenceArray[5]=(uint8_t)disparities_high;
 		        }
 		        divergenceArray[6] = (uint8_t)(processed_pixels/100);
-		        divergenceArray[7] = avg_disp_left;
-		        divergenceArray[8] = avg_disp_right;
+		        divergenceArray[10] = avg_disp_left;
+		        divergenceArray[11] = avg_disp_right;
 				led_clear();
 				if(maxDispFound>60){
 					led_set();

@@ -15,7 +15,7 @@
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 #define HISTOGRAM_FUNCTION HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE
-#define SUB_SAMPLING 1
+#define SUB_SAMPLING 0
 
 //////////////////////////////////////////////////////
 // Settings
