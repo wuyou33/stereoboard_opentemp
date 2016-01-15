@@ -411,13 +411,14 @@ uint8_t feature_image_coordinates [3*features_max_number];
       sys_time_prev = sys_time_get();
 #endif
       // Read from other device with the stereo communication protocol.
-      uint8_t readChar = ' ';
-      while (UsartCh()) {
+      while (UsartCh()&& stereoprot_add(insert_loc, 1, STEREO_BUF_SIZE) != extract_loc) {
 
-      readChar = UsartRx();
-        uint16_t length = STEREO_BUF_SIZE;
-        if(handleStereoPackage(readChar, length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
-                                &stereocam_data.data_new, &stereocam_data.len,&stereocam_data.height)) {}
+    	  uint16_t length = STEREO_BUF_SIZE;
+    	  if(handleStereoPackage(UsartRx(), length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
+    			  &stereocam_data.data_new, &stereocam_data.len,&stereocam_data.height))
+    	  {
+    		  break;
+    	  }
 
       }
 
@@ -572,13 +573,11 @@ uint8_t feature_image_coordinates [3*features_max_number];
     	   led_toggle();
        }
 
-    	  // calculate the edge flow
-    	divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results, sys_time_get());
+       int16_t pitch = 0;
+       int16_t roll = 0;
 
-    	// Send received angles back to lisa s for double checking
-    	divergenceArray[4] = stereocam_data.data[0];
-        divergenceArray[5] = stereocam_data.data[1];
-        divergenceArray[6] = stereocam_data.data[2];
+    	  // calculate the edge flow
+    	divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results, sys_time_get(), roll , pitch);
 
         stereocam_data.data_new = 0;
       }

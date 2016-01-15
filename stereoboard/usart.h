@@ -12,7 +12,7 @@
 #include "main_parameters.h"
 
 #define TXBUFFERSIZE    (64*64) // 4 KByte
-#define RXBUFFERSIZE    (4*64)
+#define RXBUFFERSIZE    (64*64) // 4 KByte
 
 
 #define USART_SUCCESS   1
