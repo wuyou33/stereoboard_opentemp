@@ -568,7 +568,9 @@ uint8_t feature_image_coordinates [3*features_max_number];
 
       // compute and send divergence
       if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) {
-       led_toggle();
+       if(current_stereoboard_algorithm == SEND_DIVERGENCE){
+    	   led_toggle();
+       }
 
     	  // calculate the edge flow
     	divergence_total(divergenceArray,current_image_buffer, &edgeflow_parameters, &edgeflow_results, sys_time_get());
@@ -730,7 +732,7 @@ uint8_t feature_image_coordinates [3*features_max_number];
 			{
 				uint8_t toSendNow[1];
 				led_clear();
-				if(maxDispFound>60){
+				if(maxDispFound>30){
 					led_set();
 				}
 				toSendNow[0]=maxDispFound;
@@ -758,7 +760,7 @@ uint8_t feature_image_coordinates [3*features_max_number];
 		        divergenceArray[10] = avg_disp_left;
 		        divergenceArray[11] = avg_disp_right;
 				led_clear();
-				if(maxDispFound>60){
+				if(maxDispFound>22){
 					led_set();
 				}
 				SendArray(divergenceArray, 23, 1);
