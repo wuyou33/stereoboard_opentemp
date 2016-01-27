@@ -152,6 +152,10 @@ forward_velocity_estimator.h \
 disparity_map_functions.c \
 disparity_map_functions.h \
 forward_velocity_estimator.h \
+tmg3993.c \
+tmg3993.h \
+i2c.c \
+i2c.h \
 usart.c \
 usart.h \
 dcmi.c \
@@ -196,6 +200,8 @@ hmc5883.c \
 ../common/utils.c \
 divergence.h \
 divergence.c \
+xprintf.c \
+xprintf.h \
 droplet_algorithm.c \
 distance_matrix.c \
 odometry.c
