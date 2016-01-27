@@ -34,7 +34,14 @@ DEVSUP_PATH   = ${CMSIS_PATH}/Device/ST/STM32F4xx/Include
 CORESUP_PATH  = ${CMSIS_PATH}/Include
 DSP_LIB_PATH  = ${CMSIS_PATH}/DSP_Lib/Source
 
-CFLAGS+=-I./
+ifeq ($(OS),Windows_NT)
+    #Windows stuff
+	CFLAGS+=-I${CURDIR}
+else
+    #Linux stuff
+    CFLAGS+=-I./
+endif
+
 CFLAGS+=-I${STDPH_PATH}/inc
 CFLAGS+=-I${DEVSUP_PATH}
 CFLAGS+=-I${CORESUP_PATH}
@@ -152,6 +159,10 @@ forward_velocity_estimator.h \
 disparity_map_functions.c \
 disparity_map_functions.h \
 forward_velocity_estimator.h \
+tmg3993.c \
+tmg3993.h \
+i2c.c \
+i2c.h \
 usart.c \
 usart.h \
 dcmi.c \
@@ -196,6 +207,8 @@ hmc5883.c \
 ../common/utils.c \
 divergence.h \
 divergence.c \
+xprintf.c\
+xprintf.h\
 droplet_algorithm.c \
 distance_matrix.c \
 odometry.c
@@ -230,7 +243,15 @@ com:
 #upload:
 #	../stlink/st-flash write ${BIN_IMAGE} 0x08000000
 #else
-BMP_PORT ?= /dev/ttyACM0
+
+ifeq ($(OS),Windows_NT)
+    #Windows stuff
+    BMP_PORT ?= COM2
+else
+    #Linux stuff
+    BMP_PORT ?= /dev/ttyACM0
+endif
+
 
 upload:
 	@echo "Using Black Magic Probe"
