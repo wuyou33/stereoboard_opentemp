@@ -9,7 +9,6 @@
 
 #include <stdint.h>
 
-
 // Functions
 void camera_tcm8230_i2c_init(void);
 void camera_tcm8230_read(void);

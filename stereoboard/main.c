@@ -11,6 +11,10 @@
 
 // include std libs
 #include <math.h>
+#include <stdint.h>
+#include <inttypes.h>
+
+#include "xprintf.h"
 
 // include system files
 #include "arm_math.h"
@@ -28,6 +32,7 @@
 
 // Other sensors
 //#include "hmc5883.h"
+#include "tmg3993.h" // IR proximity sensor
 
 // include setttings
 #include "main_parameters.h"
@@ -68,13 +73,13 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_PROXIMITY, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE,DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW,SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU,SEND_SINGLE_DISTANCE,DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE))
 	return DEFAULT_BOARD_FUNCTION;
 #elif defined(SEND_ROTATIONS)
 	return SEND_ROTATIONS;
@@ -104,6 +109,10 @@ stereoboard_algorithm_type getBoardFunction(void)
 	return SEND_DIVERGENCE;
 #elif defined(SEND_WINDOW)
 	return SEND_WINDOW;
+#elif defined( SEND_IMAGE_AND_PROXIMITY)
+	return  SEND_IMAGE_AND_PROXIMITY;
+#elif defined( SEND_PROXIMITY_AND_ANGLE)
+	return  SEND_PROXIMITY_AND_ANGLE;
 	//Initializing the dynamic parameters and the edge histogram structure
 	int rear = 1;
 	int front = 0;
@@ -241,9 +250,18 @@ int main(void)
 	 * MAIN LOOP
 	 ***********/
 
-  stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
-  volatile int processed = 0;
+	stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
+	volatile int processed = 0;
 
+#if current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE || current_stereoboard_algorithm == SEND_IMAGE_AND_PROX		// initialize proximity sensor
+		TMG3993_Init();
+		int16_t prx;
+		int16_t ang;
+		int16_t prx_east;
+		int16_t prx_west;
+		uint8_t ang_read = 1;
+#endif
+  
   // Disparity image buffer, initialised with zeros
   //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
@@ -367,21 +385,30 @@ uint8_t feature_image_coordinates [3*features_max_number];
 
 
 	while (1) {
-		if (current_stereoboard_algorithm == SEND_PROXIMITY) {
-			/*
-      uint8_t response[6];
-      response[0]=10;
-      proximity_sensor_WriteReg(REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_ALS_ENABLE);
-      proximity_sensor_WriteReg(REGISTER_CONTROL,COMMAND_AGAIN_64);
-      proximity_sensor_WriteReg(REGISTER_PPULSE,COMMAND_32us_63p);
-      proximity_sensor_WriteReg(REGISTER_CONFIG2,COMMAND_BOOST_150);
+		if (current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE) {
+			// Read proximity sensor
+			prx = TMG3993_Read_Proximity();
+			prx_east = TMG3993_Read_Proximity_East();
+			prx_west = TMG3993_Read_Proximity_West();
+			ang = TMG3993_Read_Angle();
 
+			// Check if obstacle is near
+			if ((prx>25) && (ang_read==1)){
+				led_set();
+				//ang = TMG3993_Read_Angle();
+				ang_read=0;
+			}
+			if (prx<=25){
+				led_clear();
+				ang_read=1;
+			}
 
-
-      readRegisterProximitySensor(REGISTER_PDATA,&response[0]);
-      readRegisterProximitySensor( REGISTER_CDATAL ,&response[2]);
-      readRegisterProximitySensor( REGISTER_CDATAH ,&response[3]);
-      SendArray(response,4,1);*/
+			// Print proximity and angle measurements to UART
+			char buffer[20];
+			xsprintf(buffer,"Proximity: %d, Angle: %d, East: %d, West: %d\r\n", prx, ang, prx_east, prx_west);
+			while (UsartTx(buffer,55) == 0)
+				;
+	
 		} else {
 			camera_snapshot();
 
