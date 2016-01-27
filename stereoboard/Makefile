@@ -207,8 +207,8 @@ hmc5883.c \
 ../common/utils.c \
 divergence.h \
 divergence.c \
-xprintf.c\
-xprintf.h\
+xprintf.c \
+xprintf.h \
 droplet_algorithm.c \
 distance_matrix.c \
 odometry.c
