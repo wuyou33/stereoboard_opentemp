@@ -802,9 +802,9 @@ uint8_t feature_image_coordinates [3*features_max_number];
 				SendCommand(toSendCommand);
 			}
 			if( current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
-				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+//				SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
 				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
-				//SendArray(target_location,3, 1); // send 3D location of target
+				SendArray(target_location,3, 1); // send 3D location of target
 			}
 			if( current_stereoboard_algorithm == SEND_ROTATIONS) {
 				//SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map

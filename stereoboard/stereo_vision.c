@@ -1653,6 +1653,7 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
 
 uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
 {
+	uint8_t maxDisparityInHistogram=200;
 	volatile uint8_t disp_min = 13;
 	volatile uint8_t max_disp_threshold = 10;
 	volatile uint8_t disp_window = 7;
@@ -1663,7 +1664,7 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 	volatile uint8_t disp = 0;
 	volatile uint8_t max_disp = 0;
 	volatile uint8_t max_disp_count = 0;
-	volatile uint8_t disp_hist [200];
+	volatile uint8_t disp_hist [maxDisparityInHistogram];
 	volatile uint8_t disp_range_min = 0;
 	volatile uint8_t disp_range_max = 0;
 	volatile uint8_t Y_hist [image_height];
@@ -1683,7 +1684,7 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 
 
 	// initialize histogram
-	for (i = 0; i < 200; i++ )
+	for (i = 0; i < maxDisparityInHistogram; i++ )
 	{
 		disp_hist[i] = 0;
 	}
@@ -1693,7 +1694,7 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 		for (x = 0; x < image_width; x++) {
 
 			disp = disparity_image_buffer[x + y * image_width];
-			if (disp > disp_min)
+			if (disp > disp_min && disp < maxDisparityInHistogram)
 			{
 				disp_hist[disp]++;
 				disp_hist[disp-1]++;
@@ -1703,7 +1704,7 @@ uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *dispa
 	}
 
 	// find disparity peak in histogram
-	for ( i = disp_min + disp_window; i < 200; i++ )
+	for ( i = disp_min + disp_window; i < maxDisparityInHistogram; i++ )
 	{
 		if ( disp_hist[i] > max_disp_count)
 		{
