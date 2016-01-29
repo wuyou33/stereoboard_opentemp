@@ -3,6 +3,7 @@
 */*.bin
 *.elf
 *.a
+q
 
 # Python
 *.pyc
@@ -12,6 +13,8 @@
 .cproject
 .project
 stereoboard/.settings
+stereoboard/Default
+.metadata
 
 *.*~
 */*.*~

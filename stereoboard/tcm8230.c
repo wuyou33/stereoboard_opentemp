@@ -88,8 +88,8 @@ void camera_tcm8230_i2c_init(void)
 #define TCM_AWB_AUTO 0x00  //ON
 #define TCM_AWB_MANUAL 128  //OFF
 
-#define TCM_MRG 0x0B // auto white balance gain [0-255]
-#define TCM_MBG 0x0C // auto white balance gain [0-255]
+#define TCM_MRG 0x0B // manual white balance gain [0-255]
+#define TCM_MBG 0x0C // manual white balance gain [0-255]
 
 // Auto luminance
 
@@ -105,7 +105,7 @@ void camera_tcm8230_i2c_init(void)
 #define TCM_VHUE 0x13
 #define TCM_UHUE 0x14
 
-#define TCM_SATU 0x18 // saturation (6 bits)
+#define TCM_SATU 0x18 // saturation (7 bits)
 
 
 uint8_t tcm8230_WriteReg(uint8_t Addr, uint8_t Data);
@@ -127,7 +127,7 @@ void camera_tcm8230_config(void)
 #define IMAGE_SIZE IMG_SIZE_subQCIF
 #elif (IMAGE_WIDTH==176) && (IMAGE_HEIGHT==144)
 #define IMAGE_SIZE IMG_SIZE_QCIF
-#elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==60)
+#elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==180)
 #define IMAGE_SIZE IMG_SIZE_VGA
 #else
 #ifdef USE_TCM8230
@@ -145,7 +145,13 @@ void camera_tcm8230_config(void)
 #if (TCM8230_EXTRA_SATURATION == 1)
   tcm8230_WriteReg(TCM_AWB,
                    TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
-  tcm8230_WriteReg(TCM_SATU, 255);
+  tcm8230_WriteReg(TCM_SATU, 127); // 127 max, 0 min (black/white), default 39
+#endif
+
+#if (TCM8230_EXTRA_SATURATION == 2) // Medium saturation setting
+  tcm8230_WriteReg(TCM_AWB,
+                   TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
+  tcm8230_WriteReg(TCM_SATU, 75); // 128 max, 0 min (black/white), default 39
 #endif
 
   // Extra options:
