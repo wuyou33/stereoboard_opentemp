@@ -6,13 +6,15 @@
 #include "main_parameters.h"
 #include "../multigaze/stereoboard_parameters.h"
 #include "stm32f4xx_conf.h"
-#include "sys_time.h"
 
 // Stereo vision header file
 void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
-    uint32_t disparity_min, uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
-uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *features, uint16_t features_max_number, uint32_t image_width, uint32_t image_height,
-    uint32_t disparity_min, uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
+    uint32_t disparity_min, uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y,
+    uint8_t max_y);
+uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *features, uint16_t features_max_number,
+    uint32_t image_width, uint32_t image_height,
+    uint32_t disparity_min, uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y,
+    uint8_t max_y);
 uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
     uint32_t disparity_min,
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y);
@@ -47,14 +49,20 @@ void evaluate_central_disparities2(uint8_t *in, uint32_t image_width, uint32_t i
                                    uint8_t n_disp_bins, uint8_t min_y, uint8_t max_y, uint8_t disp_threshold, uint8_t border);
 void evaluate_central_disparities_bins(uint8_t *in, uint32_t image_width, uint32_t image_height,
                                        uint32_t disparity_range, uint32_t *disparities, uint8_t n_disp_bins, uint8_t min_y, uint8_t max_y, uint8_t border);
-uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height,uint8_t max_height_check);
+uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height,
+                                      uint8_t max_height_check);
 void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_width, uint32_t image_height,
                           uint8_t min_y, uint8_t max_y);
-uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *in, uint8_t *out, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit);
-uint16_t getFeatureImageLocations_old(uint8_t *in, uint8_t *out, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit);
-void visualizeFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *feature_image_locations, uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
-void getFeatureXYZLocations(uint8_t *feature_image_locations, float *feature_XYZ_locations, uint16_t nr_of_features, uint32_t image_width, uint32_t image_height);
-uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_location, volatile uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
+uint16_t getFeatureImageLocations(uint8_t *current_image_buffer, uint8_t *in, uint8_t *out, uint8_t *target_location,
+                                  uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit);
+uint16_t getFeatureImageLocations_old(uint8_t *in, uint8_t *out, uint32_t image_width, uint32_t image_height,
+                                      uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit);
+void visualizeFeatureImageLocations(uint8_t *current_image_buffer, uint8_t *feature_image_locations,
+                                    uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
+void getFeatureXYZLocations(uint8_t *feature_image_locations, float *feature_XYZ_locations, uint16_t nr_of_features,
+                            uint32_t image_width, uint32_t image_height);
+uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_location,
+                                    volatile uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit);
 
 
 #endif

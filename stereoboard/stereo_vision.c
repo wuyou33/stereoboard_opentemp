@@ -2,6 +2,7 @@
 
 #include "stereo_vision.h"
 #include "../common/led.h"
+#include "sys_time.h"
 #include BOARD_FILE
 
 /**
@@ -13,11 +14,11 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
 
-	uint16_t processed_pixels = 0;
+  uint16_t processed_pixels = 0;
 
-	disparity_min = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
+  disparity_min = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
-	uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
+  uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
   // TODO check if disparity_min is still required
   uint32_t disparity_max = disparity_range - 1 +
                            disparity_min;   // calculate maximum diisparity value based on minimum and range
@@ -99,12 +100,12 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
       //    // make image gradients absolute such that we can look for maximum values in the next step
       arm_abs_q15(line_gradient, line_gradient, half_imageWidth);
 
-      for (i = half_horizontal_block_size + MAX(disparity_min,0); i < half_imageWidth; i++) {
+      for (i = half_horizontal_block_size + MAX(disparity_min, 0); i < half_imageWidth; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
 
-        	processed_pixels++;
+          processed_pixels++;
 
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
@@ -113,7 +114,8 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
           for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++) {
             for (v = 0; v < vertical_block_size; v++) {
               // compute difference between pixel from left image with (disparity) range of pixels from right image
-              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost, disparity_range);
+              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost,
+                             disparity_range);
               // obtain absolute difference
               arm_abs_q15(cost, cost, disparity_range);
               // sum results of this pixel with other pixels in this window
@@ -163,7 +165,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
                 sub_disp = ((h21 - h31) * RESOLUTION_FACTOR * 10) / (h21 - h31 * 2) / 10 + (x1 * RESOLUTION_FACTOR);
               }
 
-              sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
+              sub_disp += DISPARITY_OFFSET_HORIZONTAL % RESOLUTION_FACTOR;
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
               } else {
@@ -196,7 +198,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
 
-        	processed_pixels++;
+          processed_pixels++;
 
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
@@ -256,7 +258,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
                 sub_disp = ((disparity_range - 1) * RESOLUTION_FACTOR) - sub_disp;
               }
 
-              sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
+              sub_disp += DISPARITY_OFFSET_HORIZONTAL % RESOLUTION_FACTOR;
 
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
@@ -305,9 +307,9 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
 
-	disparity_min = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
+  disparity_min = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
-	uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
+  uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
   // TODO check if disparity_min is still required
   uint32_t disparity_max = disparity_range - 1 +
                            disparity_min;   // calculate maximum diisparity value based on minimum and range
@@ -384,13 +386,14 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
 
       // calculate image gradient of left image by subtracting with one pixel offset
       arm_sub_q15(&block_left[idx_SAD * fakeShitImageWidth], &block_left[(idx_SAD * fakeShitImageWidth) + 1], line_gradient,
-    		  fakeShitImageWidth-1);
+                  fakeShitImageWidth - 1);
 
       //    // make image gradients absolute such that we can look for maximum values in the next step
-      arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth-1);
+      arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth - 1);
 
 
-      for (i = half_horizontal_block_size + MAX(disparity_min,0); i < fakeShitImageWidth-half_horizontal_block_size-disparity_range; i++) {
+      for (i = half_horizontal_block_size + MAX(disparity_min, 0);
+           i < fakeShitImageWidth - half_horizontal_block_size - disparity_range; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
@@ -401,7 +404,8 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
           for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++) {
             for (v = 0; v < vertical_block_size; v++) {
               // compute difference between pixel from left image with (disparity) range of pixels from right image
-              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost, disparity_range);
+              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost,
+                             disparity_range);
               // obtain absolute difference
               arm_abs_q15(cost, cost, disparity_range);
               // sum results of this pixel with other pixels in this window
@@ -451,7 +455,7 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
                 sub_disp = ((h21 - h31) * RESOLUTION_FACTOR * 10) / (h21 - h31 * 2) / 10 + (x1 * RESOLUTION_FACTOR);
               }
 
-              sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
+              sub_disp += DISPARITY_OFFSET_HORIZONTAL % RESOLUTION_FACTOR;
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
               } else {
@@ -470,16 +474,17 @@ void stereo_vision_sparse_block_fast_version(uint8_t *in, q7_t *out, uint32_t im
 
 }
 
-uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *features, uint16_t features_max_number, uint32_t image_width, uint32_t image_height,
+uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *features, uint16_t features_max_number,
+    uint32_t image_width, uint32_t image_height,
     uint32_t disparity_min,
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
 
-	disparity_min = -DISPARITY_OFFSET_HORIZONTAL/RESOLUTION_FACTOR;
+  disparity_min = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
-	volatile uint16_t feature_count = 0;
+  volatile uint16_t feature_count = 0;
 
-	uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
+  uint32_t image_width_bytes = image_width * 2;           // number of bytes of 2 interlaced image lines
   // TODO check if disparity_min is still required
   uint32_t disparity_max = disparity_range - 1 +
                            disparity_min;   // calculate maximum diisparity value based on minimum and range
@@ -517,7 +522,6 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
   volatile int32_t sub_disp;
   volatile uint32_t sys_time_ref;
   volatile uint32_t sys_time_start = sys_time_get();
-  volatile uint32_t sys_time_current;
   volatile uint32_t sys_time_passed;
   volatile uint16_t feature_index;
   volatile uint8_t data = 3; // data about features: [x y d]
@@ -559,28 +563,23 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
     // de-interlace image lines and put them at correct place in the image blocks
     separate_image_line_offset_block(&in[idx0], block_right, block_left, image_width_bytes, idx_line, fakeShitImageWidth);
 
-    // 2000 ticks per second
-    // 31 frames per second as desired
-    sys_time_ref = 2000*lineIndex/31/(max_y-min_y);
-    sys_time_current = sys_time_get();
-    if ( sys_time_current < sys_time_start)
-    	sys_time_passed = 20000-sys_time_start+sys_time_current;
-    else
-    	sys_time_passed = sys_time_current-sys_time_start;
-
+    // 26 frames per second as desired
+    sys_time_ref = TIMER_TICKS_PER_SEC * lineIndex / (26 * (max_y - min_y));
+    sys_time_passed = get_timer_interval(sys_time_start);
 
     if (idx_SAD > -1 && sys_time_passed < sys_time_ref) {
 
       // calculate image gradient of left image by subtracting with one pixel offset
       arm_sub_q15(&block_left[idx_SAD * fakeShitImageWidth], &block_left[(idx_SAD * fakeShitImageWidth) + 1], line_gradient,
-    		  fakeShitImageWidth-1);
+                  fakeShitImageWidth - 1);
 
       //    // make image gradients absolute such that we can look for maximum values in the next step
-      arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth-1);
+      arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth - 1);
 
       int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
-      for (i = half_horizontal_block_size + MAX(disparity_min,0); i < fakeShitImageWidth-half_horizontal_block_size-disparity_range; i++) {
+      for (i = half_horizontal_block_size + MAX(disparity_min, 0);
+           i < fakeShitImageWidth - half_horizontal_block_size - disparity_range; i++) {
         // check if image gradient has a local maximum AND value of image gradient exceeds threshold.
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
@@ -591,7 +590,8 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
           for (h = i - half_horizontal_block_size; h < i + half_horizontal_block_size + 1; h++) {
             for (v = 0; v < vertical_block_size; v++) {
               // compute difference between pixel from left image with (disparity) range of pixels from right image
-              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost, disparity_range);
+              arm_offset_q15(&block_right[h + (v * image_width) + disparity_min], -block_left[h + (v * image_width)], cost,
+                             disparity_range);
               // obtain absolute difference
               arm_abs_q15(cost, cost, disparity_range);
               // sum results of this pixel with other pixels in this window
@@ -641,22 +641,21 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
                 sub_disp = ((disparity_range - 1) * RESOLUTION_FACTOR) - sub_disp;
               }
 
-              sub_disp += DISPARITY_OFFSET_HORIZONTAL%RESOLUTION_FACTOR;
+              sub_disp += DISPARITY_OFFSET_HORIZONTAL % RESOLUTION_FACTOR;
 
               if (sub_disp < 0) {
                 out[locationInBuffer] = 0;
               } else {
                 //out[locationInBuffer] = sub_disp;
 
-            	  if ( feature_count < features_max_number )
-            	  {
-            		  feature_index = feature_count*data;
-					  features[feature_index] = (uint8_t) lineIndex; // line number
-					  features[feature_index+1] = (uint8_t) i; // column number
-					  features[feature_index+2] = (uint8_t) sub_disp; // disparity value
-					  //features[feature_index+3] = (uint8_t) 0; // selection indicator
-					  feature_count++;
-            	  }
+                if (feature_count < features_max_number) {
+                  feature_index = feature_count * data;
+                  features[feature_index] = (uint8_t) lineIndex; // line number
+                  features[feature_index + 1] = (uint8_t) i; // column number
+                  features[feature_index + 2] = (uint8_t) sub_disp; // disparity value
+                  //features[feature_index+3] = (uint8_t) 0; // selection indicator
+                  feature_count++;
+                }
 
               }
             } // end-if inlier in buffer
@@ -1607,7 +1606,8 @@ void evaluate_disparities_altitude(uint8_t *in, uint32_t image_width, uint32_t i
   }
 }
 
-uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t max_height_check)
+uint32_t evaluate_disparities_droplet(uint8_t *in, uint32_t image_width, uint32_t image_height,
+                                      uint8_t max_height_check)
 {
   volatile int x, y;
 
@@ -1651,401 +1651,373 @@ void filter_disparity_map(uint8_t *in, uint8_t diff_threshold, uint32_t image_wi
   }
 }
 
-uint16_t getFeatureImageLocations( uint8_t *current_image_buffer, uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
+uint16_t getFeatureImageLocations(uint8_t *current_image_buffer, uint8_t *disparity_image_buffer,
+                                  uint8_t *feature_image_locations, uint8_t *target_location, uint32_t image_width, uint32_t image_height, uint8_t min_y,
+                                  uint8_t max_y, uint16_t feature_count_limit)
 {
-	uint8_t maxDisparityInHistogram=200;
-	volatile uint8_t disp_min = 13;
-	volatile uint8_t max_disp_threshold = 10;
-	volatile uint8_t disp_window = 7;
+  uint8_t maxDisparityInHistogram = 200;
+  volatile uint8_t disp_min = 13;
+  volatile uint8_t max_disp_threshold = 10;
+  volatile uint8_t disp_window = 7;
 
-	volatile uint16_t x = 0;
-	volatile uint16_t y = 0;
-	volatile uint16_t i = 0;
-	volatile uint8_t disp = 0;
-	volatile uint8_t max_disp = 0;
-	volatile uint8_t max_disp_count = 0;
-	volatile uint8_t disp_hist [maxDisparityInHistogram];
-	volatile uint8_t disp_range_min = 0;
-	volatile uint8_t disp_range_max = 0;
-	volatile uint8_t Y_hist [image_height];
-	volatile uint8_t X_hist [image_width];
-	volatile uint8_t X_hist_max = 0;
-	volatile uint8_t X_hist_max_count = 0;
-	volatile uint8_t min_X = 0;
-	volatile uint8_t max_X = 0;
-	volatile uint16_t mean_X = 0;
-	volatile int16_t disp_mean = 0;
-	volatile uint16_t disp_count = 0;
-	volatile uint16_t distance = 0;
+  volatile uint16_t x = 0;
+  volatile uint16_t y = 0;
+  volatile uint16_t i = 0;
+  volatile uint8_t disp = 0;
+  volatile uint8_t max_disp = 0;
+  volatile uint8_t max_disp_count = 0;
+  volatile uint8_t disp_hist [maxDisparityInHistogram];
+  volatile uint8_t disp_range_min = 0;
+  volatile uint8_t disp_range_max = 0;
+  volatile uint8_t Y_hist [image_height];
+  volatile uint8_t X_hist [image_width];
+  volatile uint8_t X_hist_max = 0;
+  volatile uint8_t X_hist_max_count = 0;
+  volatile uint8_t min_X = 0;
+  volatile uint8_t max_X = 0;
+  volatile uint16_t mean_X = 0;
+  volatile int16_t disp_mean = 0;
+  volatile uint16_t disp_count = 0;
+  volatile uint16_t distance = 0;
 
-	volatile int image_width_bytes = image_width*2;
-
-
+  volatile int image_width_bytes = image_width * 2;
 
 
-	// initialize histogram
-	for (i = 0; i < maxDisparityInHistogram; i++ )
-	{
-		disp_hist[i] = 0;
-	}
-
-	// compute disparity histogram
-	for (y = min_y; y < max_y; y++) {
-		for (x = 0; x < image_width; x++) {
-
-			disp = disparity_image_buffer[x + y * image_width];
-			if (disp > disp_min && disp < maxDisparityInHistogram)
-			{
-				disp_hist[disp]++;
-				disp_hist[disp-1]++;
-				disp_hist[disp+1]++;
-			}
-		}
-	}
-
-	// find disparity peak in histogram
-	for ( i = disp_min + disp_window; i < maxDisparityInHistogram; i++ )
-	{
-		if ( disp_hist[i] > max_disp_count)
-		{
-			max_disp_count = disp_hist[i];
-			max_disp = i;
-		}
-	}
-
-	led_clear();
-
-	target_location[0] = (uint8_t) 65;
-	target_location[1] = (uint8_t) 48;
-	target_location[2] = (uint8_t) 100;
-
-	// check if there is a clear object
-	if ( (max_disp_count > max_disp_threshold) && (max_disp > disp_min + disp_window) )
-	{
-
-		led_set();
-
-		disp_range_min = max_disp-disp_window;
-		disp_range_max = max_disp+disp_window;
-		// create histogram for Y-direction
-		for (i = 0; i < image_height; i++ )
-		{
-			Y_hist[i] = 0;
-		}
-
-		for (y = min_y; y < max_y; y++) {
-			for (x = 0; x < image_width; x++) {
-
-				disp = disparity_image_buffer[x + y * image_width];
-				if ( (disp > disp_range_min) && (disp < disp_range_max) )
-				{
-					Y_hist[y]++;
-				}
-			}
-		}
-
-		for (i = 4; i < image_height-10; i++ )
-		{
-			if ( Y_hist[i] == 0 && Y_hist[i-1] == 0 && Y_hist[i-2] == 0 && Y_hist[i-3] == 0 && Y_hist[i-4] == 0 )
-			{
-				min_y = i;
-			}
-		}
-
-		// initialize histogram for X-direction
-		for (i = 0; i < image_width; i++ )
-		{
-			X_hist[i] = 0;
-		}
-
-		// compute histogram for X-direction
-		for (y = min_y; y < max_y; y++) {
-			for (x = 0; x < image_width; x++) {
-
-				disp = disparity_image_buffer[x + y * image_width];
-				if ( (disp > disp_range_min) && (disp < disp_range_max) )
-				{
-					X_hist[x]++;
-				}
-			}
-		}
-
-		// find peak and its location of X-histogram
-		for (i = 0; i < image_width; i++ )
-		{
-			if ( X_hist[i] > X_hist_max_count )
-			{
-				X_hist_max_count = X_hist[i];
-				X_hist_max = i;
-			}
-		}
-
-		// find most-right zero index on left side of X-histogram [
-		for (i = 4; i < X_hist_max; i++ )
-		{
-			if ( X_hist[i] == 0 && X_hist[i-1] == 0 && X_hist[i-2] == 0 && X_hist[i-3] == 0 && X_hist[i-4] == 0 )
-			{
-				min_X = i;
-			}
-		}
-
-		// find most-left zero index on right side of X-histogram ]
-		for (i = image_width-5; i > X_hist_max; i-- )
-		{
-			if ( X_hist[i] == 0 && X_hist[i+1] == 0 && X_hist[i+2] == 0 && X_hist[i+3] == 0 && X_hist[i+4] == 0 )
-			{
-				max_X = i;
-			}
-		}
-
-		// visualize left and right borders of object in image
-		for (y = min_y; y < max_y; y++)
-		{
-			current_image_buffer[(min_X*2) + 1 + (y * image_width_bytes)] = 255;
-			current_image_buffer[(max_X*2) + 1 + (y * image_width_bytes)] = 255;
-
-		}
-
-		// compute and visualize middle line of object
-		mean_X = (min_X+max_X)/2;
-		current_image_buffer[(mean_X*2) + 1 + (min_y * image_width_bytes)] = 255;
 
 
-		// compute average disparity of object
-		for (y = min_y; y < max_y; y++) {
-			for (x = min_X; x < max_X; x++) {
+  // initialize histogram
+  for (i = 0; i < maxDisparityInHistogram; i++) {
+    disp_hist[i] = 0;
+  }
 
-				disp = disparity_image_buffer[x + y * image_width];
-				if ( (disp > disp_range_min) && (disp < disp_range_max) )
-				{
-					disp_mean += disp;
-					disp_count++;
-				}
-			}
-		}
+  // compute disparity histogram
+  for (y = min_y; y < max_y; y++) {
+    for (x = 0; x < image_width; x++) {
 
-		disp_mean = disp_mean/disp_count;
+      disp = disparity_image_buffer[x + y * image_width];
+      if (disp > disp_min && disp < maxDisparityInHistogram) {
+        disp_hist[disp]++;
+        disp_hist[disp - 1]++;
+        disp_hist[disp + 1]++;
+      }
+    }
+  }
 
-		// convert disparity to distance
-		distance = (120*6)/((disp_mean/RESOLUTION_FACTOR)*2); // [cm] divided by 2
+  // find disparity peak in histogram
+  for (i = disp_min + disp_window; i < maxDisparityInHistogram; i++) {
+    if (disp_hist[i] > max_disp_count) {
+      max_disp_count = disp_hist[i];
+      max_disp = i;
+    }
+  }
 
-		target_location[0] = (uint8_t) mean_X;
-		target_location[1] = (uint8_t) min_y;
-		target_location[2] = (uint8_t) distance;
+  led_clear();
+
+  target_location[0] = (uint8_t) 65;
+  target_location[1] = (uint8_t) 48;
+  target_location[2] = (uint8_t) 100;
+
+  // check if there is a clear object
+  if ((max_disp_count > max_disp_threshold) && (max_disp > disp_min + disp_window)) {
+
+    led_set();
+
+    disp_range_min = max_disp - disp_window;
+    disp_range_max = max_disp + disp_window;
+    // create histogram for Y-direction
+    for (i = 0; i < image_height; i++) {
+      Y_hist[i] = 0;
+    }
+
+    for (y = min_y; y < max_y; y++) {
+      for (x = 0; x < image_width; x++) {
+
+        disp = disparity_image_buffer[x + y * image_width];
+        if ((disp > disp_range_min) && (disp < disp_range_max)) {
+          Y_hist[y]++;
+        }
+      }
+    }
+
+    for (i = 4; i < image_height - 10; i++) {
+      if (Y_hist[i] == 0 && Y_hist[i - 1] == 0 && Y_hist[i - 2] == 0 && Y_hist[i - 3] == 0 && Y_hist[i - 4] == 0) {
+        min_y = i;
+      }
+    }
+
+    // initialize histogram for X-direction
+    for (i = 0; i < image_width; i++) {
+      X_hist[i] = 0;
+    }
+
+    // compute histogram for X-direction
+    for (y = min_y; y < max_y; y++) {
+      for (x = 0; x < image_width; x++) {
+
+        disp = disparity_image_buffer[x + y * image_width];
+        if ((disp > disp_range_min) && (disp < disp_range_max)) {
+          X_hist[x]++;
+        }
+      }
+    }
+
+    // find peak and its location of X-histogram
+    for (i = 0; i < image_width; i++) {
+      if (X_hist[i] > X_hist_max_count) {
+        X_hist_max_count = X_hist[i];
+        X_hist_max = i;
+      }
+    }
+
+    // find most-right zero index on left side of X-histogram [
+    for (i = 4; i < X_hist_max; i++) {
+      if (X_hist[i] == 0 && X_hist[i - 1] == 0 && X_hist[i - 2] == 0 && X_hist[i - 3] == 0 && X_hist[i - 4] == 0) {
+        min_X = i;
+      }
+    }
+
+    // find most-left zero index on right side of X-histogram ]
+    for (i = image_width - 5; i > X_hist_max; i--) {
+      if (X_hist[i] == 0 && X_hist[i + 1] == 0 && X_hist[i + 2] == 0 && X_hist[i + 3] == 0 && X_hist[i + 4] == 0) {
+        max_X = i;
+      }
+    }
+
+    // visualize left and right borders of object in image
+    for (y = min_y; y < max_y; y++) {
+      current_image_buffer[(min_X * 2) + 1 + (y * image_width_bytes)] = 255;
+      current_image_buffer[(max_X * 2) + 1 + (y * image_width_bytes)] = 255;
+
+    }
+
+    // compute and visualize middle line of object
+    mean_X = (min_X + max_X) / 2;
+    current_image_buffer[(mean_X * 2) + 1 + (min_y * image_width_bytes)] = 255;
 
 
-	} // endif object found
+    // compute average disparity of object
+    for (y = min_y; y < max_y; y++) {
+      for (x = min_X; x < max_X; x++) {
 
-	return disp_count;
+        disp = disparity_image_buffer[x + y * image_width];
+        if ((disp > disp_range_min) && (disp < disp_range_max)) {
+          disp_mean += disp;
+          disp_count++;
+        }
+      }
+    }
+
+    disp_mean = disp_mean / disp_count;
+
+    // convert disparity to distance
+    distance = (120 * 6) / ((disp_mean / RESOLUTION_FACTOR) * 2); // [cm] divided by 2
+
+    target_location[0] = (uint8_t) mean_X;
+    target_location[1] = (uint8_t) min_y;
+    target_location[2] = (uint8_t) distance;
+
+
+  } // endif object found
+
+  return disp_count;
 
 }
 
 
-uint16_t getFeatureImageLocations_old(uint8_t *disparity_image_buffer, uint8_t *feature_image_locations, uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
+uint16_t getFeatureImageLocations_old(uint8_t *disparity_image_buffer, uint8_t *feature_image_locations,
+                                      uint32_t image_width, uint32_t image_height, uint8_t min_y, uint8_t max_y, uint16_t feature_count_limit)
 {
-	// set minimum value for disparity
-	uint8_t disp_far = 19; // 29; // approx 1.5m
-	uint8_t disp_close = 86; //86; // approx 0.5m
-	const uint8_t nr_bins = 10;
-	volatile uint8_t bin_min_value = 30;
-	volatile uint8_t disp = 0;
-	volatile uint8_t disp_bins [nr_bins];
-	volatile uint8_t bin_width = (disp_close-disp_far)/nr_bins;
-	volatile uint8_t bin_nr = 0;
-	volatile uint8_t bin_index = 0;
-	volatile uint8_t disp_start = 0;
-	volatile uint8_t disp_end = 0;
-	volatile uint8_t sum_bins = 0;
+  // set minimum value for disparity
+  uint8_t disp_far = 19; // 29; // approx 1.5m
+  uint8_t disp_close = 86; //86; // approx 0.5m
+  const uint8_t nr_bins = 10;
+  volatile uint8_t bin_min_value = 30;
+  volatile uint8_t disp = 0;
+  volatile uint8_t disp_bins [nr_bins];
+  volatile uint8_t bin_width = (disp_close - disp_far) / nr_bins;
+  volatile uint8_t bin_nr = 0;
+  volatile uint8_t bin_index = 0;
+  volatile uint8_t disp_start = 0;
+  volatile uint8_t disp_end = 0;
+  volatile uint8_t sum_bins = 0;
 
-	volatile uint16_t feature_count = 0;
-	volatile uint16_t x = 0;
-	volatile uint16_t y = 0;
+  volatile uint16_t feature_count = 0;
+  volatile uint16_t x = 0;
+  volatile uint16_t y = 0;
 
 
 
-	for ( x = 0; x < nr_bins; x++ )
-	{
-		disp_bins[x] = 0;
-	}
+  for (x = 0; x < nr_bins; x++) {
+    disp_bins[x] = 0;
+  }
 
-	for (y = min_y; y < max_y; y++) {
-		for (x = 0; x < image_width; x++) {
+  for (y = min_y; y < max_y; y++) {
+    for (x = 0; x < image_width; x++) {
 
-			disp = disparity_image_buffer[x + y * image_width];
-			if ( (disp > disp_far) && (disp < disp_close) )
-			{
-				bin_nr = (disp-disp_far)/bin_width;
-				disp_bins[bin_nr]++;
+      disp = disparity_image_buffer[x + y * image_width];
+      if ((disp > disp_far) && (disp < disp_close)) {
+        bin_nr = (disp - disp_far) / bin_width;
+        disp_bins[bin_nr]++;
 
-				if ( bin_nr < nr_bins -1 )
-				{
-					disp_bins[bin_nr+1]++;
-				}
-			}
-		}
-	}
+        if (bin_nr < nr_bins - 1) {
+          disp_bins[bin_nr + 1]++;
+        }
+      }
+    }
+  }
 
-	sum_bins = 0;
-	bin_index = 0;
-	for ( x = nr_bins-1; x > 0; x-- )
-	{
-		sum_bins += disp_bins[x];
-		if ( (sum_bins>bin_min_value) && (bin_index == 0) )
-		{
-			bin_index = x;
-		}
+  sum_bins = 0;
+  bin_index = 0;
+  for (x = nr_bins - 1; x > 0; x--) {
+    sum_bins += disp_bins[x];
+    if ((sum_bins > bin_min_value) && (bin_index == 0)) {
+      bin_index = x;
+    }
 
-	}
+  }
 
-	if ( bin_index > 0 )
-	{
-		disp_start = ((bin_index-1)*bin_width)+disp_far;
-		disp_end = ((bin_index+1)*bin_width)+disp_far;
+  if (bin_index > 0) {
+    disp_start = ((bin_index - 1) * bin_width) + disp_far;
+    disp_end = ((bin_index + 1) * bin_width) + disp_far;
 
-		for (y = min_y; (y < max_y) && (feature_count<feature_count_limit); y++) {
-			for (x = 0; (x < image_width) && (feature_count<feature_count_limit); x++) {
+    for (y = min_y; (y < max_y) && (feature_count < feature_count_limit); y++) {
+      for (x = 0; (x < image_width) && (feature_count < feature_count_limit); x++) {
 
-				disp = disparity_image_buffer[x + y * image_width];
-				if ((disp > disp_start) && (disp < disp_end) )
-				{
-					feature_image_locations[feature_count] = x;
-					feature_image_locations[feature_count_limit+feature_count] = y;
-					feature_image_locations[(feature_count_limit*2)+feature_count] = disparity_image_buffer[x + y * image_width];
+        disp = disparity_image_buffer[x + y * image_width];
+        if ((disp > disp_start) && (disp < disp_end)) {
+          feature_image_locations[feature_count] = x;
+          feature_image_locations[feature_count_limit + feature_count] = y;
+          feature_image_locations[(feature_count_limit * 2) + feature_count] = disparity_image_buffer[x + y * image_width];
 
-					feature_count++;
-				}
-			}
-		}
-	}
+          feature_count++;
+        }
+      }
+    }
+  }
 
-	return feature_count;
+  return feature_count;
 }
 
-void visualizeFeatureImageLocations(uint8_t *inI, uint8_t *inF, uint16_t nr_of_features, uint32_t image_width, uint16_t feature_count_limit)
+void visualizeFeatureImageLocations(uint8_t *inI, uint8_t *inF, uint16_t nr_of_features, uint32_t image_width,
+                                    uint16_t feature_count_limit)
 {
-	uint16_t i,x,y = 0;
+  uint16_t i, x, y = 0;
 
-	int image_width_bytes = image_width*2;
-	for ( i = 0; i < nr_of_features; i++ )
-	{
-		x = inF[i];
-		y = inF[i+feature_count_limit];
-		inI[(x*2) + 1 + (y * image_width_bytes)] = 255;
-	}
+  int image_width_bytes = image_width * 2;
+  for (i = 0; i < nr_of_features; i++) {
+    x = inF[i];
+    y = inF[i + feature_count_limit];
+    inI[(x * 2) + 1 + (y * image_width_bytes)] = 255;
+  }
 }
 
-uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_location, volatile uint16_t nr_of_features3, uint32_t image_width, uint16_t feature_count_limit)
+uint16_t visualizeBlobImageLocation(uint8_t *inI, uint8_t *inF, uint8_t *target_location,
+                                    volatile uint16_t nr_of_features3, uint32_t image_width, uint16_t feature_count_limit)
 {
-	volatile uint16_t i = 0;
-	volatile uint16_t j = 0;
-	volatile int16_t x = 0;
-	volatile int16_t y = 0;
-	volatile int16_t disp = 0;
-	volatile int16_t fx = 0;
-	volatile int16_t fy = 0;
-	volatile int16_t fdisp = 0;
-	volatile int16_t x_error = 0;
-	volatile int16_t y_error = 0;
-	volatile int16_t x_mean = 0;
-	volatile int16_t y_mean = 0;
-	volatile int16_t disp_mean = 0;
-	volatile uint16_t z_mean = 0;
+  volatile uint16_t i = 0;
+  volatile uint16_t j = 0;
+  volatile int16_t x = 0;
+  volatile int16_t y = 0;
+  volatile int16_t disp = 0;
+  volatile int16_t fx = 0;
+  volatile int16_t fy = 0;
+  volatile int16_t fdisp = 0;
+  volatile int16_t x_error = 0;
+  volatile int16_t y_error = 0;
+  volatile int16_t x_mean = 0;
+  volatile int16_t y_mean = 0;
+  volatile int16_t disp_mean = 0;
+  volatile uint16_t z_mean = 0;
 
-	//volatile uint16_t nr_of_features = feature_count_limit;
-	volatile uint16_t nr_of_features2 = feature_count_limit;
-	volatile uint16_t count_features = 0;
+  //volatile uint16_t nr_of_features = feature_count_limit;
+  volatile uint16_t nr_of_features2 = feature_count_limit;
+  volatile uint16_t count_features = 0;
 
-	int image_width_bytes = image_width*2;
+  int image_width_bytes = image_width * 2;
 
-	for ( i = 0; i < nr_of_features2; i++ )
-	{
-		x = inF[i];
-		y = inF[i+feature_count_limit];
-		disp = inF[i+(2*feature_count_limit)];
-		count_features = 0;
-		x_mean = x;
-		y_mean = y;
-		disp_mean = disp;
+  for (i = 0; i < nr_of_features2; i++) {
+    x = inF[i];
+    y = inF[i + feature_count_limit];
+    disp = inF[i + (2 * feature_count_limit)];
+    count_features = 0;
+    x_mean = x;
+    y_mean = y;
+    disp_mean = disp;
 
-		for ( j = 0; j < nr_of_features2; j++ )
-		{
-			fx = inF[j];
-			fy = inF[j+feature_count_limit];
-			fdisp = inF[i+(2*feature_count_limit)];
-			x_error = x - fx;
-			y_error = y - fy;
+    for (j = 0; j < nr_of_features2; j++) {
+      fx = inF[j];
+      fy = inF[j + feature_count_limit];
+      fdisp = inF[i + (2 * feature_count_limit)];
+      x_error = x - fx;
+      y_error = y - fy;
 
-			if ( (x_error < 5) && (x_error > -5) &&  (y_error < 1) && (y_error > -8) )
-			{
-				count_features++;
-				x_mean += fx;
-				y_mean += fy;
-				disp_mean += fdisp;
-			}
-		}
+      if ((x_error < 5) && (x_error > -5) && (y_error < 1) && (y_error > -8)) {
+        count_features++;
+        x_mean += fx;
+        y_mean += fy;
+        disp_mean += fdisp;
+      }
+    }
 
-		target_location[0] = (uint8_t) 65;
-		target_location[1] = (uint8_t) 48;
-		target_location[2] = (uint8_t) 100;
+    target_location[0] = (uint8_t) 65;
+    target_location[1] = (uint8_t) 48;
+    target_location[2] = (uint8_t) 100;
 
-		led_clear();
+    led_clear();
 
-		if ( count_features > 5 )
-		{
-			x_mean = x_mean/nr_of_features2;
-			y_mean = y_mean/nr_of_features2;
-			disp_mean = disp_mean/nr_of_features2;
-			z_mean = (120*6)/((disp_mean/RESOLUTION_FACTOR)*2); // [cm] divided by 2
+    if (count_features > 5) {
+      x_mean = x_mean / nr_of_features2;
+      y_mean = y_mean / nr_of_features2;
+      disp_mean = disp_mean / nr_of_features2;
+      z_mean = (120 * 6) / ((disp_mean / RESOLUTION_FACTOR) * 2); // [cm] divided by 2
 
-			target_location[0] = (uint8_t) x_mean;
-			target_location[1] = (uint8_t) y_mean;
-			target_location[2] = (uint8_t) z_mean;
+      target_location[0] = (uint8_t) x_mean;
+      target_location[1] = (uint8_t) y_mean;
+      target_location[2] = (uint8_t) z_mean;
 
 
-			inI[(x*2) + 1 + (y * image_width_bytes)] = 255;
-			inI[((x-1)*2) + 1 + ((y-1) * image_width_bytes)] = 255;
-			inI[((x+1)*2) + 1 + ((y-1) * image_width_bytes)] = 255;
-			inI[((x-1)*2) + 1 + ((y+1) * image_width_bytes)] = 255;
-			inI[((x+1)*2) + 1 + ((y+1) * image_width_bytes)] = 255;
+      inI[(x * 2) + 1 + (y * image_width_bytes)] = 255;
+      inI[((x - 1) * 2) + 1 + ((y - 1) * image_width_bytes)] = 255;
+      inI[((x + 1) * 2) + 1 + ((y - 1) * image_width_bytes)] = 255;
+      inI[((x - 1) * 2) + 1 + ((y + 1) * image_width_bytes)] = 255;
+      inI[((x + 1) * 2) + 1 + ((y + 1) * image_width_bytes)] = 255;
 
-			led_set();
+      led_set();
 
-			/*
-			target_location[0] = 0;
-			target_location[1] = 1;
-			target_location[2] = 2;
-			*/
+      /*
+      target_location[0] = 0;
+      target_location[1] = 1;
+      target_location[2] = 2;
+      */
 
-			break;
-		}
-		else
-		{
-			count_features = 0;
-		}
+      break;
+    } else {
+      count_features = 0;
+    }
 
 
-	}
+  }
 
 
 
 
 
-	return count_features;
+  return count_features;
 }
 
-void getFeatureXYZLocations(uint8_t *in, float *out, uint16_t nr_of_features, uint32_t image_width, uint32_t image_height)
+void getFeatureXYZLocations(uint8_t *in, float *out, uint16_t nr_of_features, uint32_t image_width,
+                            uint32_t image_height)
 {
-	uint16_t i = 0;
+  uint16_t i = 0;
 
-	for (i = 0; i < nr_of_features; i++ )
-	{
-	// Rotate image points based on camera roll offset and vehicle-attitude
-
-
-	// convert image points to 3D world points defined by camera frame of reference
+  for (i = 0; i < nr_of_features; i++) {
+    // Rotate image points based on camera roll offset and vehicle-attitude
 
 
-	}
+    // convert image points to 3D world points defined by camera frame of reference
+
+
+  }
 
 }
 

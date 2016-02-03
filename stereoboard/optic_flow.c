@@ -28,12 +28,13 @@ void optic_flow_horizontal(uint8_t *prev_im, uint8_t *curr_im, uint32_t image_wi
   * 3) Fit linear model
   */
 
-  if (max_flow > IM_WIDTH/2)
-    max_flow = IM_WIDTH/2;
+  if (max_flow > IM_WIDTH / 2) {
+    max_flow = IM_WIDTH / 2;
+  }
 
   uint8_t histogram1[IM_WIDTH];
   uint8_t histogram2[IM_WIDTH];
-  uint32_t flow_error[IM_WIDTH+1]; // maximal max flow is half the image
+  uint32_t flow_error[IM_WIDTH + 1]; // maximal max flow is half the image
   uint8_t avg_h1;
   uint8_t avg_h2;
   uint32_t x, f, flow_ind;
@@ -104,8 +105,9 @@ void fitLinearModel(uint32_t *X, int *FLOW, uint32_t n_entries, int *divergence,
     dflow = FLOW[ind2] - FLOW[ind1];
     // a and b both in resolution RESOLUTION:
 
-    if (dx == 0)
+    if (dx == 0) {
       dx = 1;
+    }
 
     a[it] = dflow * RESOLUTION / dx;
     b[it] = FLOW[ind1] * RESOLUTION - (a[it] * (X[ind1] - HALF_WIDTH));
@@ -130,7 +132,8 @@ uint32_t getMinimum(uint32_t *flow_error, uint32_t max_ind)
   uint32_t min_ind = 0;
   uint32_t min_err = flow_error[min_ind];
   for (i = 1; i < max_ind; i++) {
-    if (flow_error[i] <= min_err) {  // TODO: if multiple indices contain the minimum error value, the lowest is chosen which may not be ideal
+    if (flow_error[i] <=
+        min_err) {  // TODO: if multiple indices contain the minimum error value, the lowest is chosen which may not be ideal
       min_ind = i;
       min_err = flow_error[i];
     }

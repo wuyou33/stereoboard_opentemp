@@ -67,45 +67,45 @@ void camera_tcm8230_i2c_init(void)
 
 
 #define   TCM_WHO_AM_I      0x00    // reads 0x70
-#define   TCM_FPS         0x02
+#define   TCM_FPS           0x02
 #define   TCM_FPS_SLOW      0x82
 #define   TCM_FPS_FAST      0x02
 
-#define   TCM_IMG         0x03
-#define   TCM_IMG_SIZE(X)     (((X)*4)+2)
+#define   TCM_IMG           0x03
+#define   TCM_IMG_SIZE(X)   (((X)*4)+2)
 
-#define   TCM_SWC         0x1E
+#define   TCM_SWC           0x1E
 #define   TCM_SWC_VAL       0x78
 
-#define   TCM_EXP         0x04
+#define   TCM_EXP           0x04
 #define   EXP_DEFAULT       0x0f
-#define   EXP_SHORT       0x00
-#define   EXP_LONG        0x10
+#define   EXP_SHORT         0x00
+#define   EXP_LONG          0x10
 
 // White Balance
 
-#define TCM_AWB 0x0A // auto white balance ON/OFF
-#define TCM_AWB_AUTO 0x00  //ON
-#define TCM_AWB_MANUAL 128  //OFF
+#define TCM_AWB             0x0A // auto white balance ON/OFF
+#define TCM_AWB_AUTO        0x00  //ON
+#define TCM_AWB_MANUAL      128  //OFF
 
-#define TCM_MRG 0x0B // manual white balance gain [0-255]
-#define TCM_MBG 0x0C // manual white balance gain [0-255]
+#define TCM_MRG             0x0B // manual white balance gain [0-255]
+#define TCM_MBG             0x0C // manual white balance gain [0-255]
 
 // Auto luminance
 
-#define TCM_ALC 0x05 // auto luminance control
-#define TCM_ALC_AUTO 0
-#define TCM_ALC_MANUAL 128
+#define TCM_ALC             0x05 // auto luminance control
+#define TCM_ALC_AUTO        0
+#define TCM_ALC_MANUAL      128
 
-#define TCM_ALCL 0x20 // auto luminance control level
+#define TCM_ALCL            0x20 // auto luminance control level
 
-#define TCM_ALCMODE 0x08
+#define TCM_ALCMODE         0x08
 #define TCM_ALCMODE_CENTER_ONLY
 
-#define TCM_VHUE 0x13
-#define TCM_UHUE 0x14
+#define TCM_VHUE            0x13
+#define TCM_UHUE            0x14
 
-#define TCM_SATU 0x18 // saturation (7 bits)
+#define TCM_SATU            0x18 // saturation (7 bits)
 
 
 uint8_t tcm8230_WriteReg(uint8_t Addr, uint8_t Data);

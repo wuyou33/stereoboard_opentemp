@@ -188,7 +188,7 @@ void camera_ov9712_read(void)
   for (r = PID; r <= (PID + 25); r++) {
     uint8_t res;
     myhex(r, buff + 9);
-    led_toggle();
+    //led_toggle();
     res = SCCB_ReadReg(OV9712_ADDR, r, &reply);
     myhex(reply, buff + 14);
     myhex(res, buff + 18);

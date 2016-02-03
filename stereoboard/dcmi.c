@@ -68,6 +68,17 @@ void camera_clock_init(void)
   // Set up alternate function on pin A7 to TIM3
   GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_TIM3);
 
+  /*
+   * timer_tick_frequency = Timer_default_frequency / (prescaler_set + 1)
+   * frequency = timer_tick_frequency / (TIM_Period + 1)
+   *
+   * With the settings below, the resultant clock will be 21 MHz
+   * for the TCM8230 has a nominal clock frequency of 25.54Mhz
+   * Therefore this setting will result in a clock speed of max 25.67Hz
+   * 30*(21/25.54) = 25.67
+   *
+   */
+
   TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
   TIM_TimeBaseStructure.TIM_Period = 1;
   TIM_TimeBaseStructure.TIM_Prescaler = 1;
@@ -140,8 +151,6 @@ void camera_dcmi_bus_init(void)
 #endif
                                 ;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-
 }
 
 #define DCMI_DR_ADDRESS       0x50050028
@@ -171,7 +180,7 @@ void camera_dcmi_init(void)
   camera_crop(0);
 
   // DCMI configuration
-#if (CAPTURE_MODE_SNAPSHOT == 1)
+#ifdef CAPTURE_MODE_SNAPSHOT
   DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_SnapShot;
 #else
   DCMI_InitStructure.DCMI_CaptureMode = DCMI_CaptureMode_Continuous;
@@ -211,13 +220,11 @@ void camera_dcmi_init(void)
   DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 
 #ifdef DCMI_DOUBLE_BUFFER
-#if ((IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL) > 65536)
-#error Image buffer does not fit memory block
-#endif
   // 128 x 96, double buffer mode possible: for larger images comment out:
   DMA_DoubleBufferModeConfig(DMA2_Stream1, (uint32_t) dcmi_image_buffer_8bit_2, DMA_Memory_0);
   DMA_DoubleBufferModeCmd(DMA2_Stream1, ENABLE);
 #endif
+
   // DCMI configuration
   DCMI_Init(&DCMI_InitStructure);
 
@@ -303,7 +310,7 @@ void camera_dma_it_init()
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-  DMA_ITConfig(DMA2_Stream1, DMA_IT_HT, ENABLE); // half transfer interrupt
+  //DMA_ITConfig(DMA2_Stream1, DMA_IT_HT, ENABLE); // half transfer interrupt
   DMA_ITConfig(DMA2_Stream1, DMA_IT_TC, ENABLE); // transfer complete interrupt
 }
 
@@ -315,19 +322,16 @@ void dma2_stream1_isr(void)
   if (DMA_GetITStatus(DMA2_Stream1, DMA_IT_TCIF1) != RESET) {
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1);
 
-    frame_counter++;  /////////////////
-
-    //led_toggle();
-
+    frame_counter++;
   }
+
+  /* We do not use the half transfer interrupt!!
 
   // Half Transfer
   if (DMA_GetITStatus(DMA2_Stream1, DMA_IT_HTIF1) != RESET) {
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_HTIF1);
-
-    // Count the frames
-    frame_counter++;
   }
+  */
 
   // Get the currently used buffer
 #ifdef DCMI_DOUBLE_BUFFER

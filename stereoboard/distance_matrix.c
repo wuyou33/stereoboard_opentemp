@@ -82,48 +82,51 @@ void calculateDistanceMatrix(uint8_t disparity_image[],
 
 uint8_t calculateClosestDisparityFromHistogram(uint8_t *histogramBuffer, int histogramLength)
 {
-	uint8_t maxFound=0;
-	int index;
-	int border=30;
-	for(index=border; index < histogramLength-border; index++){
-		if(histogramBuffer[index] > maxFound){
-			maxFound=histogramBuffer[index];
-		}
-	}
-	return maxFound;
+  uint8_t maxFound = 0;
+  int index;
+  int border = 30;
+  for (index = border; index < histogramLength - border; index++) {
+    if (histogramBuffer[index] > maxFound) {
+      maxFound = histogramBuffer[index];
+    }
+  }
+  return maxFound;
 }
 uint8_t maxInArray(uint8_t *array, int length)
 {
-	uint8_t maxFound=0;
-	int index;
-	for(index=0; index < length; index++){
-		if(array[index] > maxFound){
-			maxFound=array[index];
-		}
-	}
-	return maxFound;
+  uint8_t maxFound = 0;
+  int index;
+  for (index = 0; index < length; index++) {
+    if (array[index] > maxFound) {
+      maxFound = array[index];
+    }
+  }
+  return maxFound;
 }
 
 uint8_t calculateHeadingFromHistogram(uint8_t *histogramBuffer)
 {
-	// Settings
-	int8_t far_away_threshold = 20; // 15
-	int8_t x_reference = 20; // 35
-	int8_t margin = 5;
+  // Settings
+  int8_t far_away_threshold = 20; // 15
+  int8_t x_reference = 20; // 35
+  int8_t margin = 5;
 
-	// Init
-	uint8_t command = 1;
-	int8_t x_hist = 5;
+  // Init
+  uint8_t command = 1;
+  int8_t x_hist = 5;
 
-	while( (histogramBuffer[x_hist] > far_away_threshold) && (x_hist < 125) )
-		x_hist += 1;
+  while ((histogramBuffer[x_hist] > far_away_threshold) && (x_hist < 125)) {
+    x_hist += 1;
+  }
 
-	if ( (x_hist-x_reference) < -margin )
-		command = 0; // turn left
+  if ((x_hist - x_reference) < -margin) {
+    command = 0;  // turn left
+  }
 
-	if ( (x_hist-x_reference) > margin )
-			command = 2; // turn right
+  if ((x_hist - x_reference) > margin) {
+    command = 2;  // turn right
+  }
 
-	return command;
+  return command;
 
 }
