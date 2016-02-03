@@ -1,5 +1,5 @@
 
-
+// This shouldn't be defined here, should be in project
 #define USART4_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
 
 #define CAPTURE_MODE_SNAPSHOT 1
