@@ -576,7 +576,7 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
       //    // make image gradients absolute such that we can look for maximum values in the next step
       arm_abs_q15(line_gradient, line_gradient, fakeShitImageWidth - 1);
 
-      int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
+      //int cx_diff_compensation = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
       for (i = half_horizontal_block_size + MAX(disparity_min, 0);
            i < fakeShitImageWidth - half_horizontal_block_size - disparity_range; i++) {

@@ -28,6 +28,7 @@
 #include "ov9712_reg.h"
 #include "ov9712.h"
 #include "sccb.h"
+#include "../common/utils.h"
 #include "../common/led.h"
 
 /*
@@ -154,7 +155,7 @@ static void setlightfreq( int32_t freq)
 
 void camera_ov9712_config(void)
 {
-  uint16_t sensor_id;
+  //uint16_t sensor_id;
 
   Delay(0x07FFFF);
 

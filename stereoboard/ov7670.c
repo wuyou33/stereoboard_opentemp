@@ -1,6 +1,7 @@
 
 #include "ov7670.h"
 #include "sccb.h"
+#include "../common/utils.h"
 
 
 

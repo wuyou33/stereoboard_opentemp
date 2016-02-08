@@ -14,7 +14,14 @@
  */
 
 #include <stdint.h>
+#include <string.h>
+
+#ifndef NULL
 #define NULL 0
+#endif
+
+#pragma GCC diagnostic ignored "-Wunused"
+
 
 /*
  * Basic window sizes.  These probably belong somewhere more globally
@@ -1106,11 +1113,9 @@ static int ov7670_g_autoexp(int32_t *value)
 
   ret = ov7670_read(REG_COM8, &com8);
   if (com8 & COM8_AEC)
-    ;
-  //        *atype = V4L2_EXPOSURE_AUTO;
-  //else
-  //        *atype = V4L2_EXPOSURE_MANUAL;
-  return ret;
+    return 1; // V4L2_EXPOSURE_AUTO;
+  else
+    return 0; // V4L2_EXPOSURE_MANUAL;
 }
 
 static int ov7670_s_autoexp(int manual)

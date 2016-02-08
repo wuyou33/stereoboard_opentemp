@@ -1,7 +1,9 @@
 
 #include "tcm8230.h"
 #include "dcmi.h"
-#include "stm32f4xx_i2c.h"
+#include "../common/utils.h"
+
+#include "stm32f4xx_conf.h"
 
 
 /**
