@@ -998,7 +998,7 @@ USB_OTG_STS USB_OTG_HC_StartXfer(USB_OTG_CORE_HANDLE *pdev , uint8_t hc_num)
     if ((pdev->host.hc[hc_num].ep_is_in == 0) &&
         (pdev->host.hc[hc_num].xfer_len > 0)) {
       switch (pdev->host.hc[hc_num].ep_type) {
-        /* Non periodic transfer */
+          /* Non periodic transfer */
         case EP_TYPE_CTRL:
         case EP_TYPE_BULK:
 
@@ -1013,7 +1013,7 @@ USB_OTG_STS USB_OTG_HC_StartXfer(USB_OTG_CORE_HANDLE *pdev , uint8_t hc_num)
           }
 
           break;
-        /* Periodic transfer */
+          /* Periodic transfer */
         case EP_TYPE_INTR:
         case EP_TYPE_ISOC:
           hptxsts.d32 = USB_OTG_READ_REG32(&pdev->regs.HREGS->HPTXSTS);

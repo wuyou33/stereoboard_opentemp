@@ -6,6 +6,8 @@
 #define DISPARITY_BORDER  50
 #define DISPARITY_OFFSET_HORIZONTAL -30
 #define RESOLUTION_FACTOR 6
+
+// Following should be removed
 #define USE_USART1
 #define UsartTx Usart1Tx
 #define USART1_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.

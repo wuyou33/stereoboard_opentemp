@@ -13,7 +13,6 @@
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_IMAGE
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 
 //////////////////////////////////////////////////////
 // Settings
@@ -27,7 +26,9 @@
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-#define CAPTURE_MODE_SNAPSHOT 1
+
+// #define CAPTURE_MODE_SNAPSHOT    // will transfer entire image in one burst
+// #deinfe DCMI_DOUBLE_BUFFER       // two image buffers used, while one is used the other is filled.
 
 //////////////////////////////////////////////////////
 // Define image format

@@ -88,6 +88,10 @@
 #define SMALL_IMAGE //#define LARGE_IMAGE
 #endif
 
+#if defined(DCMI_DOUBLE_BUFFER) && defined(LARGE_IMAGE)
+#error "Cannot define LARGE_IMAGE and DCMI_DOUBLE_BUFFER"
+#endif
+
 #if !(defined(IMAGE_WIDTH) || defined(IMAGE_HEIGHT))
 #ifdef SMALL_IMAGE
 #define IMAGE_WIDTH 128
@@ -102,8 +106,12 @@
 #endif
 #endif
 
-#ifndef CAPTURE_MODE_SNAPSHOT
-#define CAPTURE_MODE_SNAPSHOT 0
+#if defined CAPTURE_MODE_SNAPSHOT && defined(DCMI_DOUBLE_BUFFER)
+#error "Cannot define DCMI_DOUBLE_BUFFER with CAPTURE_MODE_SNAPSHOT"
+#endif
+
+#if !(defined(DCMI_DOUBLE_BUFFER)) && !(defined(CAPTURE_MODE_SNAPSHOT))
+//#warning "Both DCMI_DOUBLE_BUFFER and CAPTURE_MODE_SNAPSHOT not defined.This may result in changes to the current_image_buffer while using it."
 #endif
 
 //////////////////////////////////////////////////////
@@ -120,7 +128,7 @@
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #endif
 
-#if (DCMI_TEN_BITS == 1)
+#ifdef DCMI_TEN_BITS
 #define BYTES_PER_PIXEL 4
 #else
 #define BYTES_PER_PIXEL 2
