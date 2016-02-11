@@ -323,6 +323,9 @@ void dma2_stream1_isr(void)
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1);
 
     frame_counter++;
+#ifdef NO_WAIT_FOR_FRAME
+    camera_snapshot();
+#endif
   }
 
   /* We do not use the half transfer interrupt!!

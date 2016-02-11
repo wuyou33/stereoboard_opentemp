@@ -422,7 +422,9 @@ int main(void)
         ;
 
     } else {
+#ifndef NO_WAIT_FOR_FRAME
       camera_snapshot();
+#endif
 
 #if defined(LARGE_IMAGE) || defined(CROPPING)
       offset_crop += 60;
