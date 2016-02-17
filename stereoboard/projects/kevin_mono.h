@@ -12,7 +12,6 @@
  * Project parameters
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_PROXIMITY_AND_ANGLE //SEND_IMAGE_AND_PROX
-#define CAPTURE_MODE_SNAPSHOT 0//1   // snapshot! Mostly for debugging
 
 //////////////////////////////////////////////////////
 // Settings

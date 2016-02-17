@@ -1,7 +1,7 @@
 
 #include "ov2640.h"
 #include "sccb.h"
-
+#include "../common/utils.h"
 
 
 /***************************************************************
@@ -74,7 +74,7 @@ void camera_ov2640_config(void)
   return;
 err:
   for (;;) {
-    led_toggle();
+    //led_toggle();
     Delay(0x07FFFF);
   }
 
@@ -96,7 +96,7 @@ void camera_ov2640_read(void)
   for (r = PID; r <= (PID + 25); r++) {
     uint8_t res;
     myhex(r, buff + 9);
-    led_toggle();
+    //led_toggle();
     res = SCCB_ReadReg(OV2640_ADDR, r, &reply);
     myhex(reply, buff + 14);
     myhex(res, buff + 18);

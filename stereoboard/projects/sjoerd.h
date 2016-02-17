@@ -13,7 +13,6 @@
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_ROTATIONS
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#define CAPTURE_MODE_SNAPSHOT 0   // snapshot! Mostly for debugging
 
 //////////////////////////////////////////////////////
 // Settings

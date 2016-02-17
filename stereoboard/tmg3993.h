@@ -23,7 +23,7 @@ int16_t TMG3993_Offset(void);
 int16_t TMG3993_FIFO_Difference(void);
 
 // Settings
-#define ADDRESS_TMG3993       		(0x39)
+#define ADDRESS_TMG3993           (0x39)
 
 #define REGISTER_ENABLE        	 	(0x80)
 #define REGISTER_WAITTIME     	 	(0x83)
@@ -43,11 +43,11 @@ int16_t TMG3993_FIFO_Difference(void);
 #define REGISTER_GFIFO_S          (0xFD)
 #define REGISTER_GFIFO_N          (0xFC)
 
-#define REGISTER_RDATAL       		(0x96)
-#define REGISTER_GDATAL       		(0x98)
-#define REGISTER_BDATAL       		(0x9A)
-#define REGISTER_CDATAL       		(0x94)
-#define REGISTER_CDATAH       		(0x95)
+#define REGISTER_RDATAL           (0x96)
+#define REGISTER_GDATAL           (0x98)
+#define REGISTER_BDATAL           (0x9A)
+#define REGISTER_CDATAL           (0x94)
+#define REGISTER_CDATAH           (0x95)
 
 
 /*****************************/
@@ -61,9 +61,9 @@ int16_t TMG3993_FIFO_Difference(void);
 /* REGISTER_ENABLE Settings */
 /*****************************/
 // Power On
-#define COMMAND_POWER_ON        	(0x01<<0)
+#define COMMAND_POWER_ON          (0x01<<0)
 // Enable Ambiant Light Sensor
-#define COMMAND_ALS_ENABLE      	(0x01<<1)
+#define COMMAND_ALS_ENABLE        (0x01<<1)
 // Enable Proximity Sensor
 #define COMMAND_PROXIMITY_ENABLE 	(0x01<<2)
 // Enable Gesture
@@ -85,7 +85,6 @@ int16_t TMG3993_FIFO_Difference(void);
 #define COMMAND_32p        			  (0x1F)
 #define COMMAND_64p       			  (0x3F)
 
-
 /*****************************/
 /* REGISTER_WAITTIME Settings */
 /*****************************/
@@ -98,10 +97,10 @@ int16_t TMG3993_FIFO_Difference(void);
 /* REGISTER_CONFIG2 Settings */
 /*****************************/
 // LED Boost
-#define COMMAND_BOOST_100      		(0x01)
-#define COMMAND_BOOST_150      		(0x11)
-#define COMMAND_BOOST_200      		(0x21)
-#define COMMAND_BOOST_300      		(0x31)
+#define COMMAND_BOOST_100         (0x01)
+#define COMMAND_BOOST_150         (0x11)
+#define COMMAND_BOOST_200         (0x21)
+#define COMMAND_BOOST_300         (0x31)
 
 /*****************************/
 /* REGISTER_CONFIGA3 Settings */

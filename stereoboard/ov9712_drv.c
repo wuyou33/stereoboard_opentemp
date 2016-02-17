@@ -28,6 +28,7 @@
 #include "ov9712_reg.h"
 #include "ov9712.h"
 #include "sccb.h"
+#include "../common/utils.h"
 #include "../common/led.h"
 
 /*
@@ -154,7 +155,7 @@ static void setlightfreq( int32_t freq)
 
 void camera_ov9712_config(void)
 {
-  uint16_t sensor_id;
+  //uint16_t sensor_id;
 
   Delay(0x07FFFF);
 
@@ -188,7 +189,7 @@ void camera_ov9712_read(void)
   for (r = PID; r <= (PID + 25); r++) {
     uint8_t res;
     myhex(r, buff + 9);
-    led_toggle();
+    //led_toggle();
     res = SCCB_ReadReg(OV9712_ADDR, r, &reply);
     myhex(reply, buff + 14);
     myhex(res, buff + 18);

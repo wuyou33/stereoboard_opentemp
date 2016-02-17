@@ -1,6 +1,6 @@
 /*
  *  TCM8230 Driver in I2C
- *	Kevin Lamers
+ *  Kevin Lamers
  *  Copyright (c) See main file for copyright and liability
  */
 
@@ -64,11 +64,11 @@ int16_t TMG3993_Read_Proximity(void)
   I2CRead(ADDRESS_TMG3993, REGISTER_PDATA, &response);
 
   // Moving average on proximity data
-  prox_sum = prox_sum - prox[prox_idx%prox_len];
-  prox[prox_idx%prox_len] = response;
+  prox_sum = prox_sum - prox[prox_idx % prox_len];
+  prox[prox_idx % prox_len] = response;
   prox_idx++;
   prox_sum = prox_sum + response;
-  prox_filt = prox_sum/prox_len;
+  prox_filt = prox_sum / prox_len;
 
   return prox_filt;
 }
@@ -76,21 +76,26 @@ int16_t TMG3993_Read_Proximity(void)
 int16_t TMG3993_Read_Proximity_East(void)
 {
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_1);
-  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3,COMMAND_Only_East);
+  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3, COMMAND_Only_East);
 
   uint8_t status;
   I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
+<<<<<<< HEAD
   while(!(status & MASK_Proximity_Valid)) {
+=======
+  while ((status && COMMAND_Proximity_Valid) == 0) {
+>>>>>>> 32419bdc4ce42428c192a57e2fae474c88beaecc
     I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
   }
 
   uint8_t response;
   I2CRead(ADDRESS_TMG3993, REGISTER_PDATA, &response);
 
-  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3,COMMAND_All_Sensors);
+  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3, COMMAND_All_Sensors);
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_220);
 
   // Moving average on proximity data
+
   //response = response + 2 + (prox_filt/25);
   prox_east_sum = prox_east_sum - prox_east[prox_east_idx%prox_len];
   prox_east[prox_east_idx%prox_len] = response;
@@ -105,27 +110,35 @@ int16_t TMG3993_Read_Proximity_East(void)
 int16_t TMG3993_Read_Proximity_West(void)
 {
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_1);
-  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3,COMMAND_Only_West);
+  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3, COMMAND_Only_West);
 
   uint8_t status;
   I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
+<<<<<<< HEAD
   while(!(status & MASK_Proximity_Valid)) {
+=======
+  while ((status && COMMAND_Proximity_Valid) == 0) {
+>>>>>>> 32419bdc4ce42428c192a57e2fae474c88beaecc
     I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
   }
 
   uint8_t response;
   I2CRead(ADDRESS_TMG3993, REGISTER_PDATA, &response);
 
-  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3,COMMAND_All_Sensors);
+  I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3, COMMAND_All_Sensors);
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_220);
 
   // Moving average on proximity data
-  prox_west_sum = prox_west_sum - prox_west[prox_west_idx%prox_len];
-  prox_west[prox_west_idx%prox_len] = response;
+  prox_west_sum = prox_west_sum - prox_west[prox_west_idx % prox_len];
+  prox_west[prox_west_idx % prox_len] = response;
   prox_west_idx++;
   prox_west_sum = prox_west_sum + response;
+<<<<<<< HEAD
   //prox_west_filt = prox_west_sum/prox_len;
   prox_west_filt = prox_west_sum;
+=======
+  prox_west_filt = prox_west_sum / prox_len;
+>>>>>>> 32419bdc4ce42428c192a57e2fae474c88beaecc
 
   return prox_west_filt;
 }
@@ -140,11 +153,11 @@ int16_t TMG3993_Read_Angle(void)
   int16_t response = (int)(((prox_east_sum-prox_west_sum)));//-(offset_filt))/(prox_filt*0.001778*prox_len))*2;
 
   // Moving average on proximity data
-	angle_sum = angle_sum - angle[angle_idx%angle_len];
-	angle[angle_idx%angle_len] = response;
-	angle_idx++;
-	angle_sum = angle_sum + response;
-	angle_filt = angle_sum/angle_len;
+  angle_sum = angle_sum - angle[angle_idx % angle_len];
+  angle[angle_idx % angle_len] = response;
+  angle_idx++;
+  angle_sum = angle_sum + response;
+  angle_filt = angle_sum / angle_len;
 
 
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_220);

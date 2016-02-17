@@ -25,7 +25,8 @@
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-#define CAPTURE_MODE_SNAPSHOT 1
+
+#define GET_PARALLEL
 
 //////////////////////////////////////////////////////
 // Define image format
