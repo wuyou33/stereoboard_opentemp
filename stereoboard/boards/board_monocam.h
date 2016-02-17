@@ -1,5 +1,3 @@
-
-// This shouldn't be defined here, should be in project
 #define CAPTURE_MODE_SNAPSHOT 1
 
 

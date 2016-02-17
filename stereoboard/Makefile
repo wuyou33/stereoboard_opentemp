@@ -211,7 +211,9 @@ xprintf.c \
 xprintf.h \
 droplet_algorithm.c \
 distance_matrix.c \
-odometry.c
+odometry.c \
+textons.h \
+textons.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
