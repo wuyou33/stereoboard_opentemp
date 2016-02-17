@@ -53,7 +53,7 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 3000000
+#define USART4_BAUD 9600//115200//3000000
 
 //////////////////////////////////////////////////////
 // Image Encoding
