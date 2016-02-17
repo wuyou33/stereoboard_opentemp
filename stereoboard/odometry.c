@@ -77,7 +77,7 @@ void odometry_extract_features(uint8_t *in, q15_t *out, uint8_t *features, uint1
 
   volatile uint8_t data = 3; // data about features: [x y d]
   volatile uint8_t temp;
-  volatile uint8_t window_size = (feature_window_size_half * 2) + 1;
+  //volatile uint8_t window_size = (feature_window_size_half * 2) + 1;
   volatile uint16_t image_width_bytes = image_width * 2;
 
 
@@ -157,7 +157,7 @@ void precompute_rotation_coefficients(float32_t *rotation_coefficients, float ro
   float32_t c = 0;
   float32_t start = (float32_t) - rotation_step_size * (rotation_step_number - 1) / 2;
   float32_t step = (float32_t) rotation_step_size;
-  float32_t end = (float32_t) rotation_step_size * (rotation_step_number - 1) / 2;
+  //float32_t end = (float32_t) rotation_step_size * (rotation_step_number - 1) / 2;
   volatile float32_t A = 0;
   volatile float32_t B = 0;
   volatile float32_t C = 0;
@@ -226,29 +226,29 @@ void odometry_translate_and_match_features(uint8_t *images, q15_t *feature_windo
   float32_t row [number_of_rotations];
   float32_t col [number_of_rotations];
   float32_t disp [number_of_rotations];
-  float32_t scale [number_of_rotations];
+  //float32_t scale [number_of_rotations];
 
   int i = 0;
-  int j = 0;
+  //int j = 0;
   volatile int index = 0;
-  volatile int index_window = 0;
+  //volatile int index_window = 0;
   volatile uint8_t data = 3; // data about features: [x y d]
-  float32_t row_left [number_of_rotations];
-  float32_t col_left [number_of_rotations];
+  //float32_t row_left [number_of_rotations];
+  //float32_t col_left [number_of_rotations];
   //float32_t row_right;
-  float32_t col_right [number_of_rotations];
+  //float32_t col_right [number_of_rotations];
   float32_t disparity_offset = (float32_t) DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
-  volatile q7_t row_center [number_of_rotations];
-  volatile q7_t col_center [number_of_rotations];
-  volatile q7_t col_center_right [number_of_rotations];
-  volatile int row_nr;
-  volatile int col_nr;
-  volatile int location;
-  volatile int image_width_bytes = image_width * 2;
-  volatile uint8_t feature_window_size = (feature_window_size_half * 2) + 1;
+  //volatile q7_t row_center [number_of_rotations];
+  //volatile q7_t col_center [number_of_rotations];
+  //volatile q7_t col_center_right [number_of_rotations];
+  //volatile int row_nr;
+  //volatile int col_nr;
+  //volatile int location;
+  //volatile int image_width_bytes = image_width * 2;
+  //volatile uint8_t feature_window_size = (feature_window_size_half * 2) + 1;
 
-  q15_t left_window [feature_window_size * feature_window_size];
-  q15_t right_window [feature_window_size * feature_window_size];
+  //q15_t left_window [feature_window_size * feature_window_size];
+  //q15_t right_window [feature_window_size * feature_window_size];
 
 
 
@@ -298,9 +298,9 @@ void odometry_translate_and_match_features(uint8_t *images, q15_t *feature_windo
     arm_offset_f32(disp, -disparity_offset, disp, (uint32_t) number_of_rotations);
     arm_add_f32(disp, col, col, (uint32_t) number_of_rotations);
 
-    arm_float_to_q7(row_left, row_center, number_of_rotations);
-    arm_float_to_q7(col_left, col_center, number_of_rotations);
-    arm_float_to_q7(col_right, col_center_right, number_of_rotations);
+    //arm_float_to_q7(row_left, row_center, number_of_rotations);
+    //arm_float_to_q7(col_left, col_center, number_of_rotations);
+    //arm_float_to_q7(col_right, col_center_right, number_of_rotations);
 
 
 
