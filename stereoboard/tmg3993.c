@@ -80,12 +80,8 @@ int16_t TMG3993_Read_Proximity_East(void)
 
   uint8_t status;
   I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
-<<<<<<< HEAD
   while(!(status & MASK_Proximity_Valid)) {
-=======
-  while ((status && COMMAND_Proximity_Valid) == 0) {
->>>>>>> 32419bdc4ce42428c192a57e2fae474c88beaecc
-    I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
+	  I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
   }
 
   uint8_t response;
@@ -114,11 +110,7 @@ int16_t TMG3993_Read_Proximity_West(void)
 
   uint8_t status;
   I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
-<<<<<<< HEAD
   while(!(status & MASK_Proximity_Valid)) {
-=======
-  while ((status && COMMAND_Proximity_Valid) == 0) {
->>>>>>> 32419bdc4ce42428c192a57e2fae474c88beaecc
     I2CRead(ADDRESS_TMG3993, REGISTER_STATUS, &status);
   }
 
@@ -133,12 +125,9 @@ int16_t TMG3993_Read_Proximity_West(void)
   prox_west[prox_west_idx % prox_len] = response;
   prox_west_idx++;
   prox_west_sum = prox_west_sum + response;
-<<<<<<< HEAD
+
   //prox_west_filt = prox_west_sum/prox_len;
   prox_west_filt = prox_west_sum;
-=======
-  prox_west_filt = prox_west_sum / prox_len;
->>>>>>> 32419bdc4ce42428c192a57e2fae474c88beaecc
 
   return prox_west_filt;
 }
