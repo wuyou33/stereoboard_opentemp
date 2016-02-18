@@ -82,13 +82,13 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE) || defined(SEND_LEARNING_COLLISIONS))
   return DEFAULT_BOARD_FUNCTION;
 #elif defined(SEND_ROTATIONS)
   return SEND_ROTATIONS;
@@ -125,6 +125,8 @@ stereoboard_algorithm_type getBoardFunction(void)
   //Initializing the dynamic parameters and the edge histogram structure
   int rear = 1;
   int front = 0;
+#elif defined(SEND_LEARNING_COLLISIONS)
+  return SEND_LEARNING_COLLISIONS;
 #endif
 }
 
@@ -351,6 +353,11 @@ int main(void)
   float32_t rotation_coefficients [number_of_rotations * 9]; // 9 coefficients per rotation
   rotation_coefficients[0] = 0;
 #endif
+
+  if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS)
+  {
+	  learning_collisions_init();
+  }
 
 
   uint16_t features_max_number = 300;
@@ -729,7 +736,11 @@ int main(void)
       }
 #endif
 
+      if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
 
+    	  learning_collisions_run(current_image_buffer);
+
+      }
 
 
       // Now send the data that we want to send
@@ -796,6 +807,9 @@ int main(void)
       }
       if (current_stereoboard_algorithm == SEND_ROTATIONS) {
         //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
+      }
+      if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
+    	 SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
 
     }

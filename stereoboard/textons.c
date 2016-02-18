@@ -24,24 +24,29 @@ q15_t patch[140];
 void initTexton(void)
 {
   uint8_t i,v,h;
+  volatile float idx;
 
-  float patch_spacing_h = (IMAGE_WIDTH*2)/n_patches_h;
-  for(i=0; i++; i<n_patches_h)
+  volatile float patch_spacing_h = (float) (IMAGE_WIDTH*2)/n_patches_h;
+
+  for(i=0; i<n_patches_h; i++)
   {
-    patch_idx_h[i] = i*patch_spacing_h + (patch_spacing_h/2) - (patch_size_h-1);
+	idx = (patch_spacing_h*i)+(patch_spacing_h/2);
+    patch_idx_h[i] = (uint8_t) idx - (patch_size_h-1); // column numbers
   }
 
-  float patch_spacing_v = (IMAGE_WIDTH*2)/n_patches_v;
-  for(i=0; i++; i<n_patches_v)
+  volatile float patch_spacing_v = (float) (IMAGE_HEIGHT*2)/n_patches_v;
+
+  for(i=0; i<n_patches_v; i++)
   {
-    patch_idx_v[i] = i*patch_spacing_v + (patch_spacing_v/2) - (patch_size_v-1);
+	idx = (patch_spacing_v*i)+(patch_spacing_v/2);
+    patch_idx_v[i] = (uint8_t) idx - (patch_size_v-1); // row numbers
   }
 
-  for(v=0; v++; v<n_patches_v)
+  for(v=0; v<n_patches_v; v++)
   {
-    for(h=0; h++; h<n_patches_v)
+    for(h=0; h<n_patches_h; h++)
     {
-      patch_idx[v*n_patches_h + h] =  patch_idx_v[v]*IMAGE_WIDTH*2 + patch_idx_h[h];
+      patch_idx[v*n_patches_h + h] =  (uint16_t) patch_idx_v[v]*IMAGE_WIDTH*2 + patch_idx_h[h];
     }
   }
 
@@ -53,9 +58,9 @@ void initTexton(void)
 void getTextonDistribution(uint8_t *image)
 {
   //loop the grid to create patches (for example: 10x7 patches)
-  uint16_t px_start;
-  uint16_t px;
-  uint8_t patch_px,patch_nr,v,h;
+  volatile uint16_t px_start;
+  volatile uint16_t px;
+  volatile uint8_t patch_px,patch_nr,v,h;
 
   for(patch_nr=0; patch_nr<n_patches; patch_nr++)
   {
@@ -68,14 +73,13 @@ void getTextonDistribution(uint8_t *image)
       px = px_start;
       for(h=0; h<patch_size_h; h++, px+=2, patch_px+=3)
       {
-        patch[patch_px]   =  (image[px] & 0xF8); //R first 5 bits of first byte
-        patch[patch_px+1] = ((image[px] & 0x07) << 5) + ((image[px+1] & 0xE0) >> 3); //G last 3 bits of first byte and first 3 bits of second byte
-        patch[patch_px+2] = ((image[px+1] & 0x1F) << 3); //B last 5 bits of second byte
+        patch[patch_px]   =  (image[px+1] & 0xF8); //R first 5 bits of first byte
+        patch[patch_px+1] = ((image[px+1] & 0x07) << 5) + ((image[px] & 0xE0) >> 3); //G last 3 bits of first byte and first 3 bits of second byte
+        patch[patch_px+2] = ((image[px] & 0x1F) << 3); //B last 5 bits of second byte
       }
     }
 
     // Compute Euclidian distance between patch and all textons in dictionary
-
 
   }
   //for each patch calculate distance to each texton

@@ -213,7 +213,9 @@ droplet_algorithm.c \
 distance_matrix.c \
 odometry.c \
 textons.h \
-textons.c
+textons.c \
+learning.h \
+learning.c
 
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
