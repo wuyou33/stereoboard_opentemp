@@ -9,4 +9,6 @@
 #include <inttypes.h>
 #include <arm_math.h>
 
+uint16_t getEuclidianDistance(q15_t patch[], uint8_t texton_id);
+
 
