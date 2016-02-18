@@ -100,6 +100,7 @@ ${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
 ${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
