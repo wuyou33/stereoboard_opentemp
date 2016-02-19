@@ -57,6 +57,7 @@
 #include "forward_velocity_estimator.h"
 #include "disparity_map_functions.h"
 #include "odometry.h"
+#include "learning.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -285,8 +286,7 @@ int main(void)
   uint32_t disparity_step = 1;
   uint8_t thr1 = 7;
   uint8_t thr2 = 4;
-  uint16_t processed_pixels =
-    0; // how many pixels have been considered a local maximum and hence processed by the sparse algorithm
+  //uint16_t processed_pixels = 0; // how many pixels have been considered a local maximum and hence processed by the sparse algorithm
   //uint8_t diff_threshold = 4; // for filtering
 
   // init droplet parameters
@@ -444,7 +444,7 @@ int main(void)
         ;
       processed = frame_counter;
 
-      led_toggle();
+      //led_toggle();
 
       // compute run frequency
 #ifdef AVG_FREQ
@@ -490,7 +490,7 @@ int main(void)
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
                                min_y, max_y);
           } else {
-            processed_pixels = stereo_vision_sparse_block_two_sided(current_image_buffer,
+        	  nr_of_features = stereo_vision_sparse_block_two_sided(current_image_buffer,
                                disparity_image_buffer_8bit, image_width, image_height,
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
                                min_y, max_y);
@@ -581,7 +581,7 @@ int main(void)
           get_average_left_right_features(feature_image_coordinates, nr_of_features, &avg_disp_left, &avg_disp_right,
                                           pixelsPerLine);
         }
-        int amountDisparitiesRejected = processed_pixels / 8;
+        int amountDisparitiesRejected = nr_of_features / 8;
         int histogramIndex = pixelsPerLine;
         int amountDisparitiesCount = 0;
         maxDispFound = 0;
@@ -781,7 +781,7 @@ int main(void)
         } else {
           divergenceArray[5] = (uint8_t)disparities_high;
         }
-        divergenceArray[6] = (uint8_t)(processed_pixels / 100);
+        divergenceArray[6] = (uint8_t)(nr_of_features / 100);
         divergenceArray[10] = avg_disp_left;
         divergenceArray[11] = avg_disp_right;
         led_clear();
@@ -809,7 +809,7 @@ int main(void)
         //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
       }
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
-    	 SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+    	 //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
 
     }
