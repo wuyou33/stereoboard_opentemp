@@ -87,35 +87,44 @@ ${STDPH_PATH}/src/stm32f4xx_syscfg.c \
 ${STDPH_PATH}/src/stm32f4xx_tim.c \
 ${STDPH_PATH}/src/stm32f4xx_usart.c \
 ${STDPH_PATH}/src/stm32f4xx_wwdg.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q7.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q7.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q31.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_dot_prod_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15_LSB.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q31.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q31_LSB.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_f32.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_negate_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q7.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_fill_q7.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_fill_q15.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_copy_q15.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
-${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_copy_q31.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q31.c \
-${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q31.c \
 ${DSP_LIB_PATH}/FastMathFunctions/arm_sin_f32.c \
 ${DSP_LIB_PATH}/FastMathFunctions/arm_cos_f32.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_f32.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_add_f32.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_float_to_q7.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_f32.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_f32.c
-
-
+${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
+${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_copy_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_copy_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_copy_q31.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_q31.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_f32.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q31.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_float_to_q7.c
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 

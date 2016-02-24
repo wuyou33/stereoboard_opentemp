@@ -27,6 +27,7 @@
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define CAPTURE_MODE_SNAPSHOT 1
+#define DCMI_DOUBLE_BUFFER
 
 //////////////////////////////////////////////////////
 // Define image format
