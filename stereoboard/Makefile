@@ -122,6 +122,7 @@ ${DSP_LIB_PATH}/SupportFunctions/arm_fill_q15.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_fill_q31.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_fill_f32.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15_LSB.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q31.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
 ${DSP_LIB_PATH}/SupportFunctions/arm_float_to_q7.c

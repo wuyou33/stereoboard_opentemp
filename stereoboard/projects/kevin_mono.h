@@ -28,6 +28,7 @@
 #define SMALL_IMAGE
 //#define CAPTURE_MODE_SNAPSHOT 1
 #define DCMI_DOUBLE_BUFFER
+#define SLOW_TCM8230
 
 //////////////////////////////////////////////////////
 // Define image format
@@ -53,7 +54,7 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 1000000//115200//3000000
+#define USART4_BAUD 9600//115200//3000000
 
 //////////////////////////////////////////////////////
 // Image Encoding

@@ -19,6 +19,6 @@
 
 void initTexton(void);
 void getTextonDistribution(uint8_t *image, q7_t *histogram);
-uint32_t getEuclDistPatch(q15_t patch[], uint8_t texton_id);
+q63_t getEuclDistPatch(q15_t patch[], uint8_t texton_id);
 
 

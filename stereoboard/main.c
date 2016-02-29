@@ -57,6 +57,7 @@
 #include "forward_velocity_estimator.h"
 #include "disparity_map_functions.h"
 #include "odometry.h"
+#include "learning.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -738,8 +739,9 @@ int main(void)
 
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
 
+        sys_time_prev = sys_time_get();
     	  learning_collisions_run(current_image_buffer);
-
+    	  frameRate = TIMER_TICKS_PER_SEC / get_timer_interval(sys_time_prev); // in Hz
       }
 
 
@@ -809,7 +811,7 @@ int main(void)
         //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
       }
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
-    	 SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+    	 //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
 
     }

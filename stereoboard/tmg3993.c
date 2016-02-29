@@ -39,15 +39,29 @@ int32_t offset_filt;
 int16_t offset[offset_len];
 int32_t offset_idx;
 
+//
+int16_t prx;
+int16_t ang;
+int16_t prx_east;
+int16_t prx_west;
+int16_t prx_north;
+int16_t last_angle = 0;
+int16_t offset_EW;
+//offset_EW = TMG3993_Offset();
+uint8_t first = 1;
+int32_t prx_offset=0;
+int16_t offset_EW_corr=0;
+int16_t difference_offset;
+
 void TMG3993_Init(void)
 {
-  I2CWrite(ADDRESS_TMG3993, REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE);// | COMMAND_WAIT_ENABLE);
+  I2CWrite(ADDRESS_TMG3993, REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_WAIT_ENABLE);
   //I2CWrite(ADDRESS_TMG3993, REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_GESTURE_ENABLE | COMMAND_PROXIMITY_ENABLE);
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONTROL,COMMAND_LDRIVE_100 | COMMAND_PGAIN_2);
   I2CWrite(ADDRESS_TMG3993, REGISTER_PPULSE,COMMAND_32us | COMMAND_64p);
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG2,COMMAND_BOOST_300);
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG1,COMMAND_WAITLONGDISABLE);
-  I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_1);
+  I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_10);  // 30 Hz
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIGA3,COMMAND_2X_100);
   I2CWrite(ADDRESS_TMG3993, REGISTER_GPULSE,COMMAND_32us | COMMAND_64p);
 }
@@ -276,4 +290,48 @@ int16_t TMG3993_FIFO_Difference(void)
   }
 
   return (east - west)/25;
+}
+
+int16_t Angle_Measurement(void)
+{
+  prx = TMG3993_Read_Proximity();
+
+  if ((prx>(prx_offset+6)) && (last_angle==127)){
+    //led_set();
+    last_angle = TMG3993_FIFO_Difference()-7;
+  }
+  if (prx<=(prx_offset+6)){
+    //led_clear();
+    last_angle = 127;
+  }
+  return last_angle;
+}
+
+void init_Angle_Measurement(void)
+{
+  TMG3993_Init();
+
+  //led_set();
+  int i;
+  // Waste some time, apparently sensor needs some time to start up
+  for (i=0;i<300;i++){
+    prx_offset += TMG3993_Read_Proximity();
+  }
+
+  // Correct for proximity value at infinity
+  prx_offset = 0;
+  for (i=0;i<100;i++){
+    prx_offset += TMG3993_Read_Proximity();
+  }
+  prx_offset /= 100;
+
+  // Correct for offset in East-West difference at infinity
+  difference_offset = 0;
+  for (i=0;i<3;i++){
+    difference_offset += TMG3993_FIFO_Difference();
+  }
+  difference_offset /= 3;
+
+  first = 0;
+  //led_clear();
 }

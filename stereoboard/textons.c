@@ -51,8 +51,6 @@ void initTexton(void)
   }
 
   n_patches = n_patches_h * n_patches_v;
-
-
 }
 
 void getTextonDistribution(uint8_t *image, q7_t *histogram)
@@ -99,7 +97,6 @@ void getTextonDistribution(uint8_t *image, q7_t *histogram)
 
     // Construct histogram from nearest textons
     histogram[nearest_texton_id]++;
-
   }
 
   // Update nearest texton with latest patch
@@ -107,7 +104,7 @@ void getTextonDistribution(uint8_t *image, q7_t *histogram)
 
 }
 
-uint32_t getEuclDistPatch(q15_t *patch, uint8_t texton_id)
+q63_t getEuclDistPatch(q15_t *patch, uint8_t texton_id)
 {
   q15_t *texton_ptr;
   texton_ptr = &texton_dict[texton_id*patch_size];
@@ -116,27 +113,8 @@ uint32_t getEuclDistPatch(q15_t *patch, uint8_t texton_id)
 
   arm_sub_q15(texton_ptr, patch, diff, patch_size);
 
-  /*arm_mult_q31_LSB(diff, diff, diff, patch_size); // Watch out, this function can overflow!!!
-
-  // Calculate sum of array by a iteratively adding half of the array to the other half
-  uint8_t temp_patch_size = patch_size;
-  while(temp_patch_size>=8 && temp_patch_size%2==0) // Do this until less than 8 or an odd number of items remain
-  {
-    temp_patch_size /= 2;
-    arm_add_q31(diff, &diff[temp_patch_size], diff, temp_patch_size);
-  }
-
-  // Calculate remaining of sum piece by piece
-  uint32_t sum = 0;
-  uint8_t i;
-  for(i=0; i<temp_patch_size; i++)
-  {
-    sum += diff[i];
-  }*/
-
-  q63_t sumq;
-  arm_dot_prod_q15(diff, diff, n_textons, &sumq);
-  uint32_t sum = sumq;
+  q63_t sum;
+  arm_dot_prod_q15(diff, diff, n_textons, &sum);
 
   return sum;
 }
