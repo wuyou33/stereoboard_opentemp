@@ -58,7 +58,7 @@
 // Image Encoding
 
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_RGB565
+#define USE_YUV422
 #endif
 
 #ifndef TCM8230_EXTRA_SATURATION

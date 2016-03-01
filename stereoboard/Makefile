@@ -161,6 +161,8 @@ disparity_map_functions.h \
 forward_velocity_estimator.h \
 tmg3993.c \
 tmg3993.h \
+image.c \
+image.h \
 i2c.c \
 i2c.h \
 usart.c \
@@ -253,7 +255,7 @@ ifeq ($(OS),Windows_NT)
     BMP_PORT ?= COM2
 else
     #Linux stuff
-    BMP_PORT ?= /dev/ttyACM0
+    BMP_PORT ?= /dev/cu.usbmodemD5DA96C1
 endif
 
 

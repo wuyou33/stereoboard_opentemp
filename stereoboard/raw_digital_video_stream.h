@@ -71,6 +71,13 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
       ;
 
     // Line data
+    b[j * width * BYTES_PER_PIXEL]=j;
+    b[j * width * BYTES_PER_PIXEL+1]=j;
+    b[j * width * BYTES_PER_PIXEL+2]=j;
+    b[j * width * BYTES_PER_PIXEL+3]=j;
+    b[j * width * BYTES_PER_PIXEL+4]=j;
+    b[j * width * BYTES_PER_PIXEL+5]=j;
+//    b[j * width * BYTES_PER_PIXEL+6]=j;
     while (UsartTx(b + j * width * BYTES_PER_PIXEL, width * BYTES_PER_PIXEL + 1) == 0)
       ;
 

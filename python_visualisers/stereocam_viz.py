@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 import numpy as np
+import sys
+
+sys.path.append('/usr/local/lib/python2.7/site-packages')
+
 import cv2
 import serial
 import stereoboard_tools
@@ -7,24 +11,25 @@ import array
 import sys
 import os
 
-BAUDRATE=1000000
+BAUDRATE=115200
 W = 128
 H=96
-saveImages=True
+saveImages=False
 DISPARITY_OFFSET_LEFT=0
 DISPARITY_OFFSET_RIGHT=0
 DISPARITY_BORDER=W/2
 previousLeftImage=None
-ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
+ser = serial.Serial('/dev/tty.usbserial-FTHHXIFQ',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 
 frameNumber = 0
-imageFolderName='imagesWalktroughSubstation'
-folderExtensionTry=0
-while os.path.exists(imageFolderName+str(folderExtensionTry)):
-    folderExtensionTry+=1
-imageFolderName=imageFolderName+str(folderExtensionTry)
-os.makedirs(imageFolderName)
+if saveImages:
+    imageFolderName='imagesWalktroughSubstation'
+    folderExtensionTry=0
+    while os.path.exists(imageFolderName+str(folderExtensionTry)):
+        folderExtensionTry+=1
+    imageFolderName=imageFolderName+str(folderExtensionTry)
+    os.makedirs(imageFolderName)
 
 cv2.namedWindow('img', cv2.WINDOW_NORMAL)
 cv2.namedWindow('leftimg', cv2.WINDOW_NORMAL)
@@ -35,7 +40,6 @@ while True:
     try:
         # Read the image
         currentBuffer, location,endOfImagesFound = stereoboard_tools.readPartOfImage(ser, currentBuffer)
-
         startPosition=location[0]
         endPosition=location[1]
         if location[0] > -1:
@@ -51,7 +55,7 @@ while True:
 
             # Fill the image arrays
             img, leftImage, rightImage = stereoboard_tools.fill_image_arrays(
-                oneImage, sync1,size_of_one_image, W, H, DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT,DISPARITY_BORDER)
+                oneImage, sync1,size_of_one_image, W, H, DISPARITY_OFFSET_LEFT,DISPARITY_OFFSET_RIGHT,DISPARITY_BORDER,0)
 
             # Go from values between 0-255 to intensities between 0.0-1.0
             img /= 255
@@ -62,7 +66,7 @@ while True:
             cv2.imshow('leftimg',leftImage)
             cv2.imshow('rightimg',rightImage)
             key=cv2.waitKey(1)
-
+            print 'done'
             if saveImages:
                 stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, imageFolderName)
                 frameNumber+=1

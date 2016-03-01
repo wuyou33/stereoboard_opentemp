@@ -239,6 +239,7 @@ int main(void)
   sys_time_init();
 
 #if USE_COLOR
+  int ind;
   // slight waste of memory, if color is not used:
   uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
   for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
@@ -745,7 +746,8 @@ int main(void)
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
-        SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+    	  setLineNumbers(current_image_buffer, IMAGE_WIDTH, 90);
+        SendImage(current_image_buffer, IMAGE_WIDTH, 90);
       }
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
         SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);

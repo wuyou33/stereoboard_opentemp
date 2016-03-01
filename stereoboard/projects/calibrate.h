@@ -17,7 +17,7 @@
 
 //////////////////////////////////////////////////////
 // Settings
-#define USE_COLOR 0
+#define USE_COLOR 1
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
 
@@ -52,13 +52,13 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 1000000
+#define USART4_BAUD 115200
 
 //////////////////////////////////////////////////////
 // Image Encoding
-
+#define USE_RGB565
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_YUV422
+#define USE_RGB565
 #endif
 
 #ifndef TCM8230_EXTRA_SATURATION
