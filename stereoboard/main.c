@@ -746,10 +746,24 @@ int main(void)
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
-    	  setLineNumbers(current_image_buffer, IMAGE_WIDTH, 90);
-        SendImage(current_image_buffer, IMAGE_WIDTH, 90);
+#if SET_LINE_NUMBERS
+    	  uint8_t horizontalLine;
+    	  uint8_t copyOfThing[IMAGE_WIDTH*IMAGE_HEIGHT*2];
+    	  int someIndexImage=0;
+		  for(;someIndexImage < IMAGE_WIDTH*IMAGE_HEIGHT*2;someIndexImage++){
+			  copyOfThing[someIndexImage]=current_image_buffer[someIndexImage];
+		  }
+    	  setLineNumbersImage(&copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+    	  SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
+#else
+    	  SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+#endif
       }
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
+#if SET_LINE_NUMBERS
+    	setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH,IMAGE_HEIGHT);
+#endif
         SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
       if (current_stereoboard_algorithm == SEND_HISTOGRAM) {
