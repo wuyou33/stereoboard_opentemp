@@ -172,6 +172,8 @@ disparity_map_functions.h \
 forward_velocity_estimator.h \
 tmg3993.c \
 tmg3993.h \
+image.c \
+image.h \
 i2c.c \
 i2c.h \
 usart.c \

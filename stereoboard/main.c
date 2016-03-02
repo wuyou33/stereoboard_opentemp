@@ -240,6 +240,7 @@ int main(void)
   sys_time_init();
 
 #if USE_COLOR
+  int ind;
   // slight waste of memory, if color is not used:
   uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
   for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
@@ -747,9 +748,24 @@ int main(void)
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
-        SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+#if SET_LINE_NUMBERS
+    	  uint8_t horizontalLine;
+    	  uint8_t copyOfThing[IMAGE_WIDTH*IMAGE_HEIGHT*2];
+    	  int someIndexImage=0;
+		  for(;someIndexImage < IMAGE_WIDTH*IMAGE_HEIGHT*2;someIndexImage++){
+			  copyOfThing[someIndexImage]=current_image_buffer[someIndexImage];
+		  }
+    	  setLineNumbersImage(&copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+    	  SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
+#else
+    	  SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+#endif
       }
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
+#if SET_LINE_NUMBERS
+    	setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH,IMAGE_HEIGHT);
+#endif
         SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
       if (current_stereoboard_algorithm == SEND_HISTOGRAM) {
