@@ -11,7 +11,7 @@ import array
 import sys
 import os
 
-BAUDRATE=115200
+BAUDRATE=1000000
 W = 128
 H=96
 saveImages=False
@@ -19,7 +19,7 @@ DISPARITY_OFFSET_LEFT=0
 DISPARITY_OFFSET_RIGHT=0
 DISPARITY_BORDER=W/2
 previousLeftImage=None
-ser = serial.Serial('/dev/tty.usbserial-FTHHXIFQ',BAUDRATE)
+ser = serial.Serial('/dev/ttyUSB0',BAUDRATE)
 size_of_one_image=25348 # 128*96*2+4*96+4*96+4
 
 frameNumber = 0
@@ -66,7 +66,6 @@ while True:
             cv2.imshow('leftimg',leftImage)
             cv2.imshow('rightimg',rightImage)
             key=cv2.waitKey(1)
-            print 'done'
             if saveImages:
                 stereoboard_tools.saveImages(img, leftImage, rightImage, frameNumber, imageFolderName)
                 frameNumber+=1

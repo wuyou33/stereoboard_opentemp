@@ -27,6 +27,7 @@
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define CAPTURE_MODE_SNAPSHOT 1
+#define DCMI_DOUBLE_BUFFER
 
 //////////////////////////////////////////////////////
 // Define image format
@@ -58,7 +59,7 @@
 // Image Encoding
 
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_YUV422
+#define USE_RGB565
 #endif
 
 #ifndef TCM8230_EXTRA_SATURATION
