@@ -255,7 +255,7 @@ ifeq ($(OS),Windows_NT)
     BMP_PORT ?= COM2
 else
     #Linux stuff
-    BMP_PORT ?= /dev/cu.usbmodemD5DA96C1
+    BMP_PORT ?= /dev/ttyACM0
 endif
 
 
