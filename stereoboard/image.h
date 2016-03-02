@@ -11,7 +11,7 @@ struct img_struct {
   int h;
 };
 
-void setLineNumbers(uint8_t** givenImage, uint16_t width, uint16_t height);
-void setLineNumbersImage(uint8_t* givenImage, uint16_t width, uint16_t height);
+void setLineNumbers(uint8_t **givenImage, uint16_t width, uint16_t height);
+void setLineNumbersImage(uint8_t *givenImage, uint16_t width, uint16_t height);
 
 #endif

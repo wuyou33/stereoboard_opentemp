@@ -350,15 +350,15 @@ int main(void)
   uint8_t feature_image_coordinates [3 * features_max_number];
   uint16_t features_ROT_number;
   uint8_t feature_window_size = (2 * feature_window_size_2) + 1;
-  q15_t feature_window_data [feature_window_size * feature_window_size * features_TOTAL_number * 2]; // values of pixels in feature window
+  q15_t feature_window_data [feature_window_size * feature_window_size * features_TOTAL_number *
+                             2]; // values of pixels in feature window
   int number_of_rotations = rotation_step_number * rotation_step_number * rotation_step_number;
   float32_t rotation_coefficients [number_of_rotations * 9]; // 9 coefficients per rotation
   rotation_coefficients[0] = 0;
 #endif
 
-  if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS)
-  {
-	  learning_collisions_init();
+  if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
+    learning_collisions_init();
   }
 
 
@@ -741,30 +741,30 @@ int main(void)
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
 
         sys_time_prev = sys_time_get();
-    	  learning_collisions_run(current_image_buffer);
-    	  frameRate = TIMER_TICKS_PER_SEC / get_timer_interval(sys_time_prev); // in Hz
+        learning_collisions_run(current_image_buffer);
+        frameRate = TIMER_TICKS_PER_SEC / get_timer_interval(sys_time_prev); // in Hz
       }
 
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
 #if SET_LINE_NUMBERS
-    	  uint8_t horizontalLine;
-    	  uint8_t copyOfThing[IMAGE_WIDTH*IMAGE_HEIGHT*2];
-    	  int someIndexImage=0;
-		  for(;someIndexImage < IMAGE_WIDTH*IMAGE_HEIGHT*2;someIndexImage++){
-			  copyOfThing[someIndexImage]=current_image_buffer[someIndexImage];
-		  }
-    	  setLineNumbersImage(&copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
+        uint8_t horizontalLine;
+        uint8_t copyOfThing[IMAGE_WIDTH * IMAGE_HEIGHT * 2];
+        int someIndexImage = 0;
+        for (; someIndexImage < IMAGE_WIDTH * IMAGE_HEIGHT * 2; someIndexImage++) {
+          copyOfThing[someIndexImage] = current_image_buffer[someIndexImage];
+        }
+        setLineNumbersImage(&copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-    	  SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
+        SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
 #else
-    	  SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+        SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
       }
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
 #if SET_LINE_NUMBERS
-    	setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH,IMAGE_HEIGHT);
+        setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
         SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
@@ -827,7 +827,7 @@ int main(void)
         //SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
       }
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
-    	 //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+        //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
 
     }
