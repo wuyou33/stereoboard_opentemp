@@ -16,5 +16,8 @@
 // Functions
 uint8_t I2CRead(uint8_t Addr, uint8_t Register, uint8_t *reply);
 uint8_t I2CWrite(uint8_t Addr, uint8_t Register, uint8_t Data);
+uint8_t I2CRead16(uint8_t Addr, uint16_t Register, uint8_t *reply);
+uint8_t I2CWrite16(uint8_t Addr, uint16_t Register, uint16_t Data);
+
 
 #endif /* I2C_H_ */

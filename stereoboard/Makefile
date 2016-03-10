@@ -225,6 +225,8 @@ distance_matrix.c \
 odometry.c \
 textons.h \
 textons.c \
+VL6180.h \
+VL6180.c \
 learning.h \
 learning.c
 

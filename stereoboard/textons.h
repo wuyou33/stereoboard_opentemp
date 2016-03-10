@@ -15,7 +15,7 @@
 #define patch_size_v 5
 #define patch_size ((patch_size_h*patch_size_v)-1)*3 //subtract 1 to end up with multiple of 4
 #define n_textons 24 //this is also number of bins in histogram
-#define clust_size 500
+#define clust_size 650
 
 void initTexton(void);
 void getTextonDistribution(uint8_t *image, q7_t *histogram);

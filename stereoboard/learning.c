@@ -9,6 +9,7 @@
 #include "learning.h"
 #include "textons.h"
 #include "usart.h"
+#include "tmg3993.h"
 //#include "commands.h"
 
 q7_t histogram[n_textons];
@@ -19,6 +20,8 @@ uint16_t nr_in_clust = 0;
 uint16_t nr_in_temp_clust = 0;
 uint8_t once = 0;
 volatile uint8_t distance = 0;
+uint16_t clust_idx = 0;
+uint16_t last_clust_idx;
 
 void learning_collisions_init(void)
 {
@@ -74,11 +77,11 @@ void learning_collisions_run( uint8_t *image )
   }
   else if (collision>=0)
 	{
-	  SendCommandNumber((uint8_t) 125);
+	  SendCommandNumber((uint8_t) 254);
 	}
   else if (collision<0)
   {
-    SendCommandNumber((uint8_t) 126);
+    SendCommandNumber((uint8_t) 255);
   }
   if ((collision!=127) && (once==0))
   {
@@ -149,14 +152,19 @@ uint8_t checkCollision(void)
 
 void addHistogramToTemp(q7_t *histogram)
 {
+  // Increment nr_in_temp_clust
   if (nr_in_temp_clust<150)
   {
-    // Add latest histogram to temp clust
-    arm_copy_q7(histogram, &temporary_cluster[nr_in_temp_clust*n_textons], n_textons);
-
-    // Increment nr_in_temp_clust
     nr_in_temp_clust++;
   }
+  clust_idx++;
+
+
+  // Add latest histogram to temp clust
+  arm_copy_q7(histogram, &temporary_cluster[(clust_idx%150)*n_textons], n_textons);
+
+  // Most recent value at
+  last_clust_idx = clust_idx%150;
 }
 
 /*void addHistogramToCluster(q7_t *histogram)
@@ -205,6 +213,14 @@ void addTempToCluster(q7_t *histogram)
 
   for(i=0; i<(clust_size-1); i++)
   {
+    if (i%4==0)
+    {
+      int16_t collision = Angle_Measurement();
+      if (collision<0)
+      {
+        SendCommandNumber((uint8_t) 255);
+      }
+    }
     uint8_t cont = 0;
     uint16_t l;
     for(l=0; l<nr_in_temp_clust; l++)
@@ -293,10 +309,10 @@ void addTempToCluster(q7_t *histogram)
   {
     for(i=0; i<n_textons; i++)
     {
-      histogram_cluster[nearestPairs[j].id_2*n_textons+i] = temporary_cluster[j*n_textons+i];
+      histogram_cluster[nearestPairs[j].id_2*n_textons+i] = temporary_cluster[(last_clust_idx-j)%150*n_textons+i];
       //TODO: (KL) Replace for arm_copy
     }
-    distance_cluster[nearestPairs[j].id_2] = nr_in_temp_clust-j; // Number of frames before a collision
+    distance_cluster[nearestPairs[j].id_2] = j; // Number of frames before a collision
 
     // Increment nr_in_temp_clust
     nr_in_clust++;

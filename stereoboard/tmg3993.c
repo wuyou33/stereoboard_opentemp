@@ -296,11 +296,12 @@ int16_t Angle_Measurement(void)
 {
   prx = TMG3993_Read_Proximity();
 
-  if ((prx>(prx_offset+6)) && (last_angle==127)){
+  if ((prx>(prx_offset+3)) && (last_angle==127)){ // for angle measurement use +6
     //led_set();
-    last_angle = TMG3993_FIFO_Difference()-7;
+    //last_angle = TMG3993_FIFO_Difference()-7; // turn this on for angle measurement
+    last_angle  = -5; // turn this off for angle measurement
   }
-  if (prx<=(prx_offset+6)){
+  if (prx<=(prx_offset+3)){ // for angle measurement use +6
     //led_clear();
     last_angle = 127;
   }

@@ -58,6 +58,7 @@
 #include "disparity_map_functions.h"
 #include "odometry.h"
 #include "learning.h"
+#include "VL6180.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -83,14 +84,16 @@ uint16_t offset_crop = 0;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS} stereoboard_algorithm_type;
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS, SEND_VL6180} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE) || defined(SEND_LEARNING_COLLISIONS))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE) || defined(SEND_LEARNING_COLLISIONS) || defined(SEND_VL6180))
   return DEFAULT_BOARD_FUNCTION;
+#elif defined(SEND_VL6180)
+  return SEND_VL6180;
 #elif defined(SEND_ROTATIONS)
   return SEND_ROTATIONS;
 #elif defined(DISPARITY_BASED_VELOCITY)
@@ -276,6 +279,11 @@ int main(void)
   uint8_t ang_read = 1;
 #endif
 
+#if current_stereoboard_algorithm == SEND_VL6180
+  VL6180xInit();
+  VL6180xDefautSettings();
+#endif
+
   // Disparity image buffer, initialised with zeros
   //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
@@ -405,7 +413,11 @@ int main(void)
   }
 
   while (1) {
-    if (current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE) {
+    if (current_stereoboard_algorithm == SEND_VL6180) {
+      uint8_t dist = getDistance();
+      SendCommandNumber((uint8_t) dist);
+
+/*    if (current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE) {
       // Read proximity sensor
       prx = TMG3993_Read_Proximity();
       prx_east = TMG3993_Read_Proximity_East();
@@ -428,7 +440,7 @@ int main(void)
       xsprintf(buffer, "Proximity: %d, Angle: %d, East: %d, West: %d\r\n", prx, ang, prx_east, prx_west);
       while (UsartTx(buffer, 55) == 0)
         ;
-
+*/
     } else {
       camera_snapshot();
 

@@ -21,6 +21,8 @@ int16_t TMG3993_Read_Proxity_West(void);
 int16_t TMG3993_Read_Angle(void);
 int16_t TMG3993_Offset(void);
 int16_t TMG3993_FIFO_Difference(void);
+int16_t Angle_Measurement(void);
+void init_Angle_Measurement(void);
 
 // Settings
 #define ADDRESS_TMG3993           (0x39)
