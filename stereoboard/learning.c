@@ -8,9 +8,8 @@
 #include "main_parameters.h"
 #include "learning.h"
 #include "textons.h"
-#include "usart.h"
 #include "tmg3993.h"
-//#include "commands.h"
+#include "commands.h"
 
 q7_t histogram[n_textons];
 q7_t temporary_cluster[n_textons*150];
@@ -73,7 +72,7 @@ void learning_collisions_run( uint8_t *image )
     {
       distance = 250;
     }
-    SendCommandNumber((uint8_t) distance); ////////////////////// REMOVED -127
+    SendCommandNumber((uint8_t)distance); ////////////////////// REMOVED -127
   }
   else if (collision>=0)
 	{

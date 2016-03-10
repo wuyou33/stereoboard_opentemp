@@ -273,11 +273,6 @@ int main(void)
 
 #if current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE || current_stereoboard_algorithm == SEND_IMAGE_AND_PROX   // initialize proximity sensor
   TMG3993_Init();
-  int16_t prx;
-  int16_t ang;
-  int16_t prx_east;
-  int16_t prx_west;
-  uint8_t ang_read = 1;
 #endif
 
 #if current_stereoboard_algorithm == SEND_VL6180
@@ -417,31 +412,6 @@ int main(void)
     if (current_stereoboard_algorithm == SEND_VL6180) {
       uint8_t dist = getDistance();
       SendCommandNumber((uint8_t) dist);
-
-/*    if (current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE) {
-      // Read proximity sensor
-      prx = TMG3993_Read_Proximity();
-      prx_east = TMG3993_Read_Proximity_East();
-      prx_west = TMG3993_Read_Proximity_West();
-      ang = TMG3993_Read_Angle();
-
-      // Check if obstacle is near
-      if ((prx > 25) && (ang_read == 1)) {
-        led_set();
-        //ang = TMG3993_Read_Angle();
-        ang_read = 0;
-      }
-      if (prx <= 25) {
-        led_clear();
-        ang_read = 1;
-      }
-
-      // Print proximity and angle measurements to UART
-      char buffer[20];
-      xsprintf(buffer, "Proximity: %d, Angle: %d, East: %d, West: %d\r\n", prx, ang, prx_east, prx_west);
-      while (UsartTx(buffer, 55) == 0)
-        ;
-*/
     } else {
       camera_snapshot();
 

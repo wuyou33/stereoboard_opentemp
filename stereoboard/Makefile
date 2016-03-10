@@ -229,6 +229,8 @@ textons.h \
 textons.c \
 VL6180.h \
 VL6180.c \
+commands.h \
+commands.c \
 learning.h \
 learning.c
 
