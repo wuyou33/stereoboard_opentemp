@@ -25,7 +25,6 @@
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-
 #define GET_PARALLEL
 
 //////////////////////////////////////////////////////

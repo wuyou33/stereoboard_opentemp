@@ -48,7 +48,7 @@
 
 // include functions headers
 #include "distance_matrix.h"
-#include "divergence.h"
+#include "edgeflow.h"
 #include "droplet_algorithm.h"
 #include "filter_color.h"
 #include "stereo_vision.h"
@@ -448,7 +448,6 @@ int main(void)
         uint16_t length = STEREO_BUF_SIZE;
         if (handleStereoPackage(UsartRx(), length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
                                 &stereocam_data.data_new, &stereocam_data.len, &stereocam_data.height)) {
-          break;
         }
       }
 
@@ -597,12 +596,9 @@ int main(void)
           //led_toggle();
         }
 
-        int16_t pitch = 0;
-        int16_t roll = 0;
-
         // calculate the edge flow
-        divergence_total(divergenceArray, current_image_buffer, &edgeflow_parameters, &edgeflow_results, sys_time_get(), roll ,
-                         pitch);
+        divergence_total(divergenceArray, (int16_t *)stereocam_data.data, stereocam_data.len, current_image_buffer,
+                         &edgeflow_parameters, &edgeflow_results);
 
         stereocam_data.data_new = 0;
       }
