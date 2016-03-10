@@ -6,7 +6,6 @@
  */
 
 #include "edgeflow.h"
-#include "optic_flow.h"
 #include "sys_time.h"
 #include <stdlib.h>
 
