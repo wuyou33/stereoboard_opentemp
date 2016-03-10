@@ -24,6 +24,7 @@
 // include utility headers
 #include "../common/led.h"
 #include "../common/utils.h"
+#include "commands.h"
 
 // include camera headers
 #include "camera_type.h"
@@ -42,7 +43,6 @@
 #include "usart.h"
 #include "usb.h"
 
-#include "commands.h"
 #include "jpeg.h"
 #include "raw_digital_video_stream.h"
 
@@ -730,7 +730,7 @@ int main(void)
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
-#ifdef SET_LINE_NUMBERS
+#if SET_LINE_NUMBERS
         uint8_t horizontalLine;
         uint8_t copyOfThing[IMAGE_WIDTH * IMAGE_HEIGHT * 2];
         int someIndexImage = 0;
@@ -745,7 +745,7 @@ int main(void)
 #endif
       }
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
-#ifdef SET_LINE_NUMBERS
+#if SET_LINE_NUMBERS
         setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
         SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
