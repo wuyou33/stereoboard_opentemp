@@ -726,7 +726,7 @@ int main(void)
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
-#if SET_LINE_NUMBERS
+#ifdef SET_LINE_NUMBERS
         uint8_t horizontalLine;
         uint8_t copyOfThing[IMAGE_WIDTH * IMAGE_HEIGHT * 2];
         int someIndexImage = 0;
@@ -741,7 +741,7 @@ int main(void)
 #endif
       }
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
-#if SET_LINE_NUMBERS
+#ifdef SET_LINE_NUMBERS
         setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
         SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
