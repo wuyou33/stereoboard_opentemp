@@ -28,7 +28,7 @@
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-
+#define TCM8230_EXTRA_SATURATION 1
 //////////////////////////////////////////////////////
 // Define image format
 #define IMAGE_WIDTH 128
@@ -53,13 +53,12 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 115200
+#define USART4_BAUD 1000000
 
 //////////////////////////////////////////////////////
 // Image Encoding
-#define USE_RGB565
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_RGB565
+#define USE_YUV422
 #endif
 
 #ifndef TCM8230_EXTRA_SATURATION
