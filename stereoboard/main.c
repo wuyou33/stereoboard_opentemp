@@ -506,7 +506,9 @@ int main(void)
       if(current_stereoboard_algorithm==SEND_MEANSHIFT){
 
     	          //int* trackPosX, int* trackPosY, int* searchWindowWidth, int* searchWindowHeight
-    	          meanshiftUpdate(disparity_image,&searchWindow);// &trackPosX, &trackPosY,&searchWindowWidth,&searchWindowHeight);
+    	  	  	  float distanceToObject=0.0;
+
+    	          meanshiftUpdate(disparity_image,&searchWindow,&distanceToObject);// &trackPosX, &trackPosY,&searchWindowWidth,&searchWindowHeight);
 
     	      	// Draw a square around the object we track
     	      	int startPosX = searchWindow.x - searchWindow.width/2;
@@ -540,6 +542,12 @@ int main(void)
     	      		}
     	      	}
 
+//    	  	  SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
+    	      	uint8_t meanshift_track[5];
+    	      	meanshift_track[0]=(uint8_t)searchWindow.x;
+    	      	meanshift_track[1]=(uint8_t)searchWindow.y;
+    	      	meanshift_track[2]=(uint8_t)distanceToObject;
+    	      	SendArray(meanshift_track,3,1);
       }
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 
@@ -791,9 +799,9 @@ int main(void)
         SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
       }
-      if(current_stereoboard_algorithm==SEND_MEANSHIFT){
-    	  SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
-      }
+
+
+
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP ) {
 
 #ifdef SET_LINE_NUMBERS

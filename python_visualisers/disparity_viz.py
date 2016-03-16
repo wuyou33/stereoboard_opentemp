@@ -66,7 +66,7 @@ while True:
             img = img[::2]
             # if (not '3.0.0'==cv2.__version__) and (not '3.0.0-dev'==cv2.__version__):
             #     print 'resizing stuff!'
-            img = cv2.resize(img,(0,0),fx=5,fy=5,interpolation=cv2.INTER_NEAREST)
+            img = cv2.resize(img,(0,0),fx=5,fy=          ,interpolation=cv2.INTER_NEAREST)
             cv2.imshow('img',img)
 	    	# print 'test hier'
 

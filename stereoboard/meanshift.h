@@ -76,7 +76,7 @@ void meanshiftUpdate(uint8_t image[],int width, int height, int* trackPosX, int*
 }*/
 
 
-void meanshiftUpdate(uint8_t_image disparity_image, int_rectangle* searchrectangle){
+void meanshiftUpdate(uint8_t_image disparity_image, int_rectangle* searchrectangle,float* distanceToObject){
 	int totalPosX=0;
 	int totalPosY=0;
 	int countedPoints=0;
@@ -144,6 +144,7 @@ void meanshiftUpdate(uint8_t_image disparity_image, int_rectangle* searchrectang
 		}
 
 		if(M10>0 && M01 > 0){
+			*distanceToObject = sumPixelsInSquare/pixelsCounted;
 			float centerX = M10/M00;
 			float centerY = M01/M00;
 			searchrectangle->x = startPosX+centerX;
