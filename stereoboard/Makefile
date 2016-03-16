@@ -170,6 +170,7 @@ forward_velocity_estimator.h \
 disparity_map_functions.c \
 disparity_map_functions.h \
 forward_velocity_estimator.h \
+data_types.h \
 tmg3993.c \
 tmg3993.h \
 image.c \
@@ -241,7 +242,7 @@ $(EXECUTABLE): 	\
 		$(MAIN_OBJS) \
 		${USB_SRCS} \
 		${STDP_LIB}
-	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
+	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 
 clean:
 	rm -rf $(EXECUTABLE)

@@ -1,11 +1,14 @@
 #!/usr/bin/env python
+
+import sys
+sys.path.append('/usr/local/lib/python2.7/site-packages')
 import cv2
 import serial
 import stereoboard_tools
 import Tkinter as tk
 import numpy as np
 import time
-ser = serial.Serial('/dev/ttyUSB0',115200,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 
