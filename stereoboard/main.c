@@ -411,7 +411,7 @@ int main(void)
 
   // initialize divergence
   divergence_init(&edgeflow_parameters, &edgeflow_results, FOVX, FOVY, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
-  led_clear();
+ // led_clear();
   uint8_t quality_measures_index;
   for (quality_measures_index = 0; quality_measures_index < DIVERGENCE_QUALITY_MEASURES_LENGTH;
        quality_measures_index++) {
@@ -438,7 +438,7 @@ int main(void)
         ;
       processed = frame_counter;
 
-      led_toggle();
+      //led_toggle();
 
       // compute run frequency
 #ifdef AVG_FREQ
