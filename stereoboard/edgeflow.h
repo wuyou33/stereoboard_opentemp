@@ -55,8 +55,10 @@ struct edgeflow_parameters_t {
   int8_t image_height;
   int8_t max_disparity_range;
   int8_t max_horizon;
+  int8_t adapt_horizon;
   int8_t disparity_range;
   int8_t window_size;
+  int8_t derotation;
   int8_t edge_flow_kalman;
   int32_t Q;
   int32_t R;
