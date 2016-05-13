@@ -31,6 +31,9 @@ void divergence_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16, 
     edgeflow_parameters->adapt_horizon = stereocam_data_int16[3];
     edgeflow_parameters->window_size = stereocam_data_int16[4];
     edgeflow_parameters->disparity_range = stereocam_data_int16[5];
+    edgeflow_parameters->snapshot = stereocam_data_int16[6];
+    edgeflow_parameters->autopilot_mode = stereocam_data_int16[7];
+
 
   } else {
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = 0;
@@ -99,6 +102,11 @@ void divergence_init(struct edgeflow_parameters_t *edgeflow_parameters, struct e
   edgeflow_results->prev_vel_x = 0;
   edgeflow_results->vel_y = 0;
   edgeflow_results->prev_vel_y = 0;
+
+  edgeflow_results->snapshot_is_taken = 0;
+  edgeflow_parameters->snapshot_lenght = 300;
+  edgeflow_results->snapshot_counter =   edgeflow_parameters->snapshot_lenght +1;
+
 }
 
 /*  divergence_array: This function fills up the array that is send to the lisa -s
@@ -247,6 +255,7 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
   uint8_t window_size = edgeflow_parameters->window_size;
   uint16_t edge_threshold = 0;
 
+
   // check that inputs within allowable ranges
   if (disp_range > DISP_RANGE_MAX) {
     disp_range = DISP_RANGE_MAX;
@@ -262,7 +271,7 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
 
   // Calculate previous frame number
 
-  if (MAX_HORIZON > 2&&(edgeflow_parameters->adapt_horizon)) {
+  if (MAX_HORIZON > 2&&(edgeflow_parameters->adapt_horizon==1)&&edgeflow_parameters->snapshot==0) {
     uint32_t flow_mag_x, flow_mag_y;
     flow_mag_x = abs(edge_flow->flow_x);
     flow_mag_y = abs(edge_flow->flow_y);
@@ -295,8 +304,18 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
                              MAX_HORIZON; // wrap index
 
   // copy previous edge histogram based on previous frame number
+  if(edgeflow_results->snapshot_is_taken==1&& edgeflow_parameters->snapshot==1
+		  &&(edgeflow_parameters->autopilot_mode == 10||edgeflow_parameters->autopilot_mode == 11||edgeflow_parameters->autopilot_mode == 12))
+  {
+  prev_edge_histogram_x = edgeflow_results->edge_hist_snapshot.x;
+  prev_edge_histogram_y = edgeflow_results->edge_hist_snapshot.y;
+  edgeflow_results->snapshot_counter++;
+  }
+  else
+  {
   prev_edge_histogram_x = edge_hist[previous_frame_x].x;
   prev_edge_histogram_y = edge_hist[previous_frame_y].y;
+  }
 
  // int16_t der_shift_x = 1.5*(roll_prev - roll) * image_width / (FOVX);
  // int16_t der_shift_y = 1.5*(pitch_prev - pitch) * image_height / (FOVY);
@@ -305,6 +324,16 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
   calculate_edge_histogram(in, edge_histogram_x, image_width, image_height, 'x', 'l', edge_threshold);
   calculate_edge_histogram(in, edge_histogram_y, image_width, image_height, 'y', 'l', edge_threshold);
   calculate_edge_histogram(in, edge_histogram_x_right, image_width, image_height, 'x', 'r', edge_threshold);
+
+  if( edgeflow_parameters->snapshot==1 &&(edgeflow_results->snapshot_is_taken==0|| edgeflow_results->snapshot_counter>edgeflow_parameters->snapshot_lenght))
+  {
+	  memcpy(&edgeflow_results->edge_hist_snapshot.x, edge_histogram_x, sizeof(int32_t) * image_width);
+	  memcpy(&edgeflow_results->edge_hist_snapshot.y, edge_histogram_y, sizeof(int32_t) * image_height);
+	  edgeflow_results->snapshot_counter = 0;
+	  edgeflow_results->snapshot_is_taken = 1;
+  }
+
+
 
   //calculate angle diff [RAD * RES]
 
@@ -359,6 +388,12 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
   int32_t *pointer = (int32_t *)quality_measures + 9;
   pointer[0] = min_error_hor;
   pointer[1] = min_error_ver;
+
+  if(edgeflow_results->snapshot_is_taken == 1 && edgeflow_parameters->snapshot ==0)
+  {
+	  edgeflow_results->snapshot_counter = edgeflow_parameters->snapshot_lenght + 1;
+	  edgeflow_results->snapshot_is_taken = 0;
+  }
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram

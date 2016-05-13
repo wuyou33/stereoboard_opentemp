@@ -56,6 +56,9 @@ struct edgeflow_parameters_t {
   int8_t max_disparity_range;
   int8_t max_horizon;
   int8_t adapt_horizon;
+  int8_t snapshot;
+  int16_t snapshot_lenght;
+  int8_t autopilot_mode;
   int8_t disparity_range;
   int8_t window_size;
   int8_t derotation;
@@ -72,10 +75,13 @@ struct edgeflow_parameters_t {
 
 struct edgeflow_results_t {
   struct edge_hist_t edge_hist[MAX_HORIZON];
+  struct edge_hist_t edge_hist_snapshot;
   struct edge_flow_t edge_flow;
   struct edge_flow_t prev_edge_flow;
   struct displacement_t displacement;
   struct covariance_t covariance;
+  uint8_t snapshot_is_taken;
+  uint16_t snapshot_counter;
   uint8_t quality_measures_edgeflow[DIVERGENCE_QUALITY_MEASURES_LENGTH];
   uint8_t current_frame_nr;
   uint32_t R_height;
