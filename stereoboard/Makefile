@@ -106,6 +106,7 @@ ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_f32.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q7.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q7.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \

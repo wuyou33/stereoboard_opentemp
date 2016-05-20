@@ -195,6 +195,9 @@ uint8_t I2CRead16(uint8_t Addr, uint16_t Register, uint8_t *reply)
   /* Clear AF flag if arisen */
   I2C2->SR1 |= (uint16_t)0x0400;
 
+  /* Prepare Stop after receiving data */
+  I2C_GenerateSTOP(I2C2, ENABLE);
+
   /* Generate the Start Condition */
   I2C_GenerateSTART(I2C2, ENABLE);
 
@@ -216,14 +219,14 @@ uint8_t I2CRead16(uint8_t Addr, uint16_t Register, uint8_t *reply)
   }
 
   /* Prepare an NACK for the next data received */
-  I2C_AcknowledgeConfig(I2C2, DISABLE);
+  //I2C_AcknowledgeConfig(I2C2, DISABLE);
 
   /* Test on I2C2 EV7 and clear it */
-  timeout = TIMEOUT_MAX; /* Initialize timeout value */
-  while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_BYTE_RECEIVED)) {
-    /* If the timeout delay is exceeded, exit with error code */
-    if ((timeout--) == 0) { return 0xF9; }
-  }
+ // timeout = TIMEOUT_MAX; /* Initialize timeout value */
+ // while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_BYTE_RECEIVED)) {
+ //   /* If the timeout delay is exceeded, exit with error code */
+ //   if ((timeout--) == 0) { return 0xF9; }
+ // }
 
   /* Prepare Stop after receiving data */
   I2C_GenerateSTOP(I2C2, ENABLE);

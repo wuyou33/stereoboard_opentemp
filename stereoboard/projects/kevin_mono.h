@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_LEARNING_COLLISIONS //SEND_VL6180 //SEND_IMAGE //SEND_IMAGE_AND_PROX //SEND_LEARNING_COLLISIONS
+#define DEFAULT_BOARD_FUNCTION SEND_IMAGE//SEND_LEARNING_COLLISIONS//SEND_VL6180 // //SEND_VL6180 //SEND_IMAGE //SEND_IMAGE_AND_PROX //SEND_LEARNING_COLLISIONS
 
 //////////////////////////////////////////////////////
 // Settings
@@ -43,7 +43,7 @@
 
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
 #if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
+#error "Config error: Image does not fit in RAM"
 #endif
 
 //////////////////////////////////////////////////////
@@ -54,7 +54,7 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 9600//115200//3000000
+#define USART4_BAUD 3000000//9600//115200//3000000
 
 //////////////////////////////////////////////////////
 // Image Encoding

@@ -296,12 +296,12 @@ int16_t Angle_Measurement(void)
 {
   prx = TMG3993_Read_Proximity();
 
-  if ((prx>(prx_offset+3)) && (last_angle==127)){ // for angle measurement use +6
+  if ((prx>(prx_offset+3)) && (last_angle==127)){ // for angle measurement use +6, for distance measurement use +3
     //led_set();
     //last_angle = TMG3993_FIFO_Difference()-7; // turn this on for angle measurement
     last_angle  = -5; // turn this off for angle measurement
   }
-  if (prx<=(prx_offset+3)){ // for angle measurement use +6
+  if (prx<=(prx_offset+3)){ // for angle measurement use +6, for distance measurement use +3
     //led_clear();
     last_angle = 127;
   }
@@ -315,7 +315,7 @@ void init_Angle_Measurement(void)
   //led_set();
   int i;
   // Waste some time, apparently sensor needs some time to start up
-  for (i=0;i<300;i++){
+  for (i=0;i<100;i++){ //300
     prx_offset += TMG3993_Read_Proximity();
   }
 

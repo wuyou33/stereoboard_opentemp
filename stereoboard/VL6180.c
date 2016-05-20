@@ -6,6 +6,7 @@
  */
 
 #include "VL6180.h"
+#include "sys_time.h"
 
 void VL6180xInit(void){
   //Required by datasheet
@@ -46,7 +47,7 @@ void VL6180xDefautSettings(void){
   //Recommended settings from datasheet
   //http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
 
-
+  I2CWrite16(0x29, 0x0011, 0x10);
   I2CWrite16(0x29, VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD, 0x30); //Set Avg sample period
   I2CWrite16(0x29, VL6180X_SYSALS_ANALOGUE_GAIN, 0x46); // Set the ALS gain
   I2CWrite16(0x29, VL6180X_SYSRANGE_VHV_REPEAT_RATE, 0xFF); // Set auto calibration period (Max = 255)/(OFF = 0)
@@ -56,7 +57,7 @@ void VL6180xDefautSettings(void){
   //http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
   I2CWrite16(0x29, VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD, 0x09); // Set default ranging inter-measurement period to 100ms
   I2CWrite16(0x29, VL6180X_SYSALS_INTERMEASUREMENT_PERIOD, 0x0A); // Set default ALS inter-measurement period to 100ms
-  //VL6180x_setRegister(VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24); // Configures interrupt on ‘New Sample Ready threshold event’
+  I2CWrite16(0x29, VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24); // Configures interrupt on ‘New Sample Ready threshold event’
   //Additional settings defaults from community
   /*VL6180x_setRegister(VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME, 0x32);
   VL6180x_setRegister(VL6180X_SYSRANGE_RANGE_CHECK_ENABLES, 0x10 | 0x01);
@@ -66,13 +67,22 @@ void VL6180xDefautSettings(void){
   VL6180x_setRegister(VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD,0x30);
   VL6180x_setRegister(VL6180X_SYSALS_ANALOGUE_GAIN,0x40);
   VL6180x_setRegister(VL6180X_FIRMWARE_RESULT_SCALER,0x01);*/
+
+  I2CWrite16(0x29, VL6180X_SYSRANGE_START, 0x03); //Start Continuous Range mode
 }
 
 uint8_t getDistance()
 {
-  I2CWrite16(0x29, VL6180X_SYSRANGE_START, 0x01); //Start Single shot mode
+  /*I2CWrite16(0x29, VL6180X_SYSRANGE_START, 0x01); //Start Single shot mode
+  uint32_t sys_time_prev = sys_time_get();
+  while (sys_time_get()-sys_time_prev<21){
+    uint8_t peer = 1;
+  }*/
+  uint8_t id;
+  I2CRead16(0x29, VL6180X_IDENTIFICATION_MODEL_ID, &id);
+
   uint8_t distance;
-  I2CRead(0x29, VL6180X_RESULT_RANGE_VAL, &distance);
+  I2CRead16(0x29, VL6180X_RESULT_RANGE_VAL, &distance);
   I2CWrite16(0x29, VL6180X_SYSTEM_INTERRUPT_CLEAR, 0x07);
   return distance;
 }

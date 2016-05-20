@@ -412,6 +412,7 @@ int main(void)
     if (current_stereoboard_algorithm == SEND_VL6180) {
       uint8_t dist = getDistance();
       SendCommandNumber((uint8_t) dist);
+      led_toggle();
     } else {
       camera_snapshot();
 
