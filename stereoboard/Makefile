@@ -280,6 +280,13 @@ upload:
 	$(GDB) --batch \
                 -ex 'target extended-remote $(BMP_PORT)' \
                 -x black_magic_probe_flash.scr ${EXECUTABLE}
+				
+erase_flash:
+	@echo "Using Black Magic Probe"
+	@echo "Using GDB = $(GDB)"
+	$(GDB) --batch \
+                -ex 'target extended-remote $(BMP_PORT)' \
+                -x black_magic_probe_erase_flash.scr ${EXECUTABLE}
 #endif
 
 cleanspaces:
