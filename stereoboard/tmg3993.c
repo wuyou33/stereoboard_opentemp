@@ -56,7 +56,7 @@ int16_t difference_offset;
 void TMG3993_Init(void)
 {
   I2CWrite(ADDRESS_TMG3993, REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_PROXIMITY_ENABLE | COMMAND_WAIT_ENABLE);
-  //I2CWrite(ADDRESS_TMG3993, REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_GESTURE_ENABLE | COMMAND_PROXIMITY_ENABLE);
+  //I2CWrite(ADDRESS_TMG3993, REGISTER_ENABLE,COMMAND_POWER_ON | COMMAND_GESTURE_ENABLE | COMMAND_PROXIMITY_ENABLE); // this is needed for angle measurement
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONTROL,COMMAND_LDRIVE_100 | COMMAND_PGAIN_2);
   I2CWrite(ADDRESS_TMG3993, REGISTER_PPULSE,COMMAND_32us | COMMAND_64p);
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG2,COMMAND_BOOST_300);
@@ -89,6 +89,10 @@ int16_t TMG3993_Read_Proximity(void)
 
 int16_t TMG3993_Read_Proximity_East(void)
 {
+  ////////////////////////////////////////////////////////////////////////
+  // Not used anymore because slow, use functions below using FIFO buffer.
+  ////////////////////////////////////////////////////////////////////////
+
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_1);
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3, COMMAND_Only_East);
 
@@ -119,6 +123,10 @@ int16_t TMG3993_Read_Proximity_East(void)
 
 int16_t TMG3993_Read_Proximity_West(void)
 {
+  ////////////////////////////////////////////////////////////////////////
+  // Not used anymore because slow, use functions below using FIFO buffer.
+  ////////////////////////////////////////////////////////////////////////
+
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_1);
   I2CWrite(ADDRESS_TMG3993, REGISTER_CONFIG3, COMMAND_Only_West);
 
@@ -148,6 +156,10 @@ int16_t TMG3993_Read_Proximity_West(void)
 
 int16_t TMG3993_Read_Angle(void)
 {
+  ////////////////////////////////////////////////////////////////////////
+  // Not used anymore because slow, use functions below using FIFO buffer.
+  ////////////////////////////////////////////////////////////////////////
+
   //I2CWrite(ADDRESS_TMG3993, REGISTER_WAITTIME,COMMAND_WTIME_1);
 
 	// Calculate angle between sensor and obstacle
@@ -169,6 +181,10 @@ int16_t TMG3993_Read_Angle(void)
 
 int16_t TMG3993_Offset(void)
 {
+  ////////////////////////////////////////////////////////////////////////
+  // Not used anymore because slow, use functions below using FIFO buffer.
+  ////////////////////////////////////////////////////////////////////////
+
   // Moving average on offset
   /*offset_sum = offset_sum - offset[angle_idx%offset_len];
   offset[offset_idx%offset_len] = (prox_east_sum - prox_west_sum)/prox_len;
@@ -233,6 +249,8 @@ int16_t TMG3993_Read_FIFO_West(void)
 {
   uint8_t gflvl;
   I2CRead(ADDRESS_TMG3993, REGISTER_GFLVL, &gflvl);
+  // Wait till FIFO is not empy.
+  // Would be smaller to read gflvl to see how many data points are available in FIFO and than read these for both east and west.
   while(gflvl == 0) {
     I2CRead(ADDRESS_TMG3993, REGISTER_GFLVL, &gflvl);
   }
@@ -248,8 +266,6 @@ int16_t TMG3993_Read_FIFO_West(void)
 
 int16_t TMG3993_Read_FIFO_North(void)
 {
-
-
   uint8_t response;
   I2CRead(ADDRESS_TMG3993, REGISTER_GFIFO_N, &response);
 
@@ -259,7 +275,6 @@ int16_t TMG3993_Read_FIFO_North(void)
   prox_north_idx++;
   prox_north_sum = prox_north_sum + response;
   prox_north_filt = prox_north_sum/prox_len;
-
 
   return prox_north_filt;
 }

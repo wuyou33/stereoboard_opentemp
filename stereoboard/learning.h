@@ -10,6 +10,7 @@
 #include <arm_math.h>
 
 void learning_collisions_init(void);
+void measure_distance_run(uint8_t *image);
 void learning_collisions_run(uint8_t *image);
 void addHistogramToTemp(q7_t *histogram);
 void addTempToCluster(void);

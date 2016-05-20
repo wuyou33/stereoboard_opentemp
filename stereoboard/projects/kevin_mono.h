@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_IMAGE//SEND_LEARNING_COLLISIONS//SEND_VL6180 // //SEND_VL6180 //SEND_IMAGE //SEND_IMAGE_AND_PROX //SEND_LEARNING_COLLISIONS
+#define DEFAULT_BOARD_FUNCTION SEND_IMAGE//SEND_LEARNING_COLLISIONS//SEND_VL6180
 
 //////////////////////////////////////////////////////
 // Settings

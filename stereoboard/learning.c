@@ -2,7 +2,7 @@
  * textons.c
  *
  *  Created on: 16 feb. 2016
- *      Author: Kevin
+ *      Author: Kevin Lamers
  */
 
 #include "main_parameters.h"
@@ -44,30 +44,59 @@ void learning_collisions_init(void)
 	}*/
 }
 
+void measure_distance_run ( uint8_t *image )
+{
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function that can be used to estimate distance based on learned texton histogram and distance pairs.
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // Get histogram with how often each texton is matched in image
+   getTextonDistribution(image, histogram);
+
+   // Read proximity a couple of times in order to reduce frame rate and to have a better Angle reading,
+   // one could also increase the wait time in TMG3993_Init.
+   TMG3993_Read_Proximity();
+   TMG3993_Read_Proximity();
+   int16_t collision = Angle_Measurement();
+
+   if (nr_in_clust>10)
+   {
+     distance = getDistanceKNN(histogram, 3);
+   }
+
+   SendCommandNumber((uint8_t)distance);
+
+}
+
 void learning_collisions_run( uint8_t *image )
 {
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function that let the DelFly fly until a collision is detected by the proximity sensor. After which a steering command is given.
+  // After such a collision, all histograms are labelled with their correct distance to the obstacle and stored in a cluster.
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // Get histogram with how often each texton is matched in image
 	getTextonDistribution(image, histogram);
 
+	// Read proximity a couple of times in order to reduce frame rate and to have a better Angle reading,
+	// one could also increase the wait time in TMG3993_Init.
 	TMG3993_Read_Proximity();
 	TMG3993_Read_Proximity();
 	int16_t collision = Angle_Measurement();
 
-	//if (collision==127)
-	//{
-	// if (nr_in_clust>10)
-	//  {
-	    distance = getDistanceKNN(histogram, 3);
-	//  }
-	//  addHistogramToTemp(histogram);
-	//}
+	if (collision==127) // so prox sensor sees nothing
+	{
+	  addHistogramToTemp(histogram);
+	}
 
-	/*if (collision==127)
+	if (collision==127)
 	{
 	  once = 0;
 	}
-*/
-  //if (collision==127)
-  //{
+
+  if (collision==127)
+  {
+    distance = getDistanceKNN(histogram, 3);
     if (distance>250)
     {
       distance = 250;
@@ -79,8 +108,8 @@ void learning_collisions_run( uint8_t *image )
       SendCommandNumber((uint8_t) 255);
     }
 
-  //}
-  /*else if (collision>=0)
+  }
+  else if (collision>=0)
 	{
 	  SendCommandNumber((uint8_t) 254);
 	  flash_cnt++;
@@ -95,6 +124,7 @@ void learning_collisions_run( uint8_t *image )
     addTempToCluster();
     once = 1;
   }
+
   // Store histogram_cluster to flash if proximity is triggered for long period
   if (flash_cnt>150) // Check how long this is
   {
@@ -117,11 +147,14 @@ void learning_collisions_run( uint8_t *image )
     // Set flash_cnt back to zero, such that measurements continue
     flash_cnt = 0;
   }
-  */
 }
 
 uint8_t getDistanceKNN(q7_t *histogram, uint8_t K)
 {
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function that finds distance estimate belonging to current histogram. The number of Nearest Neighbours used can be set by K.
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   uint16_t i;
   uint8_t k;
   uint32_t d;
@@ -142,16 +175,15 @@ uint8_t getDistanceKNN(q7_t *histogram, uint8_t K)
   {
     d = getEuclDistHist(histogram,&histogram_cluster[i*n_textons]);
 
-    // If one of K smallest, store distance
+    // store distance if smaller than largest in current K nearest neighbours
     if (d<dist_max)
     {
       dist[idx_max] = d;
       idx[idx_max] = i;
 
-      // Find largest distance in stored distances
+      // Find the new largest distance in current K nearest neighbours
       dist_max = dist[0];
       idx_max = 0;
-
       for(k=1; k<K; k++)
       {
         if (dist[k]>dist_max)
@@ -160,6 +192,7 @@ uint8_t getDistanceKNN(q7_t *histogram, uint8_t K)
           idx_max = k;
         }
       }
+
     }
   }
 
@@ -173,24 +206,18 @@ uint8_t getDistanceKNN(q7_t *histogram, uint8_t K)
   return (uint8_t)distance;
 }
 
-uint8_t checkCollision(void)
-{
-  uint8_t collision = 0;
-
-  return collision;
-}
-
 void addHistogramToTemp(q7_t *histogram)
 {
-  /* This function write, during flying, all histograms to a temporary cluster. They will be further processed after a collision happened. */
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // This function writes, during flying, all histograms to a temporary cluster. They will be further processed after a collision happened.
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Increment nr_in_temp_clust
+  // Increment nr_in_temp_clust, this is used to keep track of the number of histograms in cluster
   if (nr_in_temp_clust<64)
   {
     nr_in_temp_clust++;
   }
   clust_idx++;
-
 
   // Add latest histogram to temp clust
   arm_copy_q7(histogram, &temporary_cluster[(clust_idx%64)*n_textons], n_textons);
@@ -201,9 +228,11 @@ void addHistogramToTemp(q7_t *histogram)
 
 void addTempToCluster(void)
 {
-  /* This function writes everything from the temporary cluster to the real histograms cluster, after a collision occurred. */
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // This function writes everything from the temporary cluster to the real histograms cluster, after a collision occurred.
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Find closest pair
+  // Find closest pairs (done to limit the maximum number of histograms needed)
   volatile uint32_t dist;
   uint32_t nearest =  1294967295;
   uint32_t furthest =  0;
@@ -217,6 +246,7 @@ void addTempToCluster(void)
     uint16_t nextPair;
     uint16_t prevPair;
   };
+
   struct nearestPair nearestPairs[64];
   uint16_t n;
   for(n=0; n<nr_in_temp_clust; n++)
@@ -323,13 +353,12 @@ void addTempToCluster(void)
     }
   }
 
-  // Merge closest pairs
+  // Merge closest pairs by taking the average of the two histograms the pairs and saving them on the location of the first histograms
   for(j=0; j<nr_in_temp_clust; j++)
   {
     /*for(i=0; i<n_textons; i++)
     {
       histogram_cluster[nearestPairs[j].id_1*n_textons+i] = (histogram_cluster[nearestPairs[j].id_1*n_textons+i] + histogram_cluster[nearestPairs[j].id_2*n_textons+i])/2;
-      //TODO: (KL) Replace for combination of arm_add and arm_div
     }*/
     arm_add_q7(&histogram_cluster[nearestPairs[j].id_1*n_textons],&histogram_cluster[nearestPairs[j].id_2*n_textons], &histogram_cluster[nearestPairs[j].id_1*n_textons], n_textons); // Merge histograms (Add 2 histograms)
     arm_shift_q7(&histogram_cluster[nearestPairs[j].id_1*n_textons], -1, &histogram_cluster[nearestPairs[j].id_1*n_textons], n_textons); // Merge histograms (Divide by 2, bit shift right)
@@ -337,13 +366,12 @@ void addTempToCluster(void)
     distance_cluster[nearestPairs[j].id_1] = (distance_cluster[nearestPairs[j].id_1] + distance_cluster[nearestPairs[j].id_2])/2; // Merge distance labels
   }
 
-  // Add latest histogram
+  // Add latest histograms to the locations of the second histograms of the closest pairs.
   for(j=0; j<nr_in_temp_clust; j++)
   {
     /*for(i=0; i<n_textons; i++)
     {
       histogram_cluster[nearestPairs[j].id_2*n_textons+i] = temporary_cluster[(last_clust_idx-j)%150*n_textons+i];
-      //TODO: (KL) Replace for arm_copy
     }*/
     arm_copy_q7(&temporary_cluster[(last_clust_idx-j)%64*n_textons],&histogram_cluster[nearestPairs[j].id_2*n_textons], n_textons);
 
@@ -358,6 +386,10 @@ void addTempToCluster(void)
 
 q63_t getEuclDistHist(q7_t *hist1, q7_t *hist2)
 {
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
+  // This function calculates the euclidean distance between two histograms or two n-dimensional points.
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
+
   q15_t hist1_15[n_textons];
   q15_t hist2_15[n_textons];
   q15_t diff[n_textons];
@@ -375,6 +407,13 @@ q63_t getEuclDistHist(q7_t *hist1, q7_t *hist2)
 
 void writeClusterToFlash11(q7_t *histClust, q7_t *distClust)
 {
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // This function writes a cluster of histograms to the flash memory of the processor,
+  // this way data is stored even if power is removed. Currently it writes to section 11 of flash,
+  // which is the last section, however this could give problems if firmware starts overlapping with this section.
+  // Call this before power is removed, otherwise your data is gone.
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   uint32_t startAddress = 0x080E0000; // startAddress of sector 11
   uint16_t histSize = n_textons*clust_size;
 
@@ -388,7 +427,6 @@ void writeClusterToFlash11(q7_t *histClust, q7_t *distClust)
 
   // Erase flash, 0x080E0000 - 0x0805FFFF (128 KBytes), device operating range: 2.7V to 3.6V
   FLASH_EraseSector(FLASH_Sector_11, VoltageRange_3);
-
 
   uint16_t i;
   // Write histograms to flash
@@ -408,6 +446,10 @@ void writeClusterToFlash11(q7_t *histClust, q7_t *distClust)
 
 void readClusterFromFlash11(q7_t *histClust, q7_t *distClust)
 {
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  // This function reads cluster of histograms from flash. Call this when the processor starts running.
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+
   uint32_t startAddress = 0x080E0000; // startAddress of sector 11
   uint16_t histSize = n_textons*clust_size;
 
