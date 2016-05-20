@@ -11,22 +11,24 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
+#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_even_pixmux_odd_color
+#define CAPTURE_MODE_SNAPSHOT
+//#define SET_LINE_NUMBERS
 
 //////////////////////////////////////////////////////
 // Settings
-#define USE_COLOR 0
+#define USE_COLOR 1
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
+
 #define SEND_FILTER 0 // 0
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
-#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-#define GET_PARALLEL
-
+#define TCM8230_EXTRA_SATURATION 1
 //////////////////////////////////////////////////////
 // Define image format
 #define IMAGE_WIDTH 128
@@ -51,11 +53,10 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 115200
+#define USART4_BAUD 1000000
 
 //////////////////////////////////////////////////////
 // Image Encoding
-
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
 #define USE_YUV422
 #endif

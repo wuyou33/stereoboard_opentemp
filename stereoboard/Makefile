@@ -171,6 +171,7 @@ forward_velocity_estimator.h \
 disparity_map_functions.c \
 disparity_map_functions.h \
 forward_velocity_estimator.h \
+data_types.h \
 tmg3993.c \
 tmg3993.h \
 image.c \
@@ -196,8 +197,6 @@ cpld.c \
 cpld.h \
 stereo_vision.c \
 stereo_vision.h \
-optic_flow.c \
-optic_flow.h \
 window_detection.c \
 window_detection.h \
 filter_color.c \
@@ -219,8 +218,8 @@ hmc5883.h \
 hmc5883.c \
 ../common/utils.h \
 ../common/utils.c \
-divergence.h \
-divergence.c \
+edgeflow.h \
+edgeflow.c \
 xprintf.c \
 xprintf.h \
 droplet_algorithm.c \
@@ -244,7 +243,7 @@ $(EXECUTABLE): 	\
 		$(MAIN_OBJS) \
 		${USB_SRCS} \
 		${STDP_LIB}
-	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
+	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 
 clean:
 	rm -rf $(EXECUTABLE)

@@ -11,21 +11,22 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_DIVERGENCE
+#define DEFAULT_BOARD_FUNCTION SEND_MEANSHIFT
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
+#define CAPTURE_MODE_SNAPSHOT
 
 //////////////////////////////////////////////////////
 // Settings
 #define USE_COLOR 0
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
+
 #define SEND_FILTER 0 // 0
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-#define GET_PARALLEL
 
 //////////////////////////////////////////////////////
 // Define image format
