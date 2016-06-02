@@ -27,9 +27,14 @@ void divergence_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16, 
   if (stereocam_len > 0) {
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = stereocam_data_int16[0];
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = stereocam_data_int16[1];
-    edgeflow_parameters->alt_state_lisa = -1 * stereocam_data_int16[3];
-    edgeflow_parameters->dphi = stereocam_data_int16[4];
-    edgeflow_parameters->dtheta = stereocam_data_int16[5];
+    edgeflow_parameters->derotation = stereocam_data_int16[2];
+    edgeflow_parameters->adapt_horizon = stereocam_data_int16[3];
+    edgeflow_parameters->window_size = stereocam_data_int16[4];
+    edgeflow_parameters->disparity_range = stereocam_data_int16[5];
+    edgeflow_parameters->snapshot = stereocam_data_int16[6];
+    edgeflow_parameters->autopilot_mode = stereocam_data_int16[7];
+
+
   } else {
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = 0;
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = 0;
@@ -42,6 +47,7 @@ void divergence_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16, 
 
 
   edgeflow_results->hz_x = divergence_calc_vel(edgeflow_parameters, edgeflow_results);
+
 
   divergence_to_sendarray(divergenceArray, &edgeflow_results->edge_flow,
                           edgeflow_results->previous_frame_offset, edgeflow_results->avg_dist, edgeflow_results->hz_x,
@@ -96,6 +102,11 @@ void divergence_init(struct edgeflow_parameters_t *edgeflow_parameters, struct e
   edgeflow_results->prev_vel_x = 0;
   edgeflow_results->vel_y = 0;
   edgeflow_results->prev_vel_y = 0;
+
+  edgeflow_results->snapshot_is_taken = 0;
+  edgeflow_parameters->snapshot_lenght = 300;
+  edgeflow_results->snapshot_counter =   edgeflow_parameters->snapshot_lenght +1;
+
 }
 
 /*  divergence_array: This function fills up the array that is send to the lisa -s
@@ -107,28 +118,25 @@ void divergence_to_sendarray(uint8_t divergenceArray[24],
                              int32_t vel_ver,
                              uint8_t quality_measures_edgeflow[])
 {
-  divergenceArray[0] = boundint8(edge_flow->div_x
-                                 / previous_frame_offset[0] + 127); // should be in 0.01px/frame
-  divergenceArray[1] = boundint8(edge_flow->flow_x
-                                 / (10 * previous_frame_offset[0]) + 127); // should be in 0.1px/frame
-  divergenceArray[2] = boundint8(edge_flow->div_y
-                                 / previous_frame_offset[1] + 127); // should be in 0.01px/frame
-  divergenceArray[3] = boundint8(edge_flow->flow_y
-                                 / (10 * previous_frame_offset[1]) + 127); // should be in 0.1px/frame
-  // divergenceArray[4] = (uint8_t)avg_disp;
-  divergenceArray[4] = boundint8(avg_dist / 10);
-  memcpy(divergenceArray + 5, previous_frame_offset, 2); // copy frame offset to output array
-  divergenceArray[7] = boundint8(hz_x);
-  divergenceArray[8] = boundint8(vel_hor + 127); // in cm/s
-  divergenceArray[9] = boundint8(vel_ver + 127); // in cm/s
+  divergenceArray[0] = (edge_flow->div_x >> 8) & 0xff;
+  divergenceArray[1] = (edge_flow->div_x) & 0xff;
+  divergenceArray[2] = (edge_flow->flow_x >> 8) & 0xff;
+  divergenceArray[3] = (edge_flow->flow_x) & 0xff;
+  divergenceArray[4] = (edge_flow->div_y >> 8) & 0xff;
+  divergenceArray[5] = (edge_flow->div_y) & 0xff;
+  divergenceArray[6] = (edge_flow->flow_y >> 8) & 0xff;
+  divergenceArray[7] = (edge_flow->flow_y) & 0xff;
+
+  divergenceArray[8] = boundint8(avg_dist / 10);
+  divergenceArray[9] = boundint8(hz_x);
 
   divergenceArray[10] = (vel_hor >> 8) & 0xff;
   divergenceArray[11] = (vel_hor) & 0xff;
   divergenceArray[12] = (vel_ver >> 8) & 0xff;
   divergenceArray[13] = (vel_ver) & 0xff;
 
-  memcpy(divergenceArray + 14, quality_measures_edgeflow,
-         10 * sizeof(uint8_t)); // copy quality measures to output array
+//  memcpy(divergenceArray + 14, quality_measures_edgeflow,
+  //       10 * sizeof(uint8_t)); // copy quality measures to output array
 }
 
 /*  divergence_calc_vel: calculate height by edgeflow and altitude
@@ -247,6 +255,7 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
   uint8_t window_size = edgeflow_parameters->window_size;
   uint16_t edge_threshold = 0;
 
+
   // check that inputs within allowable ranges
   if (disp_range > DISP_RANGE_MAX) {
     disp_range = DISP_RANGE_MAX;
@@ -262,7 +271,7 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
 
   // Calculate previous frame number
 
-  if (MAX_HORIZON > 2) {
+  if (MAX_HORIZON > 2&&(edgeflow_parameters->adapt_horizon==1)&&edgeflow_parameters->snapshot==0) {
     uint32_t flow_mag_x, flow_mag_y;
     flow_mag_x = abs(edge_flow->flow_x);
     flow_mag_y = abs(edge_flow->flow_y);
@@ -295,24 +304,50 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
                              MAX_HORIZON; // wrap index
 
   // copy previous edge histogram based on previous frame number
+  if(edgeflow_results->snapshot_is_taken==1&& edgeflow_parameters->snapshot==1
+		  &&(edgeflow_parameters->autopilot_mode == 10||edgeflow_parameters->autopilot_mode == 11||edgeflow_parameters->autopilot_mode == 12))
+  {
+  prev_edge_histogram_x = edgeflow_results->edge_hist_snapshot.x;
+  prev_edge_histogram_y = edgeflow_results->edge_hist_snapshot.y;
+  edgeflow_results->snapshot_counter++;
+  }
+  else
+  {
   prev_edge_histogram_x = edge_hist[previous_frame_x].x;
   prev_edge_histogram_y = edge_hist[previous_frame_y].y;
+  }
 
-  //int16_t der_shift_x = 1.5*(roll_prev - roll) * image_width / (FOVX);
-  //int16_t der_shift_y = 1.5*(pitch_prev - pitch) * image_height / (FOVY);
+ // int16_t der_shift_x = 1.5*(roll_prev - roll) * image_width / (FOVX);
+ // int16_t der_shift_y = 1.5*(pitch_prev - pitch) * image_height / (FOVY);
 
   // Calculate Edge Histogram
   calculate_edge_histogram(in, edge_histogram_x, image_width, image_height, 'x', 'l', edge_threshold);
   calculate_edge_histogram(in, edge_histogram_y, image_width, image_height, 'y', 'l', edge_threshold);
   calculate_edge_histogram(in, edge_histogram_x_right, image_width, image_height, 'x', 'r', edge_threshold);
 
+  if( edgeflow_parameters->snapshot==1 &&(edgeflow_results->snapshot_is_taken==0|| edgeflow_results->snapshot_counter>edgeflow_parameters->snapshot_lenght))
+  {
+	  memcpy(&edgeflow_results->edge_hist_snapshot.x, edge_histogram_x, sizeof(int32_t) * image_width);
+	  memcpy(&edgeflow_results->edge_hist_snapshot.y, edge_histogram_y, sizeof(int32_t) * image_height);
+	  edgeflow_results->snapshot_counter = 0;
+	  edgeflow_results->snapshot_is_taken = 1;
+  }
+
+
+
   //calculate angle diff [RAD * RES]
-  int16_t roll_prev = edge_hist[previous_frame_x].roll;
-  int16_t pitch_prev = edge_hist[previous_frame_y].pitch;
 
-  int16_t der_shift_x = (roll_prev - edge_hist[*current_frame_nr].roll) * image_width / (edgeflow_parameters->FOVX);
-  int16_t der_shift_y = (pitch_prev - edge_hist[*current_frame_nr].pitch) * image_height / (edgeflow_parameters->FOVY);
 
+  int16_t der_shift_x = 0;
+  int16_t der_shift_y = 0;
+  if(edgeflow_parameters->derotation)
+  {
+	  int16_t roll_prev = edge_hist[previous_frame_x].roll;
+	  int16_t pitch_prev = edge_hist[previous_frame_y].pitch;
+
+  der_shift_x = (roll_prev - edge_hist[*current_frame_nr].roll) * image_width / (edgeflow_parameters->FOVX);
+  der_shift_y = (pitch_prev - edge_hist[*current_frame_nr].pitch) * image_height / (edgeflow_parameters->FOVY);
+}
   // Calculate displacement
   uint32_t min_error_hor = calculate_displacement(edge_histogram_x, prev_edge_histogram_x, displacement->x,
                            image_width, window_size,
@@ -353,6 +388,12 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
   int32_t *pointer = (int32_t *)quality_measures + 9;
   pointer[0] = min_error_hor;
   pointer[1] = min_error_ver;
+
+  if(edgeflow_results->snapshot_is_taken == 1 && edgeflow_parameters->snapshot ==0)
+  {
+	  edgeflow_results->snapshot_counter = edgeflow_parameters->snapshot_lenght + 1;
+	  edgeflow_results->snapshot_is_taken = 0;
+  }
 }
 
 // calculate_edge_histogram calculates the image gradient of the images and makes a edge feature histogram
@@ -454,23 +495,24 @@ uint32_t calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram
     SHIFT_TOO_FAR = 1;
   }
 
-  {
+
     // TODO: replace with arm offset subtract
+      if (!SHIFT_TOO_FAR) {
+
     for (x = border[0]; x < border[1]; x++) {
       displacement[x] = 0;
+
       for (c = -D; c <= D; c++) {
         SAD_temp[c + D] = 0;
         for (r = -W; r <= W; r++) {
           SAD_temp[c + D] += abs(edge_histogram[x + r] - edge_histogram_prev[x + r + c + der_shift]);
         }
       }
-      if (!SHIFT_TOO_FAR) {
         displacement[x] = (int32_t)getMinimum2(SAD_temp, 2 * D + 1, &min_error) - D;
-      } else {
-        displacement[x] = 0;
-      }
+
       min_error_tot += min_error;
     }
+
   }
 
   return min_error_tot;

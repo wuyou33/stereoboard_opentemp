@@ -84,14 +84,14 @@ uint8_t_image disparity_image;
  */
 
 /* Private functions ---------------------------------------------------------*/
-typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_DIVERGENCE, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS,
+typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_EDGEFLOW, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS,
 	SEND_MEANSHIFT,SEND_VL6180} stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
 stereoboard_algorithm_type getBoardFunction(void)
 {
-#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_DIVERGENCE) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE) || defined(SEND_LEARNING_COLLISIONS) || defined(SEND_VL6180))
+#if ! (defined(SEND_COMMANDS) || defined(SEND_IMAGE) || defined(SEND_DISPARITY_MAP) || defined(SEND_MATRIX) || defined(SEND_EDGEFLOW) || defined(SEND_WINDOW) || defined(SEND_HISTOGRAM) || defined(SEND_DELFLY_CORRIDOR) || defined(SEND_FOLLOW_YOU) || defined(SEND_SINGLE_DISTANCE) || defined(DISPARITY_BASED_VELOCITY) || defined( STEREO_VELOCITY) || defined( SEND_ROTATIONS) || defined(SEND_IMAGE_AND_PROXIMITY) || defined(SEND_PROXIMITY_AND_ANGLE) || defined(SEND_LEARNING_COLLISIONS) || defined(SEND_VL6180))
   return DEFAULT_BOARD_FUNCTION;
 #elif defined(SEND_VL6180)
   return SEND_VL6180;
@@ -121,8 +121,8 @@ stereoboard_algorithm_type getBoardFunction(void)
   return SEND_FRAMERATE_STEREO;
 #elif defined(SEND_MATRIX)
   return SEND_MATRIX;
-#elif defined(SEND_DIVERGENCE)
-  return SEND_DIVERGENCE;
+#elif defined(SEND_EDGEFLOW)
+  return SEND_EDGEFLOW;
 #elif defined(SEND_WINDOW)
   return SEND_WINDOW;
 #elif defined( SEND_IMAGE_AND_PROXIMITY)
@@ -439,7 +439,6 @@ int main(void)
         ;
       processed = frame_counter;
 
-      //led_toggle();
 
       // compute run frequency
 #ifdef AVG_FREQ
@@ -455,6 +454,7 @@ int main(void)
 #endif
       // Read from other device with the stereo communication protocol.
       while (UsartCh() && stereoprot_add(insert_loc, 1, STEREO_BUF_SIZE) != extract_loc) {
+
 
         uint16_t length = STEREO_BUF_SIZE;
         if (handleStereoPackage(UsartRx(), length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
@@ -651,10 +651,10 @@ int main(void)
       }
 
       // compute and send divergence
-      if (current_stereoboard_algorithm == SEND_DIVERGENCE || current_stereoboard_algorithm == STEREO_VELOCITY) {
-        if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
-          //led_toggle();
-        }
+#ifdef LED_TOGGLE
+    	led_toggle();
+#endif
+      if (current_stereoboard_algorithm == SEND_EDGEFLOW || current_stereoboard_algorithm == STEREO_VELOCITY) {
 
         // calculate the edge flow
         divergence_total(divergenceArray, (int16_t *)stereocam_data.data, stereocam_data.len, current_image_buffer,
@@ -848,7 +848,7 @@ int main(void)
         SendArray(divergenceArray, 23, 1);
       }
 
-      if (current_stereoboard_algorithm == SEND_DIVERGENCE) {
+      if (current_stereoboard_algorithm == SEND_EDGEFLOW) {
         SendArray(divergenceArray, 25, 1);
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
