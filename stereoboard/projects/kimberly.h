@@ -27,6 +27,7 @@
 #define SMALL_IMAGE
 #define GET_PARALLEL
 #define LED_TOGGLE
+#define EDGEFLOW_DEBUG
 
 //////////////////////////////////////////////////////
 // Define image format

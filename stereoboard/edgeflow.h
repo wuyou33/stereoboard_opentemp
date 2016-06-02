@@ -102,18 +102,15 @@ struct edgeflow_results_t {
 
 
 // Global Functions divergence
-void divergence_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results,
-                     const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
-void divergence_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16t, uint8_t stereocam_len,
-                      uint8_t current_image_buffer[],
-                      struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results);
-int32_t divergence_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
-                            struct edgeflow_results_t *edgeflow_results);
-void divergence_to_sendarray(uint8_t divergenceArray[24],
-                             const struct edge_flow_t *edge_flow, uint8_t previous_frame_offset[2],
-                             int32_t avg_dist, int32_t hz_x, int32_t vel_hor,
-                             int32_t vel_ver,
-                             uint8_t quality_measures_edgeflow[]);
+void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results,
+                   const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
+void edgeflow_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16t, uint8_t stereocam_len,
+                    uint8_t current_image_buffer[],
+                    struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results);
+int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
+                          struct edgeflow_results_t *edgeflow_results);
+void edgeflow_to_sendarray(uint8_t edgeflow_array[24], struct edgeflow_parameters_t *edgeflow_parameters,
+                           struct edgeflow_results_t *edgeflow_results);
 
 // Calculation functions
 void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_parameters,

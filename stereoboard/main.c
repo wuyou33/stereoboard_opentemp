@@ -62,7 +62,6 @@
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
-#define DIVERGENCE_QUALITY_MEASURES_LENGTH 10
 // we have a total of 64 KB of space starting at 0x10000000
 
 //uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
@@ -85,7 +84,8 @@ uint8_t_image disparity_image;
 
 /* Private functions ---------------------------------------------------------*/
 typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_EDGEFLOW, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS,
-	SEND_MEANSHIFT,SEND_VL6180} stereoboard_algorithm_type;
+              SEND_MEANSHIFT, SEND_VL6180
+             } stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
 // Define which code should be run:
@@ -144,7 +144,11 @@ const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
-uint8_t divergenceArray[24];
+#ifdef EDGEFLOW_DEBUG
+uint8_t edgeflowArray[128 * 3];
+#else
+uint8_t edgeflowArray[24];
+#endif
 
 void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY,
                     uint8_t imagePartWidth, uint8_t imagePartHeight, uint8_t image_width_bytes)
@@ -201,11 +205,11 @@ int main(void)
 {
 
 
-	  int_rectangle searchWindow;
-		searchWindow.x=50;
-		searchWindow.y=50;
-		searchWindow.height=30;
-		searchWindow.width = 30;
+  int_rectangle searchWindow;
+  searchWindow.x = 50;
+  searchWindow.y = 50;
+  searchWindow.height = 30;
+  searchWindow.width = 30;
 
   /*
     At this stage the microcontroller clock setting is already configured,
@@ -409,9 +413,9 @@ int main(void)
   uint8_t maxDispFound = 0;
   int disparity_velocity_step = 0;
 
-  // initialize divergence
-  divergence_init(&edgeflow_parameters, &edgeflow_results, FOVX, FOVY, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
- // led_clear();
+  // initialize edgeflow
+  edgeflow_init(&edgeflow_parameters, &edgeflow_results, FOVX, FOVY, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
+// led_clear();
   uint8_t quality_measures_index;
   for (quality_measures_index = 0; quality_measures_index < DIVERGENCE_QUALITY_MEASURES_LENGTH;
        quality_measures_index++) {
@@ -465,7 +469,8 @@ int main(void)
       // New frame code: Vertical blanking = ON
 
       // Calculate the disparity map, only when we need it
-      if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm==SEND_MEANSHIFT || current_stereoboard_algorithm == SEND_MATRIX
+      if (current_stereoboard_algorithm == SEND_DISPARITY_MAP || current_stereoboard_algorithm == SEND_MEANSHIFT
+          || current_stereoboard_algorithm == SEND_MATRIX
           || current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_TURN_COMMANDS ||
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
@@ -490,8 +495,8 @@ int main(void)
                                min_y, max_y);
           }
           disparity_image.image = disparity_image_buffer_8bit;
-          disparity_image.imageHeight=IMAGE_HEIGHT;
-          disparity_image.imageWidth=IMAGE_WIDTH;
+          disparity_image.imageHeight = IMAGE_HEIGHT;
+          disparity_image.imageWidth = IMAGE_WIDTH;
 
         }
       }
@@ -504,51 +509,52 @@ int main(void)
                          disparity_min, disparity_range, disparity_step, thr1, thr2,
                          min_y, max_y);
       }
-      if(current_stereoboard_algorithm==SEND_MEANSHIFT){
+      if (current_stereoboard_algorithm == SEND_MEANSHIFT) {
 
-    	          //int* trackPosX, int* trackPosY, int* searchWindowWidth, int* searchWindowHeight
-    	  	  	  float distanceToObject=0.0;
+        //int* trackPosX, int* trackPosY, int* searchWindowWidth, int* searchWindowHeight
+        float distanceToObject = 0.0;
 
-    	          meanshiftUpdate(disparity_image,&searchWindow,&distanceToObject);// &trackPosX, &trackPosY,&searchWindowWidth,&searchWindowHeight);
+        meanshiftUpdate(disparity_image, &searchWindow,
+                        &distanceToObject); // &trackPosX, &trackPosY,&searchWindowWidth,&searchWindowHeight);
 
-    	      	// Draw a square around the object we track
-    	      	int startPosX = searchWindow.x - searchWindow.width/2;
-    	      	int endPosX = searchWindow.x + searchWindow.width/2;
-    	      	if(startPosX < 0){
-    	      		startPosX=0;
-    	      		endPosX = searchWindow.width;
-    	      	}
-    	      	if(endPosX > IMAGE_WIDTH){
-    	      		endPosX=IMAGE_WIDTH;
-    	      		startPosX = IMAGE_WIDTH-searchWindow.width;
-    	      	}
-
-
-    	      	int startPosY = searchWindow.y - searchWindow.height/2;
-    	      		int endPosY = searchWindow.y + searchWindow.height/2;
-    	      		if(startPosY < 0){
-    	      			startPosY=0;
-    	      			endPosY = searchWindow.height;
-    	      		}
-    	      		if(endPosY > IMAGE_HEIGHT){
-    	      			endPosY=IMAGE_HEIGHT;
-    	      			startPosY = IMAGE_HEIGHT-searchWindow.height;
-    	      		}
-    	      		int xpos,ypos;
+        // Draw a square around the object we track
+        int startPosX = searchWindow.x - searchWindow.width / 2;
+        int endPosX = searchWindow.x + searchWindow.width / 2;
+        if (startPosX < 0) {
+          startPosX = 0;
+          endPosX = searchWindow.width;
+        }
+        if (endPosX > IMAGE_WIDTH) {
+          endPosX = IMAGE_WIDTH;
+          startPosX = IMAGE_WIDTH - searchWindow.width;
+        }
 
 
-    	      	for(xpos=startPosX; xpos < endPosX; xpos++){
-    	      		for(ypos=startPosY; ypos < endPosY; ypos++){
-    	      			disparity_image_buffer_8bit[ypos*IMAGE_WIDTH+xpos]=128;
-    	      		}
-    	      	}
+        int startPosY = searchWindow.y - searchWindow.height / 2;
+        int endPosY = searchWindow.y + searchWindow.height / 2;
+        if (startPosY < 0) {
+          startPosY = 0;
+          endPosY = searchWindow.height;
+        }
+        if (endPosY > IMAGE_HEIGHT) {
+          endPosY = IMAGE_HEIGHT;
+          startPosY = IMAGE_HEIGHT - searchWindow.height;
+        }
+        int xpos, ypos;
 
-//    	  	  SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
-    	      	uint8_t meanshift_track[5];
-    	      	meanshift_track[0]=(uint8_t)searchWindow.x;
-    	      	meanshift_track[1]=(uint8_t)searchWindow.y;
-    	      	meanshift_track[2]=(uint8_t)distanceToObject;
-    	      	SendArray(meanshift_track,3,1);
+
+        for (xpos = startPosX; xpos < endPosX; xpos++) {
+          for (ypos = startPosY; ypos < endPosY; ypos++) {
+            disparity_image_buffer_8bit[ypos * IMAGE_WIDTH + xpos] = 128;
+          }
+        }
+
+//            SendArray(disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
+        uint8_t meanshift_track[5];
+        meanshift_track[0] = (uint8_t)searchWindow.x;
+        meanshift_track[1] = (uint8_t)searchWindow.y;
+        meanshift_track[2] = (uint8_t)distanceToObject;
+        SendArray(meanshift_track, 3, 1);
       }
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 
@@ -652,13 +658,13 @@ int main(void)
 
       // compute and send divergence
 #ifdef LED_TOGGLE
-    	led_toggle();
+      led_toggle();
 #endif
       if (current_stereoboard_algorithm == SEND_EDGEFLOW || current_stereoboard_algorithm == STEREO_VELOCITY) {
 
         // calculate the edge flow
-        divergence_total(divergenceArray, (int16_t *)stereocam_data.data, stereocam_data.len, current_image_buffer,
-                         &edgeflow_parameters, &edgeflow_results);
+        edgeflow_total(edgeflowArray, (int16_t *)stereocam_data.data, stereocam_data.len, current_image_buffer,
+                       &edgeflow_parameters, &edgeflow_results);
 
         stereocam_data.data_new = 0;
       }
@@ -801,7 +807,7 @@ int main(void)
 #endif
       }
 
-      if (current_stereoboard_algorithm == SEND_DISPARITY_MAP ) {
+      if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
 #ifdef SET_LINE_NUMBERS
         setLineNumbers(&disparity_image_buffer_8bit, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
@@ -831,25 +837,29 @@ int main(void)
 #endif
 
       if (current_stereoboard_algorithm == STEREO_VELOCITY) {
-        divergenceArray[4] = maxDispFound;
+        edgeflowArray[4] = maxDispFound;
         int disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height, 80);
         if (disparities_high > 200) {
-          divergenceArray[5] = 200;
+          edgeflowArray[5] = 200;
         } else {
-          divergenceArray[5] = (uint8_t)disparities_high;
+          edgeflowArray[5] = (uint8_t)disparities_high;
         }
-        divergenceArray[6] = (uint8_t)(processed_pixels / 100);
-        divergenceArray[10] = avg_disp_left;
-        divergenceArray[11] = avg_disp_right;
+        edgeflowArray[6] = (uint8_t)(processed_pixels / 100);
+        edgeflowArray[10] = avg_disp_left;
+        edgeflowArray[11] = avg_disp_right;
         led_clear();
         if (maxDispFound > 22) {
           led_set();
         }
-        SendArray(divergenceArray, 23, 1);
+        SendArray(edgeflowArray, 23, 1);
       }
 
       if (current_stereoboard_algorithm == SEND_EDGEFLOW) {
-        SendArray(divergenceArray, 25, 1);
+#ifdef EDGEFLOW_DEBUG
+        SendArray(edgeflowArray, 128, 3);
+#else
+        SendArray(edgeflowArray, 25, 1);
+#endif
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
         SendCommand(toSendCommand);
