@@ -17,7 +17,7 @@
 * edgeflow_parameters is a struct containing al the parameters for edgeflow
 * edgeflow_results is a struct containing the resulting values of edgeflow
 * */
-void edgeflow_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16, uint8_t stereocam_len,
+void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16, uint8_t stereocam_len,
                     uint8_t current_image_buffer[],
                     struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results)
 {
@@ -49,7 +49,7 @@ void edgeflow_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16, ui
   edgeflow_results->hz_x = edgeflow_calc_vel(edgeflow_parameters, edgeflow_results);
 
 
-  edgeflow_to_sendarray(divergenceArray, edgeflow_parameters, edgeflow_results);
+  edgeflow_to_sendarray(edgeflowArray, edgeflow_parameters, edgeflow_results);
 }
 
 /*  divergence_init: Initialize structures edgeflow_parameters and results
@@ -110,9 +110,42 @@ void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edg
 /*  divergence_array: This function fills up the array that is send to the lisa -s
 * Variables can be changed
 * */
-void edgeflow_to_sendarray(uint8_t edgeflow_array[24], struct edgeflow_parameters_t *edgeflow_parameters,
+void edgeflow_to_sendarray(uint8_t edgeflow_array[], struct edgeflow_parameters_t *edgeflow_parameters,
                            struct edgeflow_results_t *edgeflow_results)
 {
+
+/*EDGEFLOW_DEBUG defines which type of information is send through the edgelflowArray.
+For debugging, intermediate results are nessasary to simplify the programming
+When EDGEFLOW_DEBUG is defined, it will send through the current histogram, the previous and the calculated displacement
+when it is not defined, it will send through flow, divergence and velocity*/
+
+#ifdef EDGEFLOW_DEBUG
+  uint8_t edgeflow_debug_array[128 * 3];
+  uint8_t *current_frame_nr = &edgeflow_results->current_frame_nr;
+  uint8_t *previous_frame_offset = &edgeflow_results->previous_frame_offset;
+
+  uint8_t previous_frame_x = (*current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
+                             MAX_HORIZON; // wrap index
+
+  uint8_t x = 0;
+  uint8_t edge_hist_int8[128];
+  uint8_t edge_hist_prev_int8[128];
+  uint8_t displacement_int8[128];
+
+  for (x = 0; x < 128; x++) {
+    edge_hist_int8[x] = boundint8((edgeflow_results->edge_hist[*current_frame_nr].x[x] / 20));
+    edge_hist_prev_int8[x] = boundint8((edgeflow_results->edge_hist[previous_frame_x].x[x] / 20));
+    displacement_int8[x] = boundint8((edgeflow_results->displacement.x[x] / previous_frame_offset[0] * 2 + 127));
+  }
+  memcpy(edgeflow_debug_array, &edge_hist_int8, 128 * sizeof(uint8_t)); // copy quality measures to output array
+  memcpy(edgeflow_debug_array + 128, &edge_hist_prev_int8,
+         128 * sizeof(uint8_t)); // copy quality measures to output array
+  memcpy(edgeflow_debug_array + 128 * 2, &displacement_int8,
+         128 * sizeof(uint8_t)); // copy quality measures to output array
+
+  memcpy(edgeflow_array, edgeflow_debug_array, 128 * 3 * sizeof(uint8_t));
+
+#else
   edgeflow_array[0] = (edgeflow_results->edge_flow.div_x >> 8) & 0xff;
   edgeflow_array[1] = (edgeflow_results->edge_flow.div_x) & 0xff;
   edgeflow_array[2] = (edgeflow_results->edge_flow.flow_x >> 8) & 0xff;
@@ -130,8 +163,7 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[24], struct edgeflow_parameter
   edgeflow_array[12] = (edgeflow_results->vel_y >> 8) & 0xff;
   edgeflow_array[13] = (edgeflow_results->vel_y) & 0xff;
 
-//  memcpy(divergenceArray + 14, quality_measures_edgeflow,
-  //       10 * sizeof(uint8_t)); // copy quality measures to output array
+#endif
 }
 
 /*  divergence_calc_vel: calculate height by edgeflow and altitude

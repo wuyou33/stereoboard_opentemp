@@ -144,7 +144,11 @@ const int8_t FOVX = 104;   // 60deg = 1.04 rad
 const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
+#ifdef EDGEFLOW_DEBUG
+uint8_t edgeflowArray[128 * 3];
+#else
 uint8_t edgeflowArray[24];
+#endif
 
 void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY,
                     uint8_t imagePartWidth, uint8_t imagePartHeight, uint8_t image_width_bytes)
@@ -851,7 +855,11 @@ int main(void)
       }
 
       if (current_stereoboard_algorithm == SEND_EDGEFLOW) {
+#ifdef EDGEFLOW_DEBUG
+        SendArray(edgeflowArray, 128, 3);
+#else
         SendArray(edgeflowArray, 25, 1);
+#endif
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
         SendCommand(toSendCommand);
