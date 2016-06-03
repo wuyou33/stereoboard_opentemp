@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION SEND_EDGEFLOW
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 
 //////////////////////////////////////////////////////
@@ -27,7 +27,7 @@
 #define SMALL_IMAGE
 #define GET_PARALLEL
 #define LED_TOGGLE
-#define EDGEFLOW_DEBUG
+//#define EDGEFLOW_DEBUG
 
 //////////////////////////////////////////////////////
 // Define image format

@@ -66,7 +66,7 @@ void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edg
   edgeflow_parameters->FOVY = FOVY;
   edgeflow_parameters->image_height = IMAGE_HEIGHT;
   edgeflow_parameters->image_width = IMAGE_WIDTH;
-  edgeflow_parameters->Q = 50;
+  edgeflow_parameters->Q = 20;
   edgeflow_parameters->R = 100;
   edgeflow_parameters->max_horizon = MAX_HORIZON;
   edgeflow_parameters->max_disparity_range = DISP_RANGE_MAX;
@@ -96,10 +96,14 @@ void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edg
   edgeflow_results->avg_dist = 0;
   edgeflow_results->avg_disp = 0;
   edgeflow_results->prev_avg_dist = 0;
-  edgeflow_results->vel_x = 0;
-  edgeflow_results->prev_vel_x = 0;
-  edgeflow_results->vel_y = 0;
-  edgeflow_results->prev_vel_y = 0;
+  edgeflow_results->vel_x_global = 0;
+  edgeflow_results->prev_vel_x_global = 0;
+  edgeflow_results->vel_y_global = 0;
+  edgeflow_results->prev_vel_y_global = 0;
+  edgeflow_results->vel_x_pixelwise = 0;
+  edgeflow_results->prev_vel_x_pixelwise = 0;
+  edgeflow_results->vel_z_pixelwise = 0;
+  edgeflow_results->prev_vel_z_pixelwise = 0;
 
   edgeflow_results->snapshot_is_taken = 0;
   edgeflow_parameters->snapshot_lenght = 300;
@@ -114,10 +118,10 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[], struct edgeflow_parameters_
                            struct edgeflow_results_t *edgeflow_results)
 {
 
-/*EDGEFLOW_DEBUG defines which type of information is send through the edgelflowArray.
-For debugging, intermediate results are nessasary to simplify the programming
-When EDGEFLOW_DEBUG is defined, it will send through the current histogram, the previous and the calculated displacement
-when it is not defined, it will send through flow, divergence and velocity*/
+  /*EDGEFLOW_DEBUG defines which type of information is send through the edgelflowArray.
+  For debugging, intermediate results are nessasary to simplify the programming
+  When EDGEFLOW_DEBUG is defined, it will send through the current histogram, the previous and the calculated displacement
+  when it is not defined, it will send through flow, divergence and velocity*/
 
 #ifdef EDGEFLOW_DEBUG
   uint8_t edgeflow_debug_array[128 * 3];
@@ -135,7 +139,13 @@ when it is not defined, it will send through flow, divergence and velocity*/
   for (x = 0; x < 128; x++) {
     edge_hist_int8[x] = boundint8((edgeflow_results->edge_hist[*current_frame_nr].x[x] / 20));
     edge_hist_prev_int8[x] = boundint8((edgeflow_results->edge_hist[previous_frame_x].x[x] / 20));
-    displacement_int8[x] = boundint8((edgeflow_results->displacement.x[x] / previous_frame_offset[0] * 2 + 127));
+    // displacement_int8[x] = boundint8((edgeflow_results->displacement.stereo[x] / previous_frame_offset[0] * 2 + 127));
+
+    // displacement_int8[x] = boundint8((edgeflow_results->displacement.stereo[x] + 127));
+    edge_hist_prev_int8[x] = boundint8((edgeflow_results->    stereo_distance_per_column[x] / 10 + 127));
+
+    displacement_int8[x] = boundint8((edgeflow_results->velocity_per_column[x] / 100   + 127));
+
   }
   memcpy(edgeflow_debug_array, &edge_hist_int8, 128 * sizeof(uint8_t)); // copy quality measures to output array
   memcpy(edgeflow_debug_array + 128, &edge_hist_prev_int8,
@@ -158,10 +168,16 @@ when it is not defined, it will send through flow, divergence and velocity*/
   edgeflow_array[8] = boundint8(edgeflow_results->avg_dist / 10);
   edgeflow_array[9] = boundint8(edgeflow_results->hz_x);
 
-  edgeflow_array[10] = (edgeflow_results->vel_x >> 8) & 0xff;
-  edgeflow_array[11] = (edgeflow_results->vel_x) & 0xff;
-  edgeflow_array[12] = (edgeflow_results->vel_y >> 8) & 0xff;
-  edgeflow_array[13] = (edgeflow_results->vel_y) & 0xff;
+  edgeflow_array[10] = (edgeflow_results->vel_x_global >> 8) & 0xff;
+  edgeflow_array[11] = (edgeflow_results->vel_x_global) & 0xff;
+  edgeflow_array[12] = (edgeflow_results->vel_y_global >> 8) & 0xff;
+  edgeflow_array[13] = (edgeflow_results->vel_y_global) & 0xff;
+
+  edgeflow_array[14] = (edgeflow_results->vel_x_global + 127);
+  edgeflow_array[15] = (edgeflow_results->vel_y_global + 127);
+
+  edgeflow_array[16] = (edgeflow_results->vel_x_pixelwise + 127);
+  edgeflow_array[17] = (edgeflow_results->vel_z_pixelwise + 127);
 
 #endif
 }
@@ -176,10 +192,16 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
 {
 
   // Assign pointers to changable values in results (for smaller calculations)
-  int32_t *vel_x = &edgeflow_results->vel_x;
-  int32_t *vel_y = &edgeflow_results->vel_y;
-  int32_t *prev_vel_x = &edgeflow_results->prev_vel_x;
-  int32_t *prev_vel_y = &edgeflow_results->prev_vel_y;
+  int32_t *vel_x_global = &edgeflow_results->vel_x_global;
+  int32_t *vel_y_global = &edgeflow_results->vel_y_global;
+  int32_t *vel_x_pixelwise = &edgeflow_results->vel_x_pixelwise;
+  int32_t *vel_z_pixelwise = &edgeflow_results->vel_z_pixelwise;
+  int32_t *prev_vel_x_global = &edgeflow_results->prev_vel_x_global;
+  int32_t *prev_vel_y_global = &edgeflow_results->prev_vel_y_global;
+  int32_t *prev_vel_x_pixelwise = &edgeflow_results->prev_vel_x_pixelwise;
+  int32_t *prev_vel_z_pixelwise = &edgeflow_results->prev_vel_z_pixelwise;
+
+//int32_t *prev_vel_y = &edgeflow_results->prev_vel_y;
   int32_t *avg_disp = &edgeflow_results->avg_disp;
   int32_t *avg_dist = &edgeflow_results->avg_dist;
   int32_t *prev_avg_dist = &edgeflow_results->prev_avg_dist;
@@ -190,6 +212,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   struct edge_flow_t *edge_flow = &edgeflow_results->edge_flow;
   struct covariance_t *covariance = &edgeflow_results->covariance;
   struct edge_hist_t *edge_hist = edgeflow_results->edge_hist;
+  int32_t *velocity_per_column = edgeflow_results->velocity_per_column;
 
   // Assign pointers to parameters
   int32_t monocam = edgeflow_parameters->use_monocam;
@@ -208,13 +231,15 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   // d = RES*0.06*128 / (disp*RES*1.042)
   // d = RES*0.06*PIX / (disp*FOVX)
   if (avg_disp > 0) {
-    *avg_dist = RES * 3 * image_width / (*avg_disp * FOVX);
+    *avg_dist = RES * 6 * image_width / (*avg_disp * FOVX);
   } else {
     *avg_dist = 100; // 2 * RES * 6 * IMAGE_WIDTH / 104;
   }
   if (monocam) {
     *avg_dist = 1.0;
   }
+
+
   //filter height: TODO: use height directly from lisa s
   *avg_dist = simpleKalmanFilter(&(covariance->C_height), *prev_avg_dist,
                                  *avg_dist, Q, R, RES);
@@ -230,26 +255,70 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
              - edge_hist[(*current_frame_nr - previous_frame_offset[1]
                           + MAX_HORIZON) %
                          MAX_HORIZON].frame_time);
+
+
+  // Calculate the stereo distance and flow x distance per column
+  int8_t x;
+
+  for (x = 0; x < 127; x++) {
+    if (edgeflow_results->displacement.stereo != 0)
+
+    {
+      edgeflow_results->stereo_distance_per_column[x] = - RES * 6 * image_width / abs(edgeflow_results->displacement.stereo[x]
+          * FOVX);
+    } else {
+      edgeflow_results->stereo_distance_per_column[x] =
+        0;  //5 * RES;//RES * 6 * image_width /abs(edgeflow_results->displacement.stereo[x] * FOVX);
+    }
+    if (edgeflow_results->stereo_distance_per_column[x] > 3 * 100) {
+      edgeflow_results->stereo_distance_per_column[x] = 300;
+    }
+    /* if (edgeflow_results->stereo_distance_per_column[x] <0)
+     edgeflow_results->stereo_distance_per_column[x] =5 * RES;*/
+    edgeflow_results->velocity_per_column[x] = edgeflow_results->stereo_distance_per_column[x] *
+        edgeflow_results->displacement.x[x] * (*hz_x);
+  }
+
+// Fit the flow times distance, to get forward and sideways flow.
+  int32_t forward_vel;
+  int32_t sideways_vel;
+
+  uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
+                                         &sideways_vel, 128, 30, 1);
+
+  *vel_z_pixelwise = forward_vel;
+  *vel_x_pixelwise = sideways_vel * FOVX  / (RES * 128);
+
+
+
+
 #if EDGEFLOW_USE_HEIGHT_AUTOPILOT
   int32_t alt_state_lisa =  edgeflow_parameters->alt_state_lisa;
-  *vel_x = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * FOVX
-           / (RES * RES * image_width);
-  *vel_y = edge_flow->flow_y * (alt_state_lisa) * (*hz_y) * FOVY
-           / (RES * RES * image_height);
+  *vel_x_global = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * FOVX
+                  / (RES * RES * image_width);
+  *vel_y_global = edge_flow->flow_y * (alt_state_lisa) * (*hz_y) * FOVY
+                  / (RES * RES * image_height);
 #else
-  *vel_x = edge_flow->flow_x * (*avg_dist) * (*hz_x) * FOVX
-           / (RES * RES * image_width);
-  *vel_y = edge_flow->flow_y * (*avg_dist) * (*hz_y) * FOVY
-           / (RES * RES * image_height);
+  *vel_x_global = edge_flow->flow_x * (*avg_dist) * (*hz_x) * FOVX
+                  / (RES * RES * image_width);
+  *vel_y_global = edge_flow->flow_y * (*avg_dist) * (*hz_y) * FOVY
+                  / (RES * RES * image_height);
 #endif
-  *vel_x = simpleKalmanFilter(&(covariance->C_flow_x), *prev_vel_x, *vel_x,
-                              Q, R, RES);
-  *vel_y = simpleKalmanFilter(&(covariance->C_flow_y), *prev_vel_y, *vel_y,
-                              Q, R, RES);
+  /*
+    *vel_x_global = simpleKalmanFilter(&(covariance->C_flow_x), &prev_vel_x_global, *vel_x_global,
+                                Q, R, RES);
+    *vel_y_global = simpleKalmanFilter(&(covariance->C_flow_y), &prev_vel_y_global, *vel_y_global,
+                                Q, R, RES);
+    *vel_x_pixelwise = simpleKalmanFilter(&(covariance->C_flow_x), &prev_vel_x_pixelwise, *vel_x_pixelwise,
+                                Q, R, RES);
+    *vel_z_pixelwise = simpleKalmanFilter(&(covariance->C_flow_y), &prev_vel_z_pixelwise, *vel_z_pixelwise,
+                                Q, R, RES);*/
   // Store previous values
   *prev_avg_dist = *avg_dist;
-  *prev_vel_x = *vel_x;
-  *prev_vel_y = *vel_y;
+  *prev_vel_x_global = *vel_x_global;
+  *prev_vel_y_global = *vel_y_global;
+  *prev_vel_x_pixelwise = *vel_x_pixelwise;
+  *prev_vel_z_pixelwise = *vel_z_pixelwise;
 
   // move the indices for the edge hist structure
   * current_frame_nr = (*current_frame_nr + 1) % MAX_HORIZON;
@@ -379,7 +448,12 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
   uint32_t min_error_ver = calculate_displacement(edge_histogram_y, prev_edge_histogram_y, displacement->y,
                            image_height, window_size,
                            disp_range, der_shift_y);
+  uint32_t min_error_stereo = calculate_displacement_stereo(edge_histogram_x, edge_histogram_x_right,
+                              displacement->stereo,
+                              image_width, window_size,
+                              disp_range);
   *avg_disp = calculate_displacement_fullimage(edge_histogram_x, edge_histogram_x_right, image_width, disp_range);
+
 
   // Fit a linear line
   uint32_t line_error_fit_hor = line_fit(displacement->x, &edge_flow->div_x,
@@ -537,6 +611,45 @@ uint32_t calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram
     }
 
   }
+
+  return min_error_tot;
+}
+
+// Calculate_displacement calculates the displacement between two histograms
+// D should be half the search disparity range
+// W is local search window
+uint32_t calculate_displacement_stereo(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
+                                       uint16_t size, uint8_t window, uint8_t disp_range)
+{
+  int32_t c = 0, r = 0;
+  uint32_t x = 0;
+  uint32_t SAD_temp[2 * DISP_RANGE_MAX + 1]; // size must be at least 2*D + 1
+
+  int32_t W = window;
+  int32_t D = disp_range;
+  uint32_t min_error = 0;
+  uint32_t min_error_tot = 0;
+  memset(displacement, 0, size);
+
+
+  int32_t border = W + D;
+
+  // TODO: replace with arm offset subtract
+
+  for (x = border; x < size - border; x++) {
+
+    for (c = -D; c <= 0; c++) {
+      SAD_temp[c + D] = 0;
+      for (r = -W; r <= W; r++) {
+        SAD_temp[c + D] += abs(edge_histogram[x + r] - edge_histogram_prev[x + r + c ]);
+      }
+    }
+    displacement[x] = D - (int32_t)getMinimum2(SAD_temp,  D + 1, &min_error);
+
+    min_error_tot += min_error;
+  }
+
+
 
   return min_error_tot;
 }

@@ -38,6 +38,7 @@ struct edge_flow_t {
 struct displacement_t {
   int32_t x[IMAGE_WIDTH];
   int32_t y[IMAGE_HEIGHT];
+  int32_t stereo[IMAGE_WIDTH];
 };
 
 struct covariance_t {
@@ -79,6 +80,8 @@ struct edgeflow_results_t {
   struct edge_flow_t edge_flow;
   struct edge_flow_t prev_edge_flow;
   struct displacement_t displacement;
+  int32_t velocity_per_column[IMAGE_WIDTH];
+  int32_t stereo_distance_per_column[IMAGE_WIDTH];
   struct covariance_t covariance;
   uint8_t snapshot_is_taken;
   uint16_t snapshot_counter;
@@ -90,10 +93,14 @@ struct edgeflow_results_t {
   int32_t avg_disp;
   int32_t avg_dist;
   int32_t prev_avg_dist;
-  int32_t vel_x;
-  int32_t vel_y;
-  int32_t prev_vel_x;
-  int32_t prev_vel_y;
+  int32_t vel_x_global;
+  int32_t vel_y_global;
+  int32_t vel_x_pixelwise;
+  int32_t vel_z_pixelwise;
+  int32_t prev_vel_x_global;
+  int32_t prev_vel_y_global;
+  int32_t prev_vel_x_pixelwise;
+  int32_t prev_vel_z_pixelwise;
   uint8_t previous_frame_offset[2];
   int32_t hz_x;
   int32_t hz_y;
@@ -120,6 +127,8 @@ void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t ima
                               char direction, char side, uint16_t edge_threshold);
 uint32_t calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
                                 uint16_t size, uint8_t window, uint8_t disp_range, int32_t der_shift);
+uint32_t calculate_displacement_stereo(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
+                                       uint16_t size, uint8_t window, uint8_t disp_range);
 int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_histogram_2, uint16_t size,
     uint8_t disp_range);
 
