@@ -140,6 +140,7 @@ void line_fit_RANSAC(int32_t *displacement, int32_t *slope, int32_t *yInt, uint1
 void totalKalmanFilter(struct covariance_t *coveriance, struct edge_flow_t *prev_edge_flow,
                        struct edge_flow_t *edge_flow, uint32_t Q, uint32_t R, uint32_t RES);
 int32_t simpleKalmanFilter(int32_t *cov, int32_t previous_est, int32_t current_meas, int32_t Q, int32_t R, int32_t RES);
+int32_t moving_fading_average(int32_t previous_est, int32_t current_meas, int32_t alpha, int32_t RES);
 
 void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int32_t yInt, uint32_t image_width,
                           uint32_t image_height);

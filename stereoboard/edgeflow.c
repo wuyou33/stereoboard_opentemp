@@ -173,11 +173,18 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[], struct edgeflow_parameters_
   edgeflow_array[12] = (edgeflow_results->vel_y_global >> 8) & 0xff;
   edgeflow_array[13] = (edgeflow_results->vel_y_global) & 0xff;
 
-  edgeflow_array[14] = (edgeflow_results->vel_x_global + 127);
-  edgeflow_array[15] = (edgeflow_results->vel_y_global + 127);
 
-  edgeflow_array[16] = (edgeflow_results->vel_x_pixelwise + 127);
-  edgeflow_array[17] = (edgeflow_results->vel_z_pixelwise + 127);
+
+  edgeflow_array[14] = (edgeflow_results->vel_x_pixelwise >> 8) & 0xff;
+  edgeflow_array[15] = (edgeflow_results->vel_x_pixelwise) & 0xff;
+  edgeflow_array[16] = (edgeflow_results->vel_z_pixelwise >> 8) & 0xff;
+  edgeflow_array[17] = (edgeflow_results->vel_z_pixelwise) & 0xff;
+
+  edgeflow_array[18] = (edgeflow_results->vel_x_global + 127);
+  edgeflow_array[19] = (edgeflow_results->vel_y_global + 127);
+
+  edgeflow_array[20] = (edgeflow_results->vel_x_pixelwise + 127);
+  edgeflow_array[21] = (edgeflow_results->vel_z_pixelwise + 127);
 
 #endif
 }
@@ -304,6 +311,12 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   *vel_y_global = edge_flow->flow_y * (*avg_dist) * (*hz_y) * FOVY
                   / (RES * RES * image_height);
 #endif
+  int32_t alpha = 30;
+  *vel_x_global =  moving_fading_average(*prev_vel_x_global, *vel_x_global,  alpha, RES);
+  *vel_y_global =  moving_fading_average(*prev_vel_y_global, *vel_y_global,  alpha, RES);
+  *vel_x_pixelwise =  moving_fading_average(*prev_vel_x_pixelwise, *vel_x_pixelwise,  alpha, RES);
+  *vel_z_pixelwise =  moving_fading_average(*prev_vel_z_pixelwise, *vel_z_pixelwise,  alpha, RES);
+
   /*
     *vel_x_global = simpleKalmanFilter(&(covariance->C_flow_x), &prev_vel_x_global, *vel_x_global,
                                 Q, R, RES);
@@ -816,6 +829,13 @@ int32_t simpleKalmanFilter(int32_t *cov, int32_t previous_est, int32_t current_m
   return (previous_est + (K * (current_meas - previous_est)) / RES);
 }
 
+int32_t moving_fading_average(int32_t previous_est, int32_t current_meas, int32_t alpha, int32_t RES)
+{
+  int32_t new_est = (alpha * current_meas + (RES - alpha) * previous_est) / RES;
+  return new_est ;
+}
+
+
 
 //This function is a visualization tool which visualizes the Edge filter in the one image and the histogram disparity with line fit in the second.
 void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int32_t yInt, uint32_t image_width,
@@ -961,6 +981,7 @@ uint8_t boundint8(int32_t value)
 
   return value_uint8;
 }
+
 
 
 
