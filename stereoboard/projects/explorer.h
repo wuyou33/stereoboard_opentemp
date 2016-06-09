@@ -13,7 +13,8 @@
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_COMMANDS
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#define CAPTURE_MODE_SNAPSHOT 1
+//#define CAPTURE_MODE_SNAPSHOT 1
+#define DCMI_DOUBLE_BUFFER
 
 //////////////////////////////////////////////////////
 // Settings
@@ -29,22 +30,6 @@
 #define SMALL_IMAGE
 
 //////////////////////////////////////////////////////
-// Define image format
-#define IMAGE_WIDTH 128
-#define IMAGE_HEIGHT 96
-
-#if (DCMI_TEN_BITS == 1)
-#define BYTES_PER_PIXEL 4
-#else
-#define BYTES_PER_PIXEL 2
-#endif
-
-#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
-#if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
-#endif
-
-//////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart
 // Stereoboard bottom = Usart1
 // Stereoboard top(cpld) = Usart4
@@ -56,10 +41,6 @@
 
 //////////////////////////////////////////////////////
 // Image Encoding
-
-#if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_YUV422
-#endif
 
 #ifndef TCM8230_EXTRA_SATURATION
 #define TCM8230_EXTRA_SATURATION 0

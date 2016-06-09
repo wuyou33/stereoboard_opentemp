@@ -32,6 +32,6 @@ extern uint32_t prev_tim;
 extern uint32_t passed_time;
 extern uint32_t clock_period;
 */
-uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time);
+uint16_t run_droplet_algorithm(int disparities_high, uint16_t disparities_total, volatile uint32_t sys_time);
 
 #endif /* DROPLET_ALGORITHM_H_ */

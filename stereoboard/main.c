@@ -484,6 +484,11 @@ int main(void)
           max_y = 96;
           memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
+          if ( current_stereoboard_algorithm == SEND_COMMANDS )
+          {
+        	  max_y = 30;
+          }
+
           if (STEREO_ALGORITHM) {
             stereo_vision_Kirk(current_image_buffer,
                                disparity_image_buffer_8bit, image_width, image_height,
@@ -522,7 +527,7 @@ int main(void)
 
         int disparities_high = 0;
         disparities_high =  evaluate_disparities_droplet(disparity_image_buffer_8bit, image_width, image_height, 30);
-        current_phase = run_droplet_algorithm(disparities_high, sys_time_get());
+        current_phase = run_droplet_algorithm(disparities_high, nr_of_features, sys_time_get());
 
         if (current_phase == 1) {
           toSendCommand = 0;

@@ -10,6 +10,7 @@
 
 // parameter setting
 int obst_thr_1 = 7;       // obstacle threshold for phase 1
+int disp_thr_1 = 20;	  // obstacle count minimum threshold for phase 1
 uint32_t obst_wait_2 = 1300;  // -->1800<-- wait time for phase 2
 int obst_thr_3 = 10;      // obstacle threshold for phase 3
 int obst_thr_4 = 10;      // obstacle threshold for phase 4
@@ -30,7 +31,7 @@ uint32_t prev_time = 0;
 uint32_t passed_time = 0;
 uint32_t clock_period = 20000;
 
-uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time)
+uint16_t run_droplet_algorithm(int disparities_high, uint16_t disparities_total, volatile uint32_t sys_time)
 {
 
 
@@ -43,7 +44,7 @@ uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time)
 
   // Control logic
   if (phase == 1) { // unobstructed flight
-    if (disparities_high > obst_thr_1) { //|| entropy < obst_entr) // if true, obstacle in sight
+    if (disparities_high > obst_thr_1 || disparities_total < disp_thr_1 ) { //|| entropy < obst_entr) // if true, obstacle in sight
       obst_count_1++;
     } else if (obst_count_1 > 0) {
       obst_count_1--;
@@ -64,7 +65,7 @@ uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time)
     }
   } else if (phase == 3) { // avoid
     // Turn command signal for AutoPilot ???
-    if (disparities_high < obst_thr_3) { // if true, flight direction is safe
+    if (disparities_high < obst_thr_3 && disparities_total > disp_thr_1) { // if true, flight direction is safe
       obst_free_3++;
     } else {
       obst_free_3 = 0;
@@ -76,7 +77,7 @@ uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time)
       obst_time =  sys_time;
     }
   } else if (phase == 4) { // fly straight, but be aware of undetected obstacles
-    if (disparities_high > obst_thr_4) { // if true, obstacle in sight
+    if (disparities_high > obst_thr_4 || disparities_total < disp_thr_1) { // if true, obstacle in sight
       obst_dect_4++;
     } else {
       obst_dect_4 = 0;
@@ -92,7 +93,7 @@ uint16_t run_droplet_algorithm(int disparities_high, volatile uint32_t sys_time)
     }
   }
 
-  if (disparities_high > obst_thr_1) {
+  if (disparities_high > obst_thr_1 || disparities_total < disp_thr_1) {
     led_set();
   } else {
     led_clear();
