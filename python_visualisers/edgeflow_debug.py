@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import math
-plt.axis([0,300, 0 , 255])
+plt.axis([0,128, 0 , 255])
 plt.ion()
 plt.show()
    
@@ -25,8 +25,6 @@ velocity_x=0
 velocity_y=0
 velocity_xHistory=[]
 velocity_yHistory=[]
-velocity_x_pixelwiseHistory=[]
-velocity_z_pixelwiseHistory=[]
 
 counter = 0;
 while True:
@@ -50,47 +48,17 @@ while True:
             img = stereoboard_tools.fill_image_array(sync1,oneImage, lineLength, lineCount)
 	    print 'img: ' , img
             img=np.array(img)
-	    slope_x=(img[0,0]-100)/1000
-            yint_x=(img[0,1]-100)/100
-	    slope_y=(img[0,2]-100)/1000
-            yint_y=(img[0,3]-100)/100
-            height=img[0,4]
-
-            velocity_x_stereoboard = (img[0,18]-127)/100
-            velocity_y_stereoboard =(img[0,19]-127)/100
-            velocity_x_pixelwise_stereoboard = (img[0,20]-127)/100
-            velocity_z_pixelwise_stereoboard =(img[0,21]-127)/100
-            #velocity_y_stereoboard = (img[0,9]-127)/100
-
-
-            velocity_xHistory.append(velocity_x_stereoboard)
-            velocity_yHistory.append(velocity_y_stereoboard)
-            velocity_x_pixelwiseHistory.append(velocity_x_pixelwise_stereoboard)
-            velocity_z_pixelwiseHistory.append(velocity_z_pixelwise_stereoboard)
-            #velocity_xHistory.append(img[0,15])            
-            #velocity_yHistory.append(img[0,16])            
-
-            if counter > 100:
-                del velocity_xHistory[0]
-            	del velocity_yHistory[0]
-                del velocity_x_pixelwiseHistory[0]
-            	del velocity_z_pixelwiseHistory[0]
-            else:
-                counter = counter + 1
+ 	    img_t = np.transpose(img)
 
             plt.cla()
-	    plt.axis([0,100, -1,1])
-	   # plt.plot(velocity_xHistory)
-	    plt.draw()
-           #plt.plot(velocity_yHistory)
-	    plt.draw()
-	    plt.plot(velocity_x_pixelwiseHistory)
-	    plt.draw()
-            plt.plot(velocity_z_pixelwiseHistory)
+
+	    plt.axis([0,128, 0 , 255])
+
+            plt.plot(img_t)
 	    plt.draw()
 
 
-	    #time.sleep(0.05)
+	    time.sleep(0.2)
         
             
     except Exception as excep:

@@ -87,35 +87,46 @@ ${STDPH_PATH}/src/stm32f4xx_syscfg.c \
 ${STDPH_PATH}/src/stm32f4xx_tim.c \
 ${STDPH_PATH}/src/stm32f4xx_usart.c \
 ${STDPH_PATH}/src/stm32f4xx_wwdg.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q7.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q7.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q31.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_add_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_dot_prod_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15_LSB.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q31.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q31_LSB.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_f32.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_negate_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q7.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_fill_q7.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_fill_q15.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_copy_q15.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_abs_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_q15.c \
 ${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_q15.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q15.c \
-${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_copy_q31.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_add_q31.c \
-${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_f32.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_shift_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q7.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q15.c \
+${DSP_LIB_PATH}/BasicMathFunctions/arm_sub_q31.c \
 ${DSP_LIB_PATH}/FastMathFunctions/arm_sin_f32.c \
 ${DSP_LIB_PATH}/FastMathFunctions/arm_cos_f32.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_scale_f32.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_add_f32.c \
-${DSP_LIB_PATH}/SupportFunctions/arm_float_to_q7.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_mult_f32.c \
-${DSP_LIB_PATH}/BasicMathFunctions/arm_offset_f32.c
-
-
+${DSP_LIB_PATH}/StatisticsFunctions/arm_min_q15.c \
+${DSP_LIB_PATH}/StatisticsFunctions/arm_max_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_copy_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_copy_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_copy_q31.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_q31.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_fill_f32.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q15_LSB.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q7_to_q31.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_q15_to_q7.c \
+${DSP_LIB_PATH}/SupportFunctions/arm_float_to_q7.c
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 
@@ -160,8 +171,11 @@ forward_velocity_estimator.h \
 disparity_map_functions.c \
 disparity_map_functions.h \
 forward_velocity_estimator.h \
+data_types.h \
 tmg3993.c \
 tmg3993.h \
+image.c \
+image.h \
 i2c.c \
 i2c.h \
 usart.c \
@@ -183,8 +197,6 @@ cpld.c \
 cpld.h \
 stereo_vision.c \
 stereo_vision.h \
-optic_flow.c \
-optic_flow.h \
 window_detection.c \
 window_detection.h \
 filter_color.c \
@@ -206,8 +218,8 @@ hmc5883.h \
 hmc5883.c \
 ../common/utils.h \
 ../common/utils.c \
-divergence.h \
-divergence.c \
+edgeflow.h \
+edgeflow.c \
 xprintf.c \
 xprintf.h \
 droplet_algorithm.c \
@@ -215,6 +227,10 @@ distance_matrix.c \
 odometry.c \
 textons.h \
 textons.c \
+VL6180.h \
+VL6180.c \
+commands.h \
+commands.c \
 learning.h \
 learning.c
 
@@ -227,7 +243,7 @@ $(EXECUTABLE): 	\
 		$(MAIN_OBJS) \
 		${USB_SRCS} \
 		${STDP_LIB}
-	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
+	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 
 clean:
 	rm -rf $(EXECUTABLE)
@@ -264,6 +280,13 @@ upload:
 	$(GDB) --batch \
                 -ex 'target extended-remote $(BMP_PORT)' \
                 -x black_magic_probe_flash.scr ${EXECUTABLE}
+				
+erase_flash:
+	@echo "Using Black Magic Probe"
+	@echo "Using GDB = $(GDB)"
+	$(GDB) --batch \
+                -ex 'target extended-remote $(BMP_PORT)' \
+                -x black_magic_probe_erase_flash.scr ${EXECUTABLE}
 #endif
 
 cleanspaces:

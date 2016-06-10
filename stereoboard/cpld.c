@@ -86,3 +86,14 @@ void camera_cpld_stereo_framemux(void)
   GPIO_SetBits(GPIOB, GPIO_Pin_5);
 }
 
+
+void camera_cpld_stereo_even_pixmux_odd_color(void)
+{
+#ifndef DCMI_TEN_BITS
+  GPIO_SetBits(GPIOC, GPIO_Pin_10);
+  GPIO_SetBits(GPIOC, GPIO_Pin_12);
+#endif
+  GPIO_ResetBits(GPIOB, GPIO_Pin_5);
+}
+
+

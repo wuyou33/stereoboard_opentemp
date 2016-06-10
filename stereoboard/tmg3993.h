@@ -21,6 +21,8 @@ int16_t TMG3993_Read_Proxity_West(void);
 int16_t TMG3993_Read_Angle(void);
 int16_t TMG3993_Offset(void);
 int16_t TMG3993_FIFO_Difference(void);
+int16_t Angle_Measurement(void);
+void init_Angle_Measurement(void);
 
 // Settings
 #define ADDRESS_TMG3993           (0x39)
@@ -90,7 +92,8 @@ int16_t TMG3993_FIFO_Difference(void);
 /*****************************/
 // Wait Time
 #define COMMAND_WTIME_1	     		  (0xFF) // 2.78 ms
-#define COMMAND_WTIME_220	     	  (0xDC) // 100  ms
+#define COMMAND_WTIME_10          (0xF6) // 27.8 ms
+#define COMMAND_WTIME_36	     	  (0xDC) // 100  ms
 #define COMMAND_WTIME_256     	  (0x00) // 712  ms
 
 /*****************************/

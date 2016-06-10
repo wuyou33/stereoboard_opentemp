@@ -11,22 +11,23 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION SEND_EDGEFLOW
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#define CAPTURE_MODE_SNAPSHOT 1   // snapshot! Mostly for debugging
 
 //////////////////////////////////////////////////////
 // Settings
 #define USE_COLOR 0
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
-
 #define SEND_FILTER 0 // 0
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
-#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
+#define GET_PARALLEL
+#define LED_TOGGLE
+//#define EDGEFLOW_DEBUG
 
 //////////////////////////////////////////////////////
 // Define image format
@@ -52,7 +53,7 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 1000000
+#define USART4_BAUD 115200
 
 //////////////////////////////////////////////////////
 // Image Encoding
