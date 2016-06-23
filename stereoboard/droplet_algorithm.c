@@ -6,23 +6,23 @@
  */
 
 #include "droplet_algorithm.h"
-#include "../common/led.h"
+#include "led.h"
 
 // parameter setting
-int obst_thr_1 = 7;       // obstacle threshold for phase 1
+uint16_t obst_thr_1 = 7;       // obstacle threshold for phase 1
 uint32_t obst_wait_2 = 1300;  // -->1800<-- wait time for phase 2
-int obst_thr_3 = 10;      // obstacle threshold for phase 3
-int obst_thr_4 = 10;      // obstacle threshold for phase 4
-int obst_wait_4 = 500;      // wait time for phase 4
+uint16_t obst_thr_3 = 10;      // obstacle threshold for phase 3
+uint16_t obst_thr_4 = 10;      // obstacle threshold for phase 4
+uint16_t obst_wait_4 = 500;      // wait time for phase 4
 
-int obst_cons_1 = 3;      // obstacle consistency threshold for phase 1
-int obst_cons_3 = 1;      // no-obstacle consistency threshold for phase 3
-int obst_cons_5 = 2;      // obstacle consistency threshold for phase 4
+uint16_t obst_cons_1 = 3;      // obstacle consistency threshold for phase 1
+uint16_t obst_cons_3 = 1;      // no-obstacle consistency threshold for phase 3
+uint16_t obst_cons_5 = 2;      // obstacle consistency threshold for phase 4
 
 // init
-int obst_count_1 = 0;     // counter for sequential obstacle detections in phase 1
-int obst_free_3 = 0;      // counter for sequential no-obstacle detections in phase 3
-int obst_dect_4 = 0;      // counter for sequential obstacle detections in phase 4
+uint16_t obst_count_1 = 0;     // counter for sequential obstacle detections in phase 1
+uint16_t obst_free_3 = 0;      // counter for sequential no-obstacle detections in phase 3
+uint16_t obst_dect_4 = 0;      // counter for sequential obstacle detections in phase 4
 uint32_t obst_time = 0;     // timer for phase 2 and 4
 
 int phase = 1;

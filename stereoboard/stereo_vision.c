@@ -1,9 +1,15 @@
 // Stereo vision code
 
 #include "stereo_vision.h"
-#include "../common/led.h"
+#include "led.h"
 #include "sys_time.h"
 #include BOARD_FILE
+
+#include "stereo_math.h"
+#include <arm_math.h>
+#include "main_parameters.h"
+#include "../multigaze/stereoboard_parameters.h"
+#include "stm32f4xx_conf.h"
 
 /**
  * Function takes input and calculates disparity using a block

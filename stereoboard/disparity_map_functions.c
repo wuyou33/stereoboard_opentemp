@@ -1,8 +1,6 @@
 
 #include "disparity_map_functions.h"
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#include "stereo_math.h"
 
 void get_average_left_right(uint8_t histogramBuffer[], uint8_t *avg_disp_left, uint8_t *avg_disp_right,
                             uint8_t pixelsPerLine)
@@ -25,7 +23,6 @@ void get_average_left_right(uint8_t histogramBuffer[], uint8_t *avg_disp_left, u
 void get_average_left_right_features(uint8_t featureBuffer[], int featureCount, uint8_t *avg_disp_left,
                                      uint8_t *avg_disp_right, uint8_t pixelsPerLine)
 {
-  uint8_t x;
   long sum_left = 0;
   long sum_right = 0;
   int featureIndex;
@@ -33,7 +30,7 @@ void get_average_left_right_features(uint8_t featureBuffer[], int featureCount, 
   int sumCountRight = 0;
   uint8_t half_width = pixelsPerLine / 2;
   for (featureIndex = 0; featureIndex < featureCount; featureIndex++) {
-    uint8_t indexy = featureBuffer[featureIndex * 3];
+    //uint8_t indexy = featureBuffer[featureIndex * 3];
     uint8_t indexX = featureBuffer[featureIndex * 3 + 1];
     uint8_t value = featureBuffer[featureIndex * 3 + 2];
     if (indexX < half_width) {

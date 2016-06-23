@@ -5,7 +5,7 @@
  *      Author: roland
  */
 
-#include "stereoprotocol.h"
+#include "stereo_protocol.h"
 
 
 /**

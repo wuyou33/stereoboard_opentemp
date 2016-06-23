@@ -296,9 +296,6 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   *vel_z_pixelwise = forward_vel;
   *vel_x_pixelwise = sideways_vel * FOVX  / (RES * 128);
 
-
-
-
 #if EDGEFLOW_USE_HEIGHT_AUTOPILOT
   int32_t alt_state_lisa =  edgeflow_parameters->alt_state_lisa;
   *vel_x_global = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * FOVX

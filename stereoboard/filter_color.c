@@ -17,7 +17,8 @@ uint16_t filter_red_color(uint8_t *in, uint8_t *out, uint32_t image_width, uint3
   uint16_t n_channels;
   uint16_t count = 0;
   // color is a byte with both u and v:
-  uint8_t ill, color, u, v;
+  //uint8_t ill, color;
+  uint8_t u, v;
   n_channels = 2;
 #ifdef EFFICIENT
   // make a binary image out
