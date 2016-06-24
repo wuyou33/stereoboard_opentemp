@@ -12,6 +12,7 @@
  * Project parameters
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
+//SEND_MEANSHIFT
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT
 

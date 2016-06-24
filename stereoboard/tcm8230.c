@@ -70,8 +70,8 @@ void camera_tcm8230_i2c_init(void)
 
 #define   TCM_WHO_AM_I      0x00    // reads 0x70
 #define   TCM_FPS           0x02
-#define   TCM_FPS_SLOW      0x82
-#define   TCM_FPS_FAST      0x02
+#define   TCM_FPS_SLOW      0x82 // 15Hz
+#define   TCM_FPS_FAST      0x02 // 30Hz
 
 #define   TCM_IMG           0x03
 #define   TCM_IMG_SIZE(X)   (((X)*4)+2)
@@ -139,7 +139,12 @@ void camera_tcm8230_config(void)
 #endif
 #endif
 
+#ifdef SLOW_TCM8230
+  tcm8230_WriteReg(TCM_FPS, TCM_FPS_SLOW);
+#else
   tcm8230_WriteReg(TCM_FPS, TCM_FPS_FAST);
+#endif
+
   tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT | IMAGE_SIZE);
   tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
   tcm8230_WriteReg(TCM_EXP, EXP_DEFAULT | EXP_SHORT);

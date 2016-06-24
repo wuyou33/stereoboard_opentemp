@@ -1,11 +1,10 @@
-
-// This shouldn't be defined here, should be in project
-#define USART4_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
-
 #define CAPTURE_MODE_SNAPSHOT 1
 
-#define SEND_IMAGE 1
 
-#define IMAGE_WIDTH 176
-#define IMAGE_HEIGHT 144
+// these have no meaning because this is a monocam, but these defines need to be set
+#define RESOLUTION_FACTOR 1
+#define DISPARITY_OFFSET_LEFT 0
+#define DISPARITY_OFFSET_RIGHT 0
+#define DISPARITY_OFFSET_HORIZONTAL 0
+#define DISPARITY_BORDER 0
 

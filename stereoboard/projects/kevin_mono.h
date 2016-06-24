@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_PROXIMITY_AND_ANGLE //SEND_IMAGE_AND_PROX
+#define DEFAULT_BOARD_FUNCTION SEND_IMAGE//SEND_LEARNING_COLLISIONS//SEND_VL6180
 
 //////////////////////////////////////////////////////
 // Settings
@@ -27,6 +27,8 @@
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
 //#define CAPTURE_MODE_SNAPSHOT 1
+#define DCMI_DOUBLE_BUFFER
+#define SLOW_TCM8230
 
 //////////////////////////////////////////////////////
 // Define image format
@@ -41,7 +43,7 @@
 
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
 #if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
+#error "Config error: Image does not fit in RAM"
 #endif
 
 //////////////////////////////////////////////////////
@@ -52,13 +54,13 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 3000000
+#define USART4_BAUD 3000000//9600//115200//3000000
 
 //////////////////////////////////////////////////////
 // Image Encoding
 
 #if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_YUV422
+#define USE_RGB565
 #endif
 
 #ifndef TCM8230_EXTRA_SATURATION
