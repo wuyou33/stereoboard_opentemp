@@ -39,8 +39,6 @@ LFLAGS        =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld
 
-SUBMODULE     = ../libs/README.md
-
 STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
 STDPH_PATH    = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
 CMSIS_PATH    = ${STMLIB_PATH}/Libraries/CMSIS
@@ -91,7 +89,7 @@ USB_SRCS = \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd.c      \
 ../libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
 
-all: check_user_inputs $(SUBMODULE) print $(BIN_IMAGE)
+all: check_user_inputs submodule print $(BIN_IMAGE)
 	$(info Build Successful!)
 
 check_user_inputs:
@@ -120,9 +118,9 @@ MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 MAIN_LST = $(MAIN_SRCS:.c=.lst)
 
 $(EXECUTABLE): 	\
-		startup_stm32f4xx.s \
-        ${STDP_LIB} \
-        ${USB_SRCS} \
+    startup_stm32f4xx.s \
+    ${STDP_LIB} \
+    ${USB_SRCS} \
 		$(MAIN_OBJS)
 
 	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
@@ -136,7 +134,7 @@ mrproper:
 	make clean -C ./
 	make stdplib_clean -C ./
 
-$(SUBMODULE):
+submodule:
 	cd ../ && git submodule init && git submodule sync && git submodule update
 
 com:
