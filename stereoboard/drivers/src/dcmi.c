@@ -1,13 +1,13 @@
 
+#include "dcmi.h"
+
+#include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
-
-#include "dcmi.h"
+#include "stereo_utils.h"
 #include "camera_type.h"
-#include "../common/utils.h"
-#include "../common/led.h"
 
-void camera_reset_init()
+void camera_reset_init(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -244,7 +244,7 @@ void camera_crop(uint16_t offset)
   DCMI_CROPCmd(ENABLE);
 }
 
-void camera_dcmi_dma_enable()
+void camera_dcmi_dma_enable(void)
 {
   /* Enable DMA2 stream 1 and DCMI interface then start image capture */
   DMA_Cmd(DMA2_Stream1, ENABLE);
@@ -253,7 +253,7 @@ void camera_dcmi_dma_enable()
   // dma_it_init();
 }
 
-void camera_dcmi_dma_disable()
+void camera_dcmi_dma_disable(void)
 {
   /* Disable DMA2 stream 1 and DCMI interface then stop image capture */
   DMA_Cmd(DMA2_Stream1, DISABLE);
@@ -261,7 +261,7 @@ void camera_dcmi_dma_disable()
   DCMI_CaptureCmd(DISABLE);
 }
 
-void camera_dcmi_it_init()
+void camera_dcmi_it_init(void)
 {
   NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -291,15 +291,12 @@ void dcmi_isr(void)
       camera_crop( 0);*/
 
     //camera_crop( 0);
-
-    // led_toggle();
-
   }
 
   return;
 }
 
-void camera_dma_it_init()
+void camera_dma_it_init(void)
 {
   NVIC_InitTypeDef NVIC_InitStructure;
 

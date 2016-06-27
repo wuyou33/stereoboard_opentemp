@@ -8,7 +8,7 @@
 #ifndef COMMANDS_H_
 #define COMMANDS_H_
 
-#include "usart.h"
+#include <stdint.h>
 
 void SendStartComm(void);
 void SendCommand(uint8_t);

@@ -6,6 +6,7 @@
  */
 
 #include "commands.h"
+#include "usart.h"
 
 void SendStartComm(void)
 {

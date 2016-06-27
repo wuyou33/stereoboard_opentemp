@@ -1,3 +1,5 @@
+#include "blob.h"
+
 void image_labeling(struct image_t *input, struct image_t *output, struct image_filter_t *filters, uint8_t filters_cnt,
                     struct image_label_t *labels, uint16_t *labels_count)
 {

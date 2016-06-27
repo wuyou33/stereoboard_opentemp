@@ -8,10 +8,7 @@
 #ifndef DISTANCE_MATRIX_H_
 #define DISTANCE_MATRIX_H_
 
-#include <arm_math.h>
-#include "../multigaze/stereoboard_parameters.h"
-#include "main_parameters.h"
-
+#include <stdint.h>
 
 void calculateDistanceMatrix(uint8_t disparity_image[],
                              uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,

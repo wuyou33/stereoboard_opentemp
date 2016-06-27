@@ -32,6 +32,13 @@
 #define DEFAULT_BOARD_FUNCTION SEND_IMAGE
 #endif
 
+
+// compute full image size
+#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
+#if (FULL_IMAGE_SIZE >= (120*1024))
+#error "Config error: Image does not fit im RAM"
+#endif
+
 //////////////////////////////////////////////////////
 // Settings
 #ifndef USE_MONOCAM
@@ -85,7 +92,7 @@
 #endif
 
 #if !(defined(SMALL_IMAGE) || defined(LARGE_IMAGE))
-#define SMALL_IMAGE //#define LARGE_IMAGE
+#define SMALL_IMAGE
 #endif
 
 #if defined(DCMI_DOUBLE_BUFFER) && defined(LARGE_IMAGE)
@@ -165,7 +172,28 @@
 #define TCM8230_EXTRA_SATURATION 0
 #endif
 
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+//////////////////////////////////////////////////////
+// Set defaults for stereo
+#ifndef DISPARITY_OFFSET_LEFT
+#define DISPARITY_OFFSET_LEFT 0
+#endif
+
+#ifndef DISPARITY_OFFSET_RIGHT
+#define DISPARITY_OFFSET_RIGHT 0
+#endif
+
+#ifndef DISPARITY_OFFSET_HORIZONTAL
+#define DISPARITY_OFFSET_HORIZONTAL 0
+#endif
+
+#ifndef DISPARITY_BORDER
+#define DISPARITY_BORDER 0
+#endif
+
+#ifndef RESOLUTION_FACTOR
+#define RESOLUTION_FACTOR 6 // default for stereocam
+#endif
+
 
 #endif /* MAIN_PARAMETERS_H_ */

@@ -10,6 +10,10 @@
 
 #include "usart.h"
 
+#ifdef SHOW_HMC
+#include "hmc5883.h"
+#endif
+
 /** ITU-R BT.656 video transmission standard
  *
  * The embedded timing reference codes allow the video port to synchronize to the data stream using only
@@ -86,9 +90,6 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
     ;
 }
 
-
-
-/*
 void SendDisparityMap(uint8_t *b)
 {
   uint8_t code[4];
@@ -115,7 +116,7 @@ void SendDisparityMap(uint8_t *b)
   code[3] = 0xAB;
   while (UsartTx(code, 4) == 0)
     ;
-}*/
+}
 
 void SendArray(uint8_t *b, uint8_t array_width, uint8_t array_height)
 {
@@ -144,8 +145,5 @@ void SendArray(uint8_t *b, uint8_t array_width, uint8_t array_height)
   while (UsartTx(code, 4) == 0)
     ;
 }
-
-
-
 
 #endif /* RAW_DIGITAL_VIDEO_STREAM_H_ */

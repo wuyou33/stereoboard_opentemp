@@ -81,7 +81,7 @@ void VL6180xInit(void);
 void VL6180xDefautSettings(void);
 
 // Get Range distance in (mm)
-uint8_t getDistance();
+uint8_t getDistance(void);
 // Get ALS level in Lux
 //float getAmbientLight(vl6180x_als_gain VL6180X_ALS_GAIN);
 

@@ -5,7 +5,7 @@
  *      Author: Kevin
  */
 
-#include "VL6180.h"
+#include "vl6180.h"
 #include "sys_time.h"
 
 void VL6180xInit(void){
@@ -57,7 +57,7 @@ void VL6180xDefautSettings(void){
   //http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
   I2CWrite16(0x29, VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD, 0x09); // Set default ranging inter-measurement period to 100ms
   I2CWrite16(0x29, VL6180X_SYSALS_INTERMEASUREMENT_PERIOD, 0x0A); // Set default ALS inter-measurement period to 100ms
-  I2CWrite16(0x29, VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24); // Configures interrupt on ‘New Sample Ready threshold event’
+  I2CWrite16(0x29, VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24); // Configures interrupt on ï¿½New Sample Ready threshold eventï¿½
   //Additional settings defaults from community
   /*VL6180x_setRegister(VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME, 0x32);
   VL6180x_setRegister(VL6180X_SYSRANGE_RANGE_CHECK_ENABLES, 0x10 | 0x01);

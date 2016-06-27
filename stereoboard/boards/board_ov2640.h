@@ -1,7 +1,6 @@
 
 
 #define USART4_BAUD 1000000 // high baudrate necessary for sending images / disparity maps.
-#define SEND_IMAGE 1
 
 #define DCMI_TEN_BITS 1
 

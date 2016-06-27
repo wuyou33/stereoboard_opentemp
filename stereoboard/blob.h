@@ -1,3 +1,9 @@
+#ifndef BLOB_H_
+#define BLOB_H_
+
+#include <sys/time.h>
+#include "../common/stereo_utils.h"
+
 /* The different type of images we currently support */
 enum image_type {
   IMAGE_YUV422,     ///< UYVY format (uint16 per pixel)
@@ -8,6 +14,7 @@ enum image_type {
 };
 
 /* Main image structure */
+// TODO KIRK: remove timeval!
 struct image_t {
   enum image_type type;   ///< The image type
   uint16_t w;             ///< Image width
@@ -54,3 +61,5 @@ struct image_label_t {
 
   uint16_t corners[4];
 };
+
+#endif

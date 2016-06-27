@@ -1,8 +1,5 @@
 
-
 #define USART4_BAUD 9600
-
-#define SEND_IMAGE 0
 
 #define DCMI_TEN_BITS 1
 

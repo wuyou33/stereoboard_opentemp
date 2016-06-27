@@ -13,6 +13,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <inttypes.h>
+
 #include "meanshift.h"
 #include "xprintf.h"
 #include "data_types.h"
@@ -20,10 +21,10 @@
 #include "arm_math.h"
 #include "stm32f4xx_conf.h"
 #include "sys_time.h"
+#include "stereo_math.h"
 
 // include utility headers
-#include "../common/led.h"
-#include "../common/utils.h"
+#include "led.h"
 #include "commands.h"
 
 // include camera headers
@@ -43,6 +44,8 @@
 #include "usart.h"
 #include "usb.h"
 
+#include "stereo_protocol.h"
+#include "stereo_utils.h"
 #include "jpeg.h"
 #include "raw_digital_video_stream.h"
 
@@ -53,12 +56,11 @@
 #include "filter_color.h"
 #include "stereo_vision.h"
 #include "window_detection.h"
-#include "../common/stereoprotocol.h"
 #include "forward_velocity_estimator.h"
 #include "disparity_map_functions.h"
 #include "odometry.h"
 #include "learning.h"
-#include "VL6180.h"
+#include "vl6180.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -195,7 +197,6 @@ void array_pop(float *array, int lengthArray)
   }
 }
 
-
 /**
  * @brief  Main program
  * @param  None
@@ -203,8 +204,6 @@ void array_pop(float *array, int lengthArray)
  */
 int main(void)
 {
-
-
   int_rectangle searchWindow;
   searchWindow.x = 50;
   searchWindow.y = 50;
@@ -272,7 +271,7 @@ int main(void)
 #define SUB_SAMPLING 1
 #endif
 
-  uint8_t min_y, max_y;
+  uint8_t min_y = 0, max_y = IMAGE_HEIGHT;    // initialise with default full image processing
   uint32_t image_width = IMAGE_WIDTH;
   uint32_t image_height = IMAGE_HEIGHT;
 

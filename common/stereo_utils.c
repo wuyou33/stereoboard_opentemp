@@ -4,8 +4,9 @@
  *  Created on: Oct 23, 2012
  *      Author: samuezih
  */
+#include "stereo_utils.h"
+
 #include <math.h>
-#include "utils.h"
 #include <string.h>
 
 void Delay(volatile uint32_t count)

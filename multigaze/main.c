@@ -10,13 +10,14 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "../common/led.h"
+#include "led.h"
 #include "tunnel.h"
 #include "usart.h"
-#include "../common/utils.h"
+#include "stereo_utils.h"
 #include "stm32f4xx_conf.h"
+#include "stm32f4xx.h"
 #include "stereoboard_parameters.h"
-#include "../common/stereoprotocol.h"
+#include "stereo_protocol.h"
 //#define SIZE_OF_ONE_IMAGE 80
 //#define DOUBLE_IMAGE SIZE_OF_ONE_IMAGE*2
 
