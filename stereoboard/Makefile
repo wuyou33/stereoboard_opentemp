@@ -22,15 +22,16 @@ CFLAGS       += $(COMMONFLAGS) -DARM_MATH_CM4 -fsingle-precision-constant
 CFLAGS       += -ffreestanding -nostdlib
 
 ifeq ($(findstring .h,$(BOARD)), .h)
-	CFLAGS   += -DBOARD_FILE=\"$(BOARD)\"
+	BOARD_PATH   = $(BOARD)
 else
-	CFLAGS   += -DBOARD_FILE=\"./boards/board_$(BOARD).h\"
+	BOARD_PATH   = boards/board_$(BOARD).h
 endif
-ifeq ($(findstring .h,$(PROJECT)), '.h')
-	CFLAGS   += -DPROJECT_FILE=\"$(PROJECT)\"
+ifeq ($(findstring .h,$(PROJECT)), .h)
+	PROJECT_PATH = $(PROJECT)
 else
-	CFLAGS   += -DPROJECT_FILE=\"./projects/$(PROJECT).h\"
+	PROJECT_PATH = projects/$(PROJECT).h
 endif
+CFLAGS   += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPRoJECT_FILE=\"./$(PROJECT_PATH)\"
 
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 CFLAGS       += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress -Wstrict-prototypes #-Wextra
@@ -93,11 +94,11 @@ all: check_user_inputs submodule print $(BIN_IMAGE)
 	$(info Build Successful!)
 
 check_user_inputs:
-ifeq (,$(wildcard boards/board_$(BOARD).h))
-	$(error Board header boards/board_$(BOARD).h doesn't exist)
+ifeq (,$(wildcard $(BOARD_PATH)))
+	$(error Board header $(BOARD_PATH) doesn't exist)
 endif
-ifeq (,$(wildcard projects/$(PROJECT).h))
-	$(error Project header projects/$(PROJECT).h doesn't exist)
+ifeq (,$(wildcard $(PROJECT_PATH)))
+	$(error Project header $(PROJECT_PATH) doesn't exist)
 endif
 
 print:
@@ -175,7 +176,7 @@ cleanspaces:
 quick_build: print $(BIN_IMAGE)
 
 BOARD_FILES = $(wildcard boards/*.h)
-testallboards: 
+testallboards:
 	$(foreach var,$(BOARD_FILES), make clean && make quick_build BOARD=$(var);)
 
 PROJECT_FILES = $(wildcard projects/*.h)
@@ -211,7 +212,7 @@ roland: all
 kimberly: PROJECT=kimberly
 kimberly: all
 
-stereoavoid: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE=boards/board_6.h
+stereoavoid: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE="boards/board_6.h"
 stereoavoid: all
 
 

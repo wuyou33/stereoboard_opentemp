@@ -3,8 +3,10 @@
 
 #include "data_types.h"
 
+void run_meanshift(struct image_i *disparity_image);
+
 //void meanshiftUpdate(uint8_t image[],int width, int height, int* trackPosX, int* trackPosY);
 
-void meanshiftUpdate(uint8_t_image disparity_image, int_rectangle *searchrectangle, float *distanceToObject);
+float meanshiftUpdate(struct image_i *disparity_image, struct rectangle_i *searchrectangle);
 
-#endif
+#endif	// _MEANSHIFT_H_

@@ -7,6 +7,36 @@
 #include "stereo_utils.h"
 #include "camera_type.h"
 
+void camera_init(void)
+{
+  // Reset the camera's
+  camera_reset_init();
+  camera_reset();
+  // Make a 21MHz clock signal to the camera's
+  camera_clock_init();
+  // Stop resetting the camera (pin high)
+
+  camera_unreset();
+  // Initialize all camera GPIO and I2C pins
+  camera_dcmi_bus_init();
+  camera_control_bus_init();
+  // Start listening to DCMI frames
+  camera_dcmi_init();
+  // Start DCMI interrupts (interrupts on frame ready)
+  camera_dcmi_it_init();
+  camera_dcmi_dma_enable();
+
+  // Start DMA image transfer interrupts (interrupts on buffer full)
+  camera_dma_it_init();
+  Delay(0x07FFFF);
+
+  camera_unreset();
+  // Wait for at least 2000 clock cycles after reset
+  Delay(CAMERA_CHIP_UNRESET_TIMING);
+  // Communicate with camera, setup image type and start streaming
+  camera_chip_config();
+}
+
 void camera_reset_init(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -40,8 +70,6 @@ void camera_unreset(void)
   GPIO_SetBits(GPIOD, GPIO_Pin_2);
 
 }
-
-
 
 void camera_clock_init(void)
 {

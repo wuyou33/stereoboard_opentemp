@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <main_parameters.h>
 
+// master helper function to initilaize clock, DMA and DCMI
+void camera_init(void);
+
 // Initialize camera subsystems
 void camera_clock_init(void);
 void camera_reset_init(void);
