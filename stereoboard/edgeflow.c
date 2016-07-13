@@ -367,7 +367,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   /* uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
                                           &sideways_vel, 128, border, 1);*/
 
-  weighted_line_fit(edgeflow_results->velocity_per_column, faulty_distance, &forward_vel,
+ weighted_line_fit(edgeflow_results->velocity_per_column, faulty_distance, &forward_vel,
                     &sideways_vel, image_width, border, RES);
 
   /*line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
@@ -829,7 +829,7 @@ void avoid_velocity_from_stereo(int32_t *stereo_distance_per_column, int32_t *ve
 
   for (x = border; x < size - border; x++) {
 
-    if (stereo_distance_per_column[x] != 0) {
+    if (stereo_distance_per_column[x - stereo_shift / 2] != 0) {
       if (x < (total_size / 3 + border)) {
 
         vel_x_temp += - max_velocity * 100 / stereo_distance_per_column[x - stereo_shift / 2];
@@ -907,6 +907,7 @@ uint32_t weighted_line_fit(int32_t *displacement, uint8_t *faulty_distance,
                            int32_t *divergence, int32_t *flow, uint32_t size, uint32_t border,
                            uint16_t RES)
 {
+
   int32_t x;
 
   int32_t count = 0;
@@ -926,8 +927,10 @@ uint32_t weighted_line_fit(int32_t *displacement, uint8_t *faulty_distance,
   *flow = 0;
 
   // compute fixed sums
-  for (x = border_int; x < size_int - border_int; x++) {
-    if (faulty_distance[x] == 0) {
+  for (x = border_int; x < size_int - border_int; x++)
+  {
+    if (faulty_distance[x] == 0)
+    {
       sumX += x;
       sumY += RES *  displacement[x];
 
@@ -940,15 +943,23 @@ uint32_t weighted_line_fit(int32_t *displacement, uint8_t *faulty_distance,
 
   *divergence = 0;  //slope;
   *flow = 0;  //intercept;
-  if (count == 0) {
+  if (count == 0)
     return 0;
-  }
+
   xMean = sumX / count;
   yMean = sumY / count;
 
+  if((sumX2 - sumX * xMean)!=0) // preven seg fault
+  {
   divergence_int = (sumXY - sumX * yMean) / (sumX2 - sumX * xMean);  // compute slope of line ax + b
   *divergence = divergence_int;
+  }
+  else{
+	  return 0;
+  }
+
   *flow = yMean - divergence_int * xMean; // compute b (or y) intercept of line ax + b
+
 
   for (x = border_int; x < size_int - border_int; x++) {
     total_error += abs(RES * displacement[x] - divergence_int * x + yMean);
