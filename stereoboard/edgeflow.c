@@ -264,7 +264,6 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   struct edge_flow_t *edge_flow = &edgeflow_results->edge_flow;
   struct covariance_t *covariance = &edgeflow_results->covariance;
   struct edge_hist_t *edge_hist = edgeflow_results->edge_hist;
-  int32_t *velocity_per_column = edgeflow_results->velocity_per_column;
 
   // Assign pointers to parameters
   int32_t monocam = edgeflow_parameters->use_monocam;
@@ -274,7 +273,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   uint32_t R = edgeflow_parameters->R;
   uint32_t Q = edgeflow_parameters->Q;
   int16_t image_width = edgeflow_parameters->image_width;
-  int16_t image_height = edgeflow_parameters->image_height;
+  //int16_t image_height = edgeflow_parameters->image_height;
 
   // disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
   // d =  Npix*cam_separation /(2*disp*tan(FOV/2))
@@ -368,8 +367,8 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   /* uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
                                           &sideways_vel, 128, border, 1);*/
 
-  uint32_t line_error_fit_hor = weighted_line_fit(edgeflow_results->velocity_per_column, faulty_distance, &forward_vel,
-                                &sideways_vel, image_width, border, RES);
+  weighted_line_fit(edgeflow_results->velocity_per_column, faulty_distance, &forward_vel,
+                    &sideways_vel, image_width, border, RES);
 
   /*line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
                   &sideways_vel, faulty_distance, 128, border, RES);*/
@@ -552,9 +551,9 @@ void calculate_edge_flow(uint8_t in[],
   uint32_t min_error_ver = calculate_displacement(edge_histogram_y,
                            prev_edge_histogram_y, displacement->y, image_height, window_size,
                            disp_range, der_shift_y);
-  uint32_t min_error_stereo = calculate_displacement_stereo(edge_histogram_x,
-                              edge_histogram_x_right, displacement->stereo, image_width,
-                              window_size, disp_range, edgeflow_parameters->stereo_shift);
+  calculate_displacement_stereo(edge_histogram_x,
+                                edge_histogram_x_right, displacement->stereo, image_width,
+                                window_size, disp_range, edgeflow_parameters->stereo_shift);
   *avg_disp = calculate_displacement_fullimage(edge_histogram_x,
               edge_histogram_x_right, image_width, disp_range, edgeflow_parameters->stereo_shift);
 
@@ -915,7 +914,6 @@ uint32_t weighted_line_fit(int32_t *displacement, uint8_t *faulty_distance,
   int32_t sumX = 0;
   int32_t sumX2 = 0;
   int32_t sumXY = 0;
-  int32_t sumY2 = 0;
 
   int32_t xMean = 0;
   int32_t yMean = 0;
