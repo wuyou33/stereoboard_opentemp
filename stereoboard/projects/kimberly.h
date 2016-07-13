@@ -19,29 +19,24 @@
 #define USE_COLOR 0
 #define SMOOTH_DISPARITY_MAP 0 // 0
 #define SEND_ILLUMINANCE 0 // 0
+
 #define SEND_FILTER 0 // 0
 #define COLOR_RATIO 0 // 0
 #define MAX_RATIO 10 // 10
 #define BRIGHT_WINDOW 0 // 0
-#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
+#define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-#define GET_PARALLEL
 #define LED_TOGGLE
+
+// #define CAPTURE_MODE_SNAPSHOT    // will transfer entire image in one burst
+// #deinfe DCMI_DOUBLE_BUFFER       // two image buffers used, while one is used the other is filled.
 
 //////////////////////////////////////////////////////
 // Define image format
-#define IMAGE_WIDTH 128
-#define IMAGE_HEIGHT 96
-
 #if (DCMI_TEN_BITS == 1)
 #define BYTES_PER_PIXEL 4
 #else
 #define BYTES_PER_PIXEL 2
-#endif
-
-#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
-#if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
 #endif
 
 //////////////////////////////////////////////////////
@@ -52,7 +47,7 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 115200
+#define USART4_BAUD 1000000;//115200
 
 //////////////////////////////////////////////////////
 // Image Encoding
