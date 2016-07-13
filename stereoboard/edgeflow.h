@@ -8,9 +8,16 @@
 #ifndef DIVERGENCE_H_
 #define DIVERGENCE_H_
 
+#if COMPILE_ON_LINUX
+#include <inttypes.h>
+#include <stdio.h>
+#else
 #include "arm_math.h"
 #include "main_parameters.h"
+#endif
 
+#define IMAGE_WIDTH 128
+#define IMAGE_HEIGHT 96
 #ifndef MAX_HORIZON
 #define MAX_HORIZON 10
 #endif
@@ -18,6 +25,8 @@
 #define DISP_RANGE_MAX 20
 #endif
 #define DIVERGENCE_QUALITY_MEASURES_LENGTH 10
+
+
 
 struct edge_hist_t {
   int32_t x[IMAGE_WIDTH];
@@ -52,8 +61,8 @@ struct covariance_t {
 struct edgeflow_parameters_t {
   int8_t FOVX;
   int8_t FOVY;
-  int8_t image_width;
-  int8_t image_height;
+  int16_t image_width;
+  int16_t image_height;
   int8_t max_disparity_range;
   int8_t max_horizon;
   int8_t adapt_horizon;
@@ -72,6 +81,7 @@ struct edgeflow_parameters_t {
   int16_t dtheta;
   int32_t RES;
   int32_t use_monocam;
+  int16_t stereo_shift;
 };
 
 struct edgeflow_results_t {
@@ -82,6 +92,8 @@ struct edgeflow_results_t {
   struct displacement_t displacement;
   int32_t velocity_per_column[IMAGE_WIDTH];
   int32_t stereo_distance_per_column[IMAGE_WIDTH];
+  int32_t prev_stereo_distance_per_column[IMAGE_WIDTH];
+  int32_t velocity_stereo_mean;
   struct covariance_t covariance;
   uint8_t snapshot_is_taken;
   uint16_t snapshot_counter;
@@ -95,10 +107,14 @@ struct edgeflow_results_t {
   int32_t prev_avg_dist;
   int32_t vel_x_global;
   int32_t vel_y_global;
+  int32_t vel_z_global;
   int32_t vel_x_pixelwise;
   int32_t vel_z_pixelwise;
+  int32_t vel_x_stereo_avoid_pixelwise;
+  int32_t vel_z_stereo_avoid_pixelwise;
   int32_t prev_vel_x_global;
   int32_t prev_vel_y_global;
+  int32_t prev_vel_z_global;
   int32_t prev_vel_x_pixelwise;
   int32_t prev_vel_z_pixelwise;
   uint8_t previous_frame_offset[2];
@@ -110,7 +126,7 @@ struct edgeflow_results_t {
 
 // Global Functions divergence
 void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results,
-                   const int8_t FOVX, const int8_t FOVY, int8_t image_width, int8_t image_height, int8_t use_monocam);
+                   const int8_t FOVX, const int8_t FOVY, int16_t image_width, int16_t image_height, int8_t use_monocam);
 void edgeflow_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16t, uint8_t stereocam_len,
                     uint8_t current_image_buffer[],
                     struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results);
@@ -125,17 +141,24 @@ void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_pa
 void image_difference(uint8_t *in, uint8_t *in_prev, uint8_t *out, uint16_t image_width, uint16_t image_height);
 void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t image_width, uint16_t image_height,
                               char direction, char side, uint16_t edge_threshold);
-uint32_t calculate_displacement(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
-                                uint16_t size, uint8_t window, uint8_t disp_range, int32_t der_shift);
-uint32_t calculate_displacement_stereo(int32_t *edge_histogram, int32_t *edge_histogram_prev, int32_t *displacement,
-                                       uint16_t size, uint8_t window, uint8_t disp_range);
-int32_t calculate_displacement_fullimage(int32_t *edge_histogram, int32_t *edge_histogram_2, uint16_t size,
-    uint8_t disp_range);
+uint32_t calculate_displacement(int32_t *edge_histogram,
+                                int32_t *edge_histogram_prev, int32_t *displacement, uint16_t size,
+                                uint8_t window, uint8_t disp_range, int32_t der_shift);
+uint32_t calculate_displacement_stereo(int32_t *edge_histogram,
+                                       int32_t *edge_histogram_right, int32_t *displacement, uint16_t size,
+                                       uint8_t window, uint8_t disp_range, int16_t stereo_shift);
+int32_t calculate_displacement_fullimage(int32_t *edge_histogram,
+    int32_t *edge_histogram_2, uint16_t size, uint8_t disp_range, int16_t stereo_shift);
 
+void avoid_velocity_from_stereo(int32_t *stereo_distance_per_column, int32_t *vel_x_stereo_avoid_pixelwise,
+                                int32_t *vel_z_stereo_avoid_pixelwise, int32_t max_velocity, int32_t size, int32_t border, int16_t stereo_shift);
 uint32_t line_fit(int32_t *displacement, int32_t *Slope, int32_t *Yint, uint32_t image_width, uint32_t border,
                   uint16_t RES);
-void line_fit_RANSAC(int32_t *displacement, int32_t *slope, int32_t *yInt, uint16_t size, uint32_t border,
-                     uint32_t RES);
+uint32_t weighted_line_fit(int32_t *displacement, uint8_t *faulty_distance, int32_t *divergence, int32_t *flow,
+                           uint32_t size, uint32_t border,
+                           uint16_t RES);
+void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow,
+                     uint8_t *faulty_distance, uint16_t size, uint32_t border, int32_t RES);
 
 void totalKalmanFilter(struct covariance_t *coveriance, struct edge_flow_t *prev_edge_flow,
                        struct edge_flow_t *edge_flow, uint32_t Q, uint32_t R, uint32_t RES);
