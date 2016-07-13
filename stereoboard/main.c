@@ -147,9 +147,9 @@ const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
 #ifdef EDGEFLOW_DEBUG
-uint8_t edgeflowArray[128 * 3];
+uint8_t edgeflowArray[128 * 5];
 #else
-uint8_t edgeflowArray[24];
+uint8_t edgeflowArray[25];
 #endif
 
 void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY,
@@ -784,7 +784,7 @@ int main(void)
 
       if (current_stereoboard_algorithm == SEND_EDGEFLOW) {
 #ifdef EDGEFLOW_DEBUG
-        SendArray(edgeflowArray, 128, 3);
+        SendArray(edgeflowArray, 128, 5);
 #else
         SendArray(edgeflowArray, 25, 1);
 #endif
