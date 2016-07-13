@@ -1,3 +1,6 @@
 [submodule "libs"]
 	path = libs
-	url = https://github.com/tudelft/STM32F4xx_DSP_StdPeriph_Lib.git
+	url = git@github.com:tudelft/STM32F4xx_DSP_StdPeriph_Lib.git
+[submodule "pprzlink"]
+	path = pprzlink
+	url = git@github.com:kirkscheper/pprzlink.git
