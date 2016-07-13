@@ -31,7 +31,7 @@ ifeq ($(findstring .h,$(PROJECT)), .h)
 else
 	PROJECT_PATH = projects/$(PROJECT).h
 endif
-CFLAGS   += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPRoJECT_FILE=\"./$(PROJECT_PATH)\"
+CFLAGS   += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPROJECT_FILE=\"./$(PROJECT_PATH)\"
 
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 CFLAGS       += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress -Wstrict-prototypes #-Wextra
