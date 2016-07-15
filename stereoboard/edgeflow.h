@@ -16,8 +16,6 @@
 #include "main_parameters.h"
 #endif
 
-#define IMAGE_WIDTH 128
-#define IMAGE_HEIGHT 96
 #ifndef MAX_HORIZON
 #define MAX_HORIZON 10
 #endif
@@ -29,97 +27,98 @@
 
 
 struct edge_hist_t {
-  int32_t x[IMAGE_WIDTH];
-  int32_t y[IMAGE_HEIGHT];
-  int32_t frame_time;
-  int16_t roll;
-  int16_t pitch;
+  int32_t x[IMAGE_WIDTH];     // Edge_hist: edgehistogram in x-direction (image coordinates)
+  int32_t y[IMAGE_HEIGHT];      // Edge_hist: edgehistogram in y-direction (image coordinates)
+  int32_t frame_time;       // Edge_hist: Frame time corresponding to the image from which the edge histogram is made
+  int16_t roll;           // Edge_hist: roll position at the time
+  int16_t pitch;          // Edge_hist: pitch position at the time
+  int16_t yaw;            // Edge_hist: yaw position at the time
 };
 
-//Edge Flow calculated from previous frame (adaptive frame selection)
 struct edge_flow_t {
-  int32_t flow_x;
-  int32_t div_x;
-  int32_t flow_y;
-  int32_t div_y;
+  int32_t flow_x;         // Edge_flow: translational flow in x-direction (image coordinates)
+  int32_t div_x;          // Edge_flow: divergence in x-direction (image coordinates)
+  int32_t flow_y;         // Edge_flow: translational flow in y-direction (image coordinates)
+  int32_t div_y;          // Edge_flow: divergence in y-direction (image coordinates)
 };
 
 struct displacement_t {
-  int32_t x[IMAGE_WIDTH];
-  int32_t y[IMAGE_HEIGHT];
-  int32_t stereo[IMAGE_WIDTH];
+  int32_t x[IMAGE_WIDTH];     // Displacement: pixel displacement of edgehistograms (in time) in x-direction (image coordinates)
+  int32_t y[IMAGE_HEIGHT];      // Displacement: pixel displacement of edgehistograms (in time) in Y-direction (image coordinates)
+  int32_t stereo[IMAGE_WIDTH];    // Displacement: pixel displacement of edgehistograms (in stereo) in x-direction (image coordinates)
 };
 
 struct covariance_t {
-  int32_t C_flow_x;
-  int32_t C_flow_y;
-  int32_t C_div_x;
-  int32_t C_div_y;
-  int32_t C_height;
+  int32_t C_flow_x;         // Kalman: covariance matrix of translational flow in x-direction (image coordinates)
+  int32_t C_flow_y;         // Kalman: covariance matrix of translational flow in y-direction (image coordinates)
+  int32_t C_div_x;          // Kalman: covariance matrix of divergence in x-direction (image coordinates)
+  int32_t C_div_y;          // Kalman: covariance matrix of divergence in y-direction (image coordinates)
+  int32_t C_height;         // Kalman: covariance matrix of global
 };
 
 struct edgeflow_parameters_t {
-  int8_t FOVX;
-  int8_t FOVY;
-  int16_t image_width;
-  int16_t image_height;
-  int8_t max_disparity_range;
-  int8_t max_horizon;
-  int8_t adapt_horizon;
-  int8_t snapshot;
-  int16_t snapshot_lenght;
-  int8_t autopilot_mode;
-  int8_t disparity_range;
-  int8_t window_size;
-  int8_t derotation;
-  int8_t edge_flow_kalman;
-  int32_t Q;
-  int32_t R;
-  uint8_t initialisedDivergence;
-  int16_t alt_state_lisa;
-  int16_t dphi;
-  int16_t dtheta;
-  int32_t RES;
-  int32_t use_monocam;
-  int16_t stereo_shift;
+  int8_t FOVX;                // Camera Parameters: Field of view of x axis
+  int8_t FOVY;                // Camera Parameters: Field of view of y axis
+  int16_t image_width;            // Camera Parameters: Image width in pixels
+  int16_t image_height;           // Camera Parameters: Image height in pixels
+  int16_t stereo_camera_seperation;     // Camera Parameters: How far the cameras are apart on a stereocamera
+  int8_t max_disparity_range;       // Block matching: Maximum disparity range
+  int8_t max_horizon;           // EdgeFlow: Maximum horizon for edgeflow to look back in time
+  int8_t adapt_horizon;           // Edgeflow: 0 = off 1 = on, To use adaptive horizon comparison or only compare with the next immediate frame
+  int8_t snapshot;              // Modes: 0 = off 1 = on, Take snapshot to compare next frames to (in this case edgehistograms)
+  int16_t snapshot_lenght;          // Snapshot: How many loops you have to wait before taking another snapshot
+  int8_t disparity_range;         // Block matching: Actual search disparity range for block matching
+  int8_t window_size;           // Block matching: Window size of neighbouring values
+  int8_t derotation;            // Modes: 0 = off 1 = on,  To derotate the flow based on IMU data  (received from the autopilot)
+  int8_t kalman_on;             // Kalman Filter: Use it or not
+  int32_t Q;                // Kalman Filter: Process noise parameter
+  int32_t R;                // Kalman Filter: Measurement noise parameter
+  int32_t RES;                // EdgeFlow: Resolution factor
+  int32_t use_monocam;            // Modes: 0 = using stereocamera, 1 = using monocam
+  int16_t stereo_shift;           // Edgeflow: necessary stereo_shift (from calibration) to obtain the right
+  int16_t alt_state_lisa;         // Paparazzi: Receive altitude from state from autopilot
+  int8_t autopilot_mode;          // Paparazzi: Receive autopilot mode from paparazzi
+
 };
 
 struct edgeflow_results_t {
-  struct edge_hist_t edge_hist[MAX_HORIZON];
-  struct edge_hist_t edge_hist_snapshot;
-  struct edge_flow_t edge_flow;
-  struct edge_flow_t prev_edge_flow;
-  struct displacement_t displacement;
-  int32_t velocity_per_column[IMAGE_WIDTH];
-  int32_t stereo_distance_per_column[IMAGE_WIDTH];
-  int32_t prev_stereo_distance_per_column[IMAGE_WIDTH];
-  int32_t velocity_stereo_mean;
-  struct covariance_t covariance;
-  uint8_t snapshot_is_taken;
-  uint16_t snapshot_counter;
-  uint8_t quality_measures_edgeflow[DIVERGENCE_QUALITY_MEASURES_LENGTH];
-  uint8_t current_frame_nr;
-  uint32_t R_height;
-  uint32_t R_x;
-  uint32_t R_y;
-  int32_t avg_disp;
-  int32_t avg_dist;
-  int32_t prev_avg_dist;
-  int32_t vel_x_global;
-  int32_t vel_y_global;
-  int32_t vel_z_global;
-  int32_t vel_x_pixelwise;
-  int32_t vel_z_pixelwise;
-  int32_t vel_x_stereo_avoid_pixelwise;
-  int32_t vel_z_stereo_avoid_pixelwise;
-  int32_t prev_vel_x_global;
-  int32_t prev_vel_y_global;
-  int32_t prev_vel_z_global;
-  int32_t prev_vel_x_pixelwise;
-  int32_t prev_vel_z_pixelwise;
-  uint8_t previous_frame_offset[2];
-  int32_t hz_x;
-  int32_t hz_y;
+  struct edge_hist_t edge_hist[MAX_HORIZON];      // Edgeflow: Stores an array of edgehistograms for a maximum horizon
+  struct edge_hist_t edge_hist_snapshot;          // Edgeflow: Stores a snapshot edgehistogram
+  struct edge_flow_t edge_flow;             // Edgeflow: Translational flow and divergence measured in current time step
+  struct edge_flow_t
+      prev_edge_flow;          // Edgeflow: Translational flow and divergence measured in previous time step
+  struct displacement_t
+      displacement;         // Edgeflow: Saves displacement of edgeflow in x and y direction (image coordinates) and stereo
+  int32_t stereo_distance_per_column[IMAGE_WIDTH];    // Edgeflow: Stereo distance (from stereo displacement and camera parameters)
+  int32_t prev_stereo_distance_per_column[IMAGE_WIDTH]; // Edgeflow: Previous stereo distance
+  int32_t velocity_per_column[IMAGE_WIDTH];       // Edgeflow: Displacement x stereo distance x frequency per column
+  int32_t velocity_stereo_mean;             // Edgeflow: Velocity as measured from the difference between stereo distances in time
+  struct covariance_t covariance;           // Kalman: Covariance value for kalman filter
+  uint8_t snapshot_is_taken;              // Snapshot: Measure if snapshot is taken
+  uint16_t snapshot_counter;              // Snapshot: Counter to know how long ago the snapshot is taken
+  uint8_t quality_measures_edgeflow[DIVERGENCE_QUALITY_MEASURES_LENGTH]; //Quality measures
+  uint8_t current_frame_nr;               // Edgeflow: current frame number to indicate where the edge histogram was of the current time
+  uint8_t previous_frame_offset[2];           // Edgeflow: previous frame offset for the y direction (image coordinates)
+  int32_t avg_disp;                   // Edgeflow: displacement from full image matching
+  int32_t avg_dist;                   // Edgeflow: distance from full image matching
+  int32_t prev_avg_dist;                // Edgeflow: previous distance from full image matching
+  int32_t vel_x_global;                 // Edgeflow: Velocity measured from flow on x axis (x direction, image coordinates, sideways)
+  int32_t vel_y_global;                 // Edgeflow: Velocity measured from flow on y axis (y direction, image coordinates, upwards)
+  int32_t vel_z_global;                 // Edgeflow: Velocity measured from divergence on x axis (z direction, image coordinates) (out of image)
+  int32_t vel_x_pixelwise;                  // Edgeflow: Velocity measured of intercept of the line fit of velocity_per_column ( xdirection, image coordinates, sideways)
+  int32_t vel_z_pixelwise;                  // Edgeflow: Velocity measured of slope of the line fit of velocity_per_column (zdirection, image coordinates, out of image)
+  int32_t vel_x_stereo_avoid_pixelwise;         // Edgeflow: Avoid velocity based on stereo (xdirection, image coordinates, sideways)
+  int32_t vel_z_stereo_avoid_pixelwise;         // Edgeflow: Avoid velocity based on stereo (zdirection, image coordinates, out of image)
+  int32_t prev_vel_x_global;              // Edgeflow: Previous value of vel_x_global
+  int32_t prev_vel_y_global;              // Edgeflow: Previous value of vel_y_global
+  int32_t prev_vel_z_global;              // Edgeflow: Previous value of vel_z_global
+  int32_t prev_vel_x_pixelwise;             // Edgeflow: Previous value of vel_x_pixelwise
+  int32_t prev_vel_z_pixelwise;             // Edgeflow: Previous value of vel_z_pixelwise
+  int32_t hz_x;                     // Edgeflow: Frames per second, taking the compare horizon into account (x-direction image coordinates)
+  int32_t hz_y;                     // Edgeflow: Frames per second, taking the compare horizon into account (z-direction image coordinates)
+  int16_t dphi;                     // Edgeflow: Difference in angles roll from one frame to another
+  int16_t dtheta;                   // Edgeflow: Difference in angles pitch from one frame to another
+  int16_t dpsi;                     // Edgeflow: Difference in angles yaw from one frame to another
 };
 
 
@@ -160,15 +159,13 @@ uint32_t weighted_line_fit(int32_t *displacement, uint8_t *faulty_distance, int3
 void line_fit_RANSAC(int32_t *displacement, int32_t *divergence, int32_t *flow,
                      uint8_t *faulty_distance, uint16_t size, uint32_t border, int32_t RES);
 
-void totalKalmanFilter(struct covariance_t *coveriance, struct edge_flow_t *prev_edge_flow,
-                       struct edge_flow_t *edge_flow, uint32_t Q, uint32_t R, uint32_t RES);
 int32_t simpleKalmanFilter(int32_t *cov, int32_t previous_est, int32_t current_meas, int32_t Q, int32_t R, int32_t RES);
 int32_t moving_fading_average(int32_t previous_est, int32_t current_meas, int32_t alpha, int32_t RES);
 
 void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int32_t yInt, uint32_t image_width,
                           uint32_t image_height);
 
-//Helpfull functions
+//Help functions
 uint32_t getMinimum2(uint32_t *a, uint32_t n, uint32_t *min_error);
 uint32_t getMaximum(uint32_t *a, uint32_t n);
 uint32_t getMedian(int32_t *daArray, int32_t iSize);
