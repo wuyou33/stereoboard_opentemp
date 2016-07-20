@@ -8,14 +8,13 @@
  */
 
 #include "distance_matrix.h"
-#include "../multigaze/stereoboard_parameters.h"
-#include "main_parameters.h"
 
 #include "led.h"
+uint8_t matrix_buffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
 
 void calculateDistanceMatrix(uint8_t disparity_image[],
                              uint8_t blackBorderSize, uint8_t pixelsPerLine, uint8_t widthPerBin,
-                             uint8_t heightPerBin, uint8_t toSendBuffer[], uint32_t disparity_range)
+                             uint8_t heightPerBin, uint32_t disparity_range)
 {
 
   uint8_t y;
@@ -67,7 +66,7 @@ void calculateDistanceMatrix(uint8_t disparity_image[],
       n_disparities += disparityHistogram[bufferIndex][disp];
       // after n_disparities, we consider that the measurements are no longer noise
       if (n_disparities > COUNTER_THRESHOLD) {
-        toSendBuffer[bufferIndex] = disp;
+    	  matrix_buffer[bufferIndex] = disp;
         if (disp > CLOSE_BOUNDARY) {
           anyOn = 1;
         }
