@@ -56,7 +56,6 @@
 #include "filter_color.h"
 #include "stereo_vision.h"
 #include "window_detection.h"
-#include "../common/stereoprotocol.h"
 #include "forward_velocity_estimator.h"
 #include "disparity_map_functions.h"
 #include "odometry.h"

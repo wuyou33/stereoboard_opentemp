@@ -20,7 +20,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y)
 {
 
-  volatile uint16_t count_processed_pixels = 0; // number of points in disparity map
+  uint16_t processed_pixels = 0; // number of points in disparity map
 
   disparity_min = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
@@ -111,7 +111,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
 
-
+        	processed_pixels++;
 
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
@@ -176,7 +176,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
                 out[locationInBuffer] = 0;
               } else {
                 out[locationInBuffer] = sub_disp;
-                count_processed_pixels++;
+                processed_pixels++;
               }
               //sum_counts[disparity_value]++;
 
@@ -205,7 +205,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
 
-
+        	processed_pixels++;
 
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
@@ -271,7 +271,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
                 out[locationInBuffer] = 0;
               } else {
                 out[locationInBuffer] = sub_disp;
-                count_processed_pixels++;
+                processed_pixels++;
               }
 
 
@@ -305,8 +305,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
   }
   */
 
-  //return processed_pixels;
-  return count_processed_pixels;
+  return processed_pixels;
 
 }
 

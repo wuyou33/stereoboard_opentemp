@@ -6,7 +6,7 @@
  */
 
 #include "droplet_algorithm.h"
-#include "../common/led.h"
+#include "led.h"
 
 // parameter setting
 uint16_t obst_thr_1 = 7;       // obstacle threshold for phase 1
