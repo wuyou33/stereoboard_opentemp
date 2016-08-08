@@ -13,8 +13,9 @@
 #include <stdio.h>
 #else
 #include "arm_math.h"
-#include "main_parameters.h"
 #endif
+#include "main_parameters.h"
+
 
 #ifndef MAX_HORIZON
 #define MAX_HORIZON 10
@@ -29,6 +30,7 @@
 struct edge_hist_t {
   int32_t x[IMAGE_WIDTH];     // Edge_hist: edgehistogram in x-direction (image coordinates)
   int32_t y[IMAGE_HEIGHT];      // Edge_hist: edgehistogram in y-direction (image coordinates)
+  int32_t stereo[IMAGE_WIDTH];      // Edge_hist: edgehistogram in y-direction (image coordinates)
   int32_t frame_time;       // Edge_hist: Frame time corresponding to the image from which the edge histogram is made
   int16_t roll;           // Edge_hist: roll position at the time
   int16_t pitch;          // Edge_hist: pitch position at the time

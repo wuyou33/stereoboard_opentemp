@@ -110,6 +110,7 @@ void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters,
   edgeflow_parameters->use_monocam = use_monocam;
   edgeflow_parameters->snapshot = 0;
   edgeflow_parameters->derotation = 0;
+  edgeflow_parameters->adapt_horizon = 1;
 
   // Initialize variables
   edgeflow_results->current_frame_nr = 0;
@@ -339,7 +340,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   for (x = 0; x < image_width - 1; x++) {
 
     if (x > border && x < image_width - border
-        && edgeflow_results->displacement.stereo[x] > 1
+        && edgeflow_results->displacement.stereo[x] > 0
         && edgeflow_results->displacement.stereo[x]
         < (edgeflow_parameters->disparity_range))
 
@@ -379,14 +380,13 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   int32_t sideways_vel;
 
   // TODO: Choose which line fit to use.
-
-  /* uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
+/*   uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
                                           &sideways_vel, 128, border, 1);*/
 
   weighted_line_fit(edgeflow_results->velocity_per_column, faulty_distance, &forward_vel,
-                    &sideways_vel, image_width, border, RES);
+                    &sideways_vel, image_width, border, 1);
 
-  /*line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
+/*  line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
                   &sideways_vel, faulty_distance, 128, border, RES);*/
 
   *vel_z_pixelwise = forward_vel / (RES) ;
@@ -479,7 +479,7 @@ void calculate_edge_flow(uint8_t in[],
   // Define arrays and pointers for edge histogram and displacements
   int32_t *edge_histogram_x = edge_hist[*current_frame_nr].x;
   int32_t *prev_edge_histogram_x;
-  int32_t edge_histogram_x_right[IMAGE_WIDTH];
+  int32_t *edge_histogram_x_right =  edge_hist[*current_frame_nr].stereo;
 
   int32_t *edge_histogram_y = edge_hist[*current_frame_nr].y;
   int32_t *prev_edge_histogram_y;
@@ -491,8 +491,8 @@ void calculate_edge_flow(uint8_t in[],
     flow_mag_x = abs(edge_flow->flow_x);
     flow_mag_y = abs(edge_flow->flow_y);
 
-    uint32_t min_flow = 3;
-    uint32_t max_flow = disp_range - 2;
+    uint32_t min_flow = 3* RES;
+    uint32_t max_flow = (disp_range - 2)*RES;
     uint8_t previous_frame_offset_x = previous_frame_offset[0];
     uint8_t previous_frame_offset_y = previous_frame_offset[1];
 
