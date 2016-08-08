@@ -111,7 +111,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
 
-        	processed_pixels++;
+          processed_pixels++;
 
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
@@ -205,7 +205,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
         if (line_gradient[i] > line_gradient[i - 1] && line_gradient[i] > line_gradient[i + 1]
             && line_gradient[i] > GRADIENT_THRESHOLD) {
 
-        	processed_pixels++;
+          processed_pixels++;
 
           // set sum vector back to zero for new window
           arm_fill_q15(0, sum_cost, disparity_range);
