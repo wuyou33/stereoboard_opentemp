@@ -1,13 +1,43 @@
 
+#include "dcmi.h"
+
+#include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
-
-#include "dcmi.h"
+#include "stereo_utils.h"
 #include "camera_type.h"
-#include "../common/utils.h"
-#include "../common/led.h"
 
-void camera_reset_init()
+void camera_init(void)
+{
+  // Reset the camera's
+  camera_reset_init();
+  camera_reset();
+  // Make a 21MHz clock signal to the camera's
+  camera_clock_init();
+  // Stop resetting the camera (pin high)
+
+  camera_unreset();
+  // Initialize all camera GPIO and I2C pins
+  camera_dcmi_bus_init();
+  camera_control_bus_init();
+  // Start listening to DCMI frames
+  camera_dcmi_init();
+  // Start DCMI interrupts (interrupts on frame ready)
+  camera_dcmi_it_init();
+  camera_dcmi_dma_enable();
+
+  // Start DMA image transfer interrupts (interrupts on buffer full)
+  camera_dma_it_init();
+  Delay(0x07FFFF);
+
+  camera_unreset();
+  // Wait for at least 2000 clock cycles after reset
+  Delay(CAMERA_CHIP_UNRESET_TIMING);
+  // Communicate with camera, setup image type and start streaming
+  camera_chip_config();
+}
+
+void camera_reset_init(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -40,8 +70,6 @@ void camera_unreset(void)
   GPIO_SetBits(GPIOD, GPIO_Pin_2);
 
 }
-
-
 
 void camera_clock_init(void)
 {
@@ -244,7 +272,7 @@ void camera_crop(uint16_t offset)
   DCMI_CROPCmd(ENABLE);
 }
 
-void camera_dcmi_dma_enable()
+void camera_dcmi_dma_enable(void)
 {
   /* Enable DMA2 stream 1 and DCMI interface then start image capture */
   DMA_Cmd(DMA2_Stream1, ENABLE);
@@ -253,7 +281,7 @@ void camera_dcmi_dma_enable()
   // dma_it_init();
 }
 
-void camera_dcmi_dma_disable()
+void camera_dcmi_dma_disable(void)
 {
   /* Disable DMA2 stream 1 and DCMI interface then stop image capture */
   DMA_Cmd(DMA2_Stream1, DISABLE);
@@ -261,7 +289,7 @@ void camera_dcmi_dma_disable()
   DCMI_CaptureCmd(DISABLE);
 }
 
-void camera_dcmi_it_init()
+void camera_dcmi_it_init(void)
 {
   NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -291,15 +319,12 @@ void dcmi_isr(void)
       camera_crop( 0);*/
 
     //camera_crop( 0);
-
-    // led_toggle();
-
   }
 
   return;
 }
 
-void camera_dma_it_init()
+void camera_dma_it_init(void)
 {
   NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -323,6 +348,9 @@ void dma2_stream1_isr(void)
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1);
 
     frame_counter++;
+#ifdef NO_WAIT_FOR_FRAME
+    camera_snapshot();
+#endif
   }
 
   /* We do not use the half transfer interrupt!!

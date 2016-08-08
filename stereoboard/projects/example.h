@@ -32,18 +32,10 @@
 
 //////////////////////////////////////////////////////
 // Define image format
-#define IMAGE_WIDTH 128
-#define IMAGE_HEIGHT 96
-
 #if (DCMI_TEN_BITS == 1)
 #define BYTES_PER_PIXEL 4
 #else
 #define BYTES_PER_PIXEL 2
-#endif
-
-#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
-#if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
 #endif
 
 //////////////////////////////////////////////////////

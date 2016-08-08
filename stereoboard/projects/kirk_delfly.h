@@ -20,6 +20,7 @@
 #define DEFAULT_BOARD_FUNCTION SEND_WINDOW
 
 #define DCMI_DOUBLE_BUFFER
+#define NO_WAIT_FOR_FRAME
 //#define CAPTURE_MODE_SNAPSHOT
 
 //////////////////////////////////////////////////////

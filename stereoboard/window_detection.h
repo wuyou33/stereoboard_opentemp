@@ -12,7 +12,7 @@
 
 typedef enum {MODE_DISPARITY, MODE_ILLUMINANCE, MODE_FILTER} MODE;
 
-void window_init();
+void window_init(void);
 uint16_t detect_window_sizes(uint8_t *in, uint32_t image_width, uint32_t image_height, uint8_t *coordinate,
                              uint8_t *window_size,
                              uint32_t *integral_image, uint8_t MODE, uint8_t disparity_max);

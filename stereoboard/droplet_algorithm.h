@@ -8,7 +8,7 @@
 #ifndef DROPLET_ALGORITHM_H_
 #define DROPLET_ALGORITHM_H_
 
-#include <arm_math.h>
+#include <stdint.h>
 
 /* parameter setting
 extern int obst_thr_1;      // obstacle threshold for phase 1

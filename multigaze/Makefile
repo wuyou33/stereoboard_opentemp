@@ -25,12 +25,13 @@ CFLAGS       += -mcpu=cortex-m4	-DARM_MATH_CM4
 CFLAGS       += -ffreestanding -nostdlib
 CFLAGS       += -DTUNNEL$(TUNNEL)
 
+LFLAGS        =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
 # to run from FLASH
-CFLAGS       += -Wl,-T,stm32_flash.ld
+LFLAGS        += -Wl,-T,stm32_flash.ld
 
 SUBMODULE     = ../libs/README.md
 
-STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/
+STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1/
 STDPH_PATH    = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver/
 CMSIS_PATH    = ${STMLIB_PATH}/Libraries/CMSIS/
 DEVSUP_PATH   = ${CMSIS_PATH}/Device/ST/STM32F4xx/Include/
@@ -120,7 +121,7 @@ $(EXECUTABLE): 	\
 		$(MAIN_OBJS) \
 		${STDP_LIB}
 	@echo "========= TUNNEL = $(TUNNEL) ========="
-	$(CC) $(CFLAGS) $^ -o $@  -L./ -lSTM32F4xx_StdPeriph_Driver -lgcc -lc
+	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
 
 clean:
 	rm -rf $(EXECUTABLE)

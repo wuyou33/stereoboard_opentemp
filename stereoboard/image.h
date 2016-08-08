@@ -3,12 +3,13 @@
 
 #include <inttypes.h>
 #include "main_parameters.h"
+
 struct img_struct {
-  int seq;
-  double timestamp;
-  unsigned char *buf;
-  int w;
-  int h;
+  uint16_t seq;
+  uint32_t timestamp;
+  uint8_t *buf;
+  uint8_t w;
+  uint8_t h;
 };
 
 void setLineNumbers(uint8_t **givenImage, uint16_t width, uint16_t height);

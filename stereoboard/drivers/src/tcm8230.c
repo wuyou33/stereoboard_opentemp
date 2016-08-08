@@ -1,10 +1,10 @@
 
 #include "tcm8230.h"
+
+#include "../../../common/stereo_utils.h"
 #include "dcmi.h"
-#include "../common/utils.h"
-
 #include "stm32f4xx_conf.h"
-
+#include "usart.h"
 
 /**
   * @brief  Configures the tcm8230 camera
@@ -112,8 +112,6 @@ void camera_tcm8230_i2c_init(void)
 
 uint8_t tcm8230_WriteReg(uint8_t Addr, uint8_t Data);
 uint8_t tcm8230_ReadReg(uint8_t Addr, uint8_t *reply);
-
-#include "usart.h"
 
 void camera_tcm8230_config(void)
 {

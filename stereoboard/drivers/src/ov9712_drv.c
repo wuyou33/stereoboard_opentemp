@@ -25,10 +25,10 @@
  */
 
 
+#include "../../../common/stereo_utils.h"
 #include "ov9712_reg.h"
 #include "ov9712.h"
 #include "sccb.h"
-#include "../common/utils.h"
 #include "../common/led.h"
 
 /*

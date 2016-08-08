@@ -1,40 +1,37 @@
 
 #ifndef _DATA_TYPES_H_
 #define _DATA_TYPES_H_
+
 #include <inttypes.h>
-typedef struct{
-  int x;
-  int y;
-}int_point;
 
-typedef struct{
+struct point_i {
+  uint16_t x;
+  uint16_t y;
+};
+
+struct point_f {
   float x;
   float y;
-}float_point;
+};
 
-typedef struct{
-  uint8_t x;
-  uint8_t y;
-}uint8_t_point;
+struct rectangle_i {
+  uint16_t x;
+  uint16_t y;
+  uint16_t w;
+  uint16_t h;
+};
 
-typedef struct{
-  int x;
-  int y;
-  int width;
-  int height;
-}int_rectangle;
-
-typedef struct{
+struct rectangle_f {
   float x;
   float y;
-  float width;
-  float height;
-}float_rectangle;
+  uint16_t w;
+  uint16_t h;
+};
 
+struct image_i {
+  uint8_t *image;
+  uint16_t w;
+  uint16_t h;
+};
 
-typedef struct {
-  uint8_t* image;
-  int imageWidth;
-  int imageHeight;
-} uint8_t_image;
-#endif
+#endif	// _DATA_TYPES_H_

@@ -47,7 +47,7 @@ struct UartDataStruct {
 
 
 // Low-level interaction
-void usart_init();
+void usart_init(void);
 
 int usart_char_available(struct UartDataStruct *dev);
 uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev);

@@ -1,3 +1,5 @@
+#include "blob.h"
+
 void image_labeling(struct image_t *input, struct image_t *output, struct image_filter_t *filters, uint8_t filters_cnt,
                     struct image_label_t *labels, uint16_t *labels_count)
 {
@@ -7,10 +9,12 @@ void image_labeling(struct image_t *input, struct image_t *output, struct image_
   // Initialize labels
   uint16_t labels_size = *labels_count;
   uint16_t labels_cnt = 0;
+  uint16_t y, x;
+  uint16_t i;
 
   // Do steps of 2 for YUV image
-  for (uint16_t y = 0; y < input->h; y++) {
-    for (uint16_t x = 0; x < input->w / 2; x++) {
+  for (y = 0; y < input->h; y++) {
+    for (x = 0; x < input->w / 2; x++) {
       uint8_t p_y = (input_buf[y * input->w * 2 + x * 4 + 1] + input_buf[y * input->w * 2 + x * 4 + 3]) / 2;
       uint8_t p_u = input_buf[y * input->w * 2 + x * 4];
       uint8_t p_v = input_buf[y * input->w * 2 + x * 4 + 2];
@@ -64,7 +68,7 @@ void image_labeling(struct image_t *input, struct image_t *output, struct image_
             n = labels[lid].id;
           }
 
-          for (uint16_t i = 0; i < labels_cnt; i++) {
+          for (i = 0; i < labels_cnt; i++) {
             if (labels[i].id == n) {
               labels[i].id = m;
             }
@@ -111,7 +115,7 @@ void image_labeling(struct image_t *input, struct image_t *output, struct image_
   }
 
   // Merge connected labels
-  for (uint16_t i = 0; i < labels_cnt; i++) {
+  for (i = 0; i < labels_cnt; i++) {
     if (labels[i].id != i) {
       uint16_t new_id = labels[i].id;
       labels[new_id].pixel_cnt += labels[i].pixel_cnt;
