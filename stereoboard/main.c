@@ -499,7 +499,7 @@ int main(void)
 
         int disparities_high = 0;
         disparities_high =  evaluate_disparities_droplet(disparity_image.image, image_width, image_height, 30);
-        current_phase = run_droplet_algorithm(disparities_high, sys_time_get());
+        current_phase = run_droplet_algorithm(disparities_high, processed_pixels, sys_time_get());
 
         if (current_phase == 1) {
           toSendCommand = 0;
