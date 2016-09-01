@@ -35,6 +35,7 @@
 // Other sensors
 //#include "hmc5883.h"
 #include "tmg3993.h" // IR proximity sensor
+#include "vl6180.h"
 
 // include setttings
 #include "main_parameters.h"
@@ -60,7 +61,7 @@
 #include "disparity_map_functions.h"
 #include "odometry.h"
 #include "learning.h"
-#include "vl6180.h"
+#include "dronerace_gate_detector.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -86,7 +87,7 @@ struct image_i disparity_image;
 
 /* Private functions ---------------------------------------------------------*/
 typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_EDGEFLOW, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS,
-              SEND_MEANSHIFT, SEND_VL6180
+              SEND_MEANSHIFT, SEND_VL6180,DRONERACE
              } stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
@@ -95,6 +96,8 @@ stereoboard_algorithm_type getBoardFunction(void)
 {
 #if defined(SEND_COMMANDS)
   return SEND_COMMANDS;
+#elif defined(DRONERACE)
+  return DRONERACE;
 #elif defined(SEND_IMAGE)
   return SEND_IMAGE;
 #elif defined(SEND_DISPARITY_MAP)
@@ -196,6 +199,7 @@ void array_pop(float *array, int lengthArray)
     array[index - 1] = array[index];
   }
 }
+
 
 /**
  * @brief  Main program
@@ -494,6 +498,10 @@ int main(void)
         }
       }
 
+      if(current_stereoboard_algorithm == DRONERACE){
+    	 int command = get_command_detection_gate();
+    	 SendCommand(command);
+      }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 
