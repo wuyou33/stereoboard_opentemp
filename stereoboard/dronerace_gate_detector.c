@@ -40,34 +40,36 @@ float get_average_value_area_something(int min_x, int min_y, int max_x, int max_
 	return dd;
 }
 
-void roland_integral(uint8_t *activationArray,uint32_t *my_int){
-	// do the first line
-	uint8_t *fl = activationArray;
-	uint32_t *fli = my_int;
-	int x=0;
-	fli[0]=fl[0];
-	for(x=0; x<INTEGRAL_IMAGE_WIDTH-1;x++){
-		fli[1]=fl[1]+fli[0];
-		fli++;
-		fl++;
-	}
+void roland_integral(uint8_t *activationArray,uint32_t image_width, uint32_t image_height, uint32_t *my_int){
+    // do the first line
+    uint8_t *fl = activationArray;
+    uint32_t *fli = my_int;
+    int x=0;
+    fli[0]=fl[0];
+    for(x=0; x<image_width-1;x++){
+        fli[1]=fl[1]+fli[0];
+        fli++;
+        fl++;
+    }
 
-	// do all other lines
-	int line=0;
-	for(line=1;line<=INTEGRAL_IMAGE_HEIGHT;line++){
-		uint32_t *cur_l_int = my_int+INTEGRAL_IMAGE_WIDTH*line;
-		uint8_t *cur_l_ac = activationArray + INTEGRAL_IMAGE_WIDTH*line;
-		uint32_t *prev_l_int = my_int+INTEGRAL_IMAGE_WIDTH*(line-1);
-		cur_l_int[0] = prev_l_int[0]+cur_l_ac[0];
-		for(x=0;x<INTEGRAL_IMAGE_WIDTH;x++){
-			cur_l_int[1]=x;
-			cur_l_int[1]=cur_l_ac[1]+cur_l_int[0]+prev_l_int[1]-prev_l_int[0];
-			cur_l_int++;
-			cur_l_ac++;
-			prev_l_int++;
-		}
-	}
+    // do all other lines
+    int line=0;
+    for(line=1;line<image_height;line++){
+        uint32_t *cur_l_int = my_int+image_width*line;
+        uint8_t *cur_l_ac = activationArray + image_width*line;
+        uint32_t *prev_l_int = my_int+image_width*(line-1);
+        cur_l_int[0] = prev_l_int[0]+cur_l_ac[0];
+        for(x=0;x<image_width-1;x++){
+            cur_l_int[1]=x;
+            cur_l_int[1]=cur_l_ac[1]+cur_l_int[0]+prev_l_int[1]-prev_l_int[0];
+            cur_l_int++;
+            cur_l_ac++;
+            prev_l_int++;
+        }
+    }
 }
+
+
 
 
 
@@ -138,7 +140,7 @@ int get_command_detection_gate(uint8_t *current_image_buffer){
 	// Roland note: used get_integral_image and roland_integral. Note sure if they give the same results.
 	integral_image_t my_int;
 	//		get_integral_image(activationArray,INTEGRAL_IMAGE_WIDTH, INTEGRAL_IMAGE_HEIGHT, my_int.data);
-	roland_integral(activationArray,my_int.data);
+	roland_integral(activationArray,INTEGRAL_IMAGE_WIDTH,INTEGRAL_IMAGE_HEIGHT,my_int.data);
 	act=activationArray;
 
 
