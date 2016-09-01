@@ -73,8 +73,6 @@
 #endif
 
 
-#endif /* PROJECT_HEADER_H_ */
-
 
 
 

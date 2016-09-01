@@ -118,7 +118,7 @@ void SendDisparityMap(uint8_t *b)
     ;
 }
 
-void SendArray(uint8_t *b, uint8_t array_width, uint8_t array_height)
+void SendArray(uint8_t *b, int array_width, int array_height)
 {
   uint8_t code[4];
   code[0] = 0xff;

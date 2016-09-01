@@ -129,6 +129,7 @@ $(EXECUTABLE): 	\
 clean:
 	rm -rf $(EXECUTABLE)
 	rm -rf $(BIN_IMAGE)
+	rm -rf drivers/src/*.o
 	rm -rf *.lst *.o
 
 mrproper:
