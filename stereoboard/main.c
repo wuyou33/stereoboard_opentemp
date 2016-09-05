@@ -62,6 +62,7 @@
 #include "odometry.h"
 #include "learning.h"
 #include "dronerace_gate_detector.h"
+#include "gate_detection.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -454,9 +455,9 @@ int main(void)
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
           || current_stereoboard_algorithm == SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == DISPARITY_BASED_VELOCITY
-          || (current_stereoboard_algorithm == STEREO_VELOCITY && !SUB_SAMPLING)) {
+          || current_stereoboard_algorithm == DRONERACE || (current_stereoboard_algorithm == STEREO_VELOCITY && !SUB_SAMPLING)) {
 
-        // Kirk: What's this? Don't forget to add comments
+        // If we do STEREO_VELOCITY we only determine disparities from time to time:
         if (current_stereoboard_algorithm != STEREO_VELOCITY || frame_counter % inv_freq_stereo == 0) {
           // Determine disparities:
           min_y = 0;
@@ -499,8 +500,10 @@ int main(void)
       }
 
       if(current_stereoboard_algorithm == DRONERACE){
-    	 int command = get_command_detection_gate();
-    	 SendCommand(command);
+        float x_center, y_center, radius, fitness;
+        int initialize_fit_with_pars = 0;
+    	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars);
+        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
