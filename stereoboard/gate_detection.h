@@ -22,6 +22,7 @@
 	void convert_disparitymap_to_points(struct image_i* disparity_image);
 	void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness);
 	float mean_distance_to_circle(float* genome);
+  float get_outlier_ratio(float* genome, float total_sum_weights);
 
   // square not implemented for now, but could easily be done:
 	// float mean_distance_to_square();
