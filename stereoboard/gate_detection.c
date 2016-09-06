@@ -27,11 +27,11 @@ float Population[N_INDIVIDUALS][N_GENES];
 float weights[MAX_POINTS];
 int min_points = 5;
 int WEIGHTED = 1; 
-int STICK = 1;
+int STICK = 0;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
-int min_disparity = 3;
+int min_disparity = 4;
 float outlier_threshold = 25.0f;
 
 
@@ -204,6 +204,35 @@ float get_sum(float* nums, int n_elements)
 	}
 	return sum;
 }
+
+void convert_disparitymap_to_histogram(struct image_i* disparity_image)
+{
+
+	// convert the disparity map to points:
+  int y, x, i;
+  uint8_t disp;
+  uint16_t p = 0;
+  uint16_t hist [1000];
+
+  for ( i = 0; i<1000; i++)
+  {
+	  hist[i] = 0;
+  }
+	for (y = 0; y < (*disparity_image).h; y++)
+	{
+		for (x = 0; x < (*disparity_image).w; x++)
+		{
+			// get the disparity from the image:
+			disp = (*disparity_image).image[y*(*disparity_image).w + x];
+
+			if (disp > min_disparity * RESOLUTION_FACTOR)
+			{
+				hist[disp]++;
+			}
+		}
+	}
+}
+
 
 void convert_disparitymap_to_points(struct image_i* disparity_image)
 {

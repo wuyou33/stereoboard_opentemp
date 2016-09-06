@@ -18,6 +18,7 @@
   void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars);
 
 	// "private" functions:
+  	void convert_disparitymap_to_histogram(struct image_i* disparity_image);
 	void convert_disparitymap_to_points(struct image_i* disparity_image);
 	void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness);
 	float mean_distance_to_circle(float* genome);
