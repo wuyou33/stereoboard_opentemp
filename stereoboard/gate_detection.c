@@ -22,6 +22,9 @@ uint16_t n_points;
 #define N_GENES 3
 uint16_t n_generations = 5; // could be reduced for instance when there are many points
 float Population[N_INDIVIDUALS][N_GENES];
+#define DISTANCE_FIT 0
+#define INLIERS_FIT 1
+#define FF INLIERS_FIT
 
 // Settings for the fitting:
 float weights[MAX_POINTS];
@@ -112,6 +115,8 @@ void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
 		Population[i][2] = (*size0) + 5 * get_random_number() - 2.5f;
 	}
 
+  float total_sum_weights = get_sum(weights, N_INDIVIDUALS);
+
 	// large number, since we will minimize it:
 	(*fitness) = 1000000;
 	float fits[N_INDIVIDUALS];
@@ -125,7 +130,16 @@ void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
 		{
 			if (SHAPE == CIRCLE)
 			{
-				fits[i] = mean_distance_to_circle(Population[i]);
+        if(FF == DISTANCE_FIT)
+        {
+          // optimize mean distance to circle (and possibly stick) 
+				  fits[i] = mean_distance_to_circle(Population[i]);
+        }
+        else
+        {
+          // optimize the number of inliers
+          fits[i] = get_outlier_ratio(Population[i], total_sum_weights);
+        }
 			}
 		}
 
@@ -163,7 +177,7 @@ void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
 	}
 
   // put the final values back in the parameters:
-	(*fitness) /= get_sum(weights, N_INDIVIDUALS);
+  if(FF == DISTANCE_FIT) (*fitness) /= total_sum_weights;
 	(*x0) = best_genome[0];
 	(*y0) = best_genome[1];
 	(*size0) = best_genome[2];
@@ -297,6 +311,58 @@ float mean_distance_to_circle(float* genome)
 	mean_distance /= n_points;
 	return mean_distance;
 }
+
+float get_outlier_ratio(float* genome, float total_sum_weights)
+{
+	float x = genome[0];
+	float y = genome[1];
+	float r = genome[2];
+
+	float outlier_ratio = 0.0f;
+	struct point_f point;
+	float dx, dy;
+	float dist_center, error, error_stick;
+  uint8_t p;
+	for (p = 0; p < n_points; p++)
+	{
+		point = points[p];
+		dx = point.x - x;
+		dy = point.y - y;
+		dist_center = sqrtf(dx*dx + dy*dy);
+		error = fabs(dist_center - r);
+    
+		if (STICK)
+		{
+			// determine distance to the stick:
+			struct point_f stick1;
+      stick1.x = x;
+      stick1.y = y - r;
+			struct point_f stick2;
+      stick2.x = x;
+      stick2.y = y - 2*r;
+			error_stick = distance_to_segment(stick1, stick2, point);
+
+			// take the smallest error:
+			if (error_stick < error) error = error_stick;
+		}
+
+		// if outlier, augment outlier_ratio:
+		if (error > outlier_threshold)
+    {
+  		if (WEIGHTED)
+	  	{
+	  		outlier_ratio += weights[p];
+		  }
+		  else
+		  {
+		  	outlier_ratio += 1.0f;
+		  }
+    }
+	}
+	outlier_ratio /= total_sum_weights;
+	return outlier_ratio;
+}
+
 
 float distance_to_line(struct point_f Q1, struct point_f Q2, struct point_f P)
 {
