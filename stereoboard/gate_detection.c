@@ -344,13 +344,13 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 
 void draw_circle(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
 {
-  float t_step = 0.01; // should depend on radius, but hey...
+  float t_step = 0.05; // should depend on radius, but hey...
 	int x, y;
   float t;
 	for (t = 0.0f; t < (float)(2 * PI); t += t_step)
 	{
-		x = x_center + (int)(cos(t)*radius);
-		y = y_center + (int)(sin(t)*radius);
+		x = (int)x_center + (int)(cosf(t)*radius);
+		y = (int)y_center + (int)(sinf(t)*radius);
 		if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
       Im->image[y*Im->w+x] = color[0];
