@@ -31,7 +31,7 @@ int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
-int min_disparity = 2;
+int min_disparity = 5;
 float outlier_threshold = 25.0f;
 
 
@@ -342,7 +342,7 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
 {
   float t_step = 0.01; // should depend on radius, but hey...
 	int x, y;
-  float t;
+  float t;/*
 	for (t = 0.0f; t < (float)(2 * PI); t += t_step)
 	{
 		x = x_center + (int)(cos(t)*radius);
@@ -351,6 +351,13 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
 		{
       Im->image[y*Im->w+x] = color[0];
 		}
-	}
+
+	}*/
+  x = x_center;
+  y = y_center;
+  if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
+  {
+	  Im->image[y*Im->w+x] = color[0];
+  }
   return;
 }

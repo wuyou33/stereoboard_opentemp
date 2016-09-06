@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP//SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION DRONERACE//SEND_IMAGE
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1
 
@@ -22,6 +22,10 @@
 //#define LARGE_IMAGE
 //#define ODOMETRY 1
 
+#define USE_USART4
+#define UsartTx Usart4Tx
+#define UsartRx Usart4Rx
+#define UsartCh Usart4Ch
 #define USART4_BAUD 2000000
 
 
