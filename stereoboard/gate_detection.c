@@ -20,7 +20,7 @@ uint16_t n_points;
 // Settings for the evolution:
 #define N_INDIVIDUALS 10
 #define N_GENES 3
-uint16_t n_generations = 30; // could be reduced for instance when there are many points
+uint16_t n_generations = 5; // could be reduced for instance when there are many points
 float Population[N_INDIVIDUALS][N_GENES];
 
 // Settings for the fitting:
