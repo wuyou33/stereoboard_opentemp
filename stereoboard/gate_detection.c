@@ -56,7 +56,6 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 		// 2) fit a window to the points
 
 		// determine initial guess:
-
 		if (!initialize_fit_with_pars)
 		{
   		float x0, y0, size0;
@@ -237,6 +236,11 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
           return;
         }
 			}
+      else
+      {
+        // make the pixel black, so that we can see it on the ground station:
+        disparity_image->image[y * disparity_image->w + x] = 0;
+      }
 		}
 	}
 
