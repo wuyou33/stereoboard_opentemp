@@ -31,7 +31,7 @@ int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
-int min_disparity = 5;
+int min_disparity = 3;
 float outlier_threshold = 25.0f;
 
 
@@ -216,33 +216,34 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
 	{
 		for (x = 0; x < (*disparity_image).w; x++)
 		{
-      // get the disparity from the image:
+			// get the disparity from the image:
 			disp = (*disparity_image).image[y*(*disparity_image).w + x];
 
 			if (disp > min_disparity * RESOLUTION_FACTOR)
 			{
-        // add the points to the array, and use disparity as the weight:
+				// add the points to the array, and use disparity as the weight:
 				points[p].x = (float) x;
 				points[p].y = (float) y;
 				weights[p] = (float) disp;
 
-        // count the number of points:
-        p++;
+				// count the number of points:
+				p++;
 
-        // if the maximum number of points is reached, return:
-        if(p == MAX_POINTS)
-        {
-          n_points = p;
-          return;
-        }
+				// if the maximum number of points is reached, return:
+				if(p == MAX_POINTS)
+				{
+				  n_points = p;
+				  return;
+				}
 			}
-      else
-      {
-        // make the pixel black, so that we can see it on the ground station:
-        disparity_image->image[y * disparity_image->w + x] = 0;
-      }
+		  else
+		  {
+			// make the pixel black, so that we can see it on the ground station:
+			disparity_image->image[y * disparity_image->w + x] = 0;
+		  }
 		}
 	}
+
 
   // set the global variable n_points to the right value:
   n_points = p;
@@ -346,22 +347,35 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
 {
   float t_step = 0.05; // should depend on radius, but hey...
 	int x, y;
-  float t;/*
+  float t;
+
 	for (t = 0.0f; t < (float)(2 * PI); t += t_step)
 	{
 		x = (int)x_center + (int)(cosf(t)*radius);
 		y = (int)y_center + (int)(sinf(t)*radius);
 		if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
-      Im->image[y*Im->w+x] = color[0];
+			Im->image[y * (Im->w) + x] = 128;
 		}
 
-	}*/
-  x = x_center;
-  y = y_center;
-  if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
+	}/*
+  x_center = 64;
+  y_center = 48;
+
+  x = (int) x_center;
+  y = (int) y_center;
+
+  //Im->image[(y*128)+x] = 255;
+  /*
+  if (x >= 2 && x < Im->w-2 && y >= 2 && y < Im->h-2)
   {
-	  Im->image[y*Im->w+x] = color[0];
-  }
+	  for(x = (int)x_center-2; x < (int)x_center+2; x++)
+	  {
+		  for(y = (int)y_center-2; y < (int)y_center+2; y++)
+		  {
+			  Im->image[y*Im->w+x] = 255; //color[0];
+		  }
+	  }
+  }*/
   return;
 }
