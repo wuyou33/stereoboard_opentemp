@@ -381,8 +381,10 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 	float rx = Q2.y - Q1.y;
 	float ry = -(Q2.x - Q1.x);
 	float norm_r = sqrtf(rx*rx+ry*ry);
-	float i_x = (rx / norm_r) * dist_line + P.x;
-	float i_y = (ry / norm_r) * dist_line + P.y;
+  rx = (rx / norm_r) * dist_line;
+  ry = (ry / norm_r) * dist_line;
+	float i_x = rx + P.x;
+	float i_y = ry + P.y;
 	struct point_f I;
   I.x = i_x;
   I.y = i_y;
