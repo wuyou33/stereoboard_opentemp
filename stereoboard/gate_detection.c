@@ -13,7 +13,10 @@
 #include <stdlib.h>
 
 // variables that have to be remembered in between function calls:
-#define MAX_POINTS 150
+#define MAX_POINTS 300
+// since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, the order of columns / rows has to be "random":
+int ys[96] = {87, 83, 57, 50, 76, 84, 81, 73, 10, 33, 86, 3, 28, 49, 90, 25, 6, 16, 75, 89, 66, 85, 64, 30, 17, 60, 95, 92, 26, 20, 80, 40, 23, 70, 27, 4, 36, 43, 38, 65, 78, 51, 62, 96, 15, 29, 52, 94, 54, 45, 58, 72, 5, 71, 14, 44, 47, 41, 42, 79, 34, 74, 56, 69, 37, 93, 31, 63, 59, 88, 9, 55, 46, 11, 1, 35, 77, 32, 82, 18, 22, 7, 39, 48, 61, 68, 19, 67, 53, 91, 12, 2, 24, 13, 8, 21};
+int xs[128] = {49, 7, 4, 82, 53, 39, 118, 68, 55, 67, 106, 77, 116, 117, 127, 99, 103, 61, 74, 22, 48, 113, 31, 89, 2, 108, 112, 85, 6, 110, 62, 16, 95, 120, 30, 83, 21, 125, 71, 56, 14, 8, 90, 91, 40, 66, 51, 52, 17, 114, 88, 105, 33, 18, 5, 102, 38, 122, 107, 41, 44, 124, 79, 59, 29, 100, 27, 26, 69, 24, 94, 46, 76, 10, 75, 63, 81, 47, 54, 96, 87, 119, 123, 73, 128, 1, 45, 9, 28, 58, 42, 72, 36, 86, 97, 12, 121, 92, 64, 11, 126, 13, 50, 98, 32, 80, 43, 34, 15, 57, 84, 78, 20, 19, 109, 35, 70, 3, 111, 65, 23, 37, 93, 101, 115, 60, 104, 25};
 struct point_f points[MAX_POINTS];
 uint16_t n_points;
 
@@ -30,12 +33,12 @@ float Population[N_INDIVIDUALS][N_GENES];
 float weights[MAX_POINTS];
 int min_points = 5;
 int WEIGHTED = 1; 
-int STICK = 0;
+int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
-int min_disparity = 4;
-float outlier_threshold = 25.0f;
+int min_disparity = 2;
+float outlier_threshold = 20.0f;
 
 
 // whether to draw on the disparity image:
@@ -219,35 +222,6 @@ float get_sum(float* nums, int n_elements)
 	return sum;
 }
 
-void convert_disparitymap_to_histogram(struct image_i* disparity_image)
-{
-
-	// convert the disparity map to points:
-  int y, x, i;
-  uint8_t disp;
-  uint16_t p = 0;
-  uint16_t hist [1000];
-
-  for ( i = 0; i<1000; i++)
-  {
-	  hist[i] = 0;
-  }
-	for (y = 0; y < (*disparity_image).h; y++)
-	{
-		for (x = 0; x < (*disparity_image).w; x++)
-		{
-			// get the disparity from the image:
-			disp = (*disparity_image).image[y*(*disparity_image).w + x];
-
-			if (disp > min_disparity * RESOLUTION_FACTOR)
-			{
-				hist[disp]++;
-			}
-		}
-	}
-}
-
-
 void convert_disparitymap_to_points(struct image_i* disparity_image)
 {
 
@@ -259,34 +233,33 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
 	{
 		for (x = 0; x < (*disparity_image).w; x++)
 		{
-			// get the disparity from the image:
-			disp = (*disparity_image).image[y*(*disparity_image).w + x];
+      // get the disparity from the image:
+			disp = (*disparity_image).image[ys[y]*(*disparity_image).w + xs[x]];
 
 			if (disp > min_disparity * RESOLUTION_FACTOR)
 			{
-				// add the points to the array, and use disparity as the weight:
-				points[p].x = (float) x;
-				points[p].y = (float) y;
+        // add the points to the array, and use disparity as the weight:
+				points[p].x = (float) xs[x];
+				points[p].y = (float) ys[y];
 				weights[p] = (float) disp;
 
-				// count the number of points:
-				p++;
+        // count the number of points:
+        p++;
 
-				// if the maximum number of points is reached, return:
-				if(p == MAX_POINTS)
-				{
-				  n_points = p;
-				  return;
-				}
+        // if the maximum number of points is reached, return:
+        if(p == MAX_POINTS)
+        {
+          n_points = p;
+          return;
+        }
 			}
-		  else
-		  {
-			// make the pixel black, so that we can see it on the ground station:
-			disparity_image->image[y * disparity_image->w + x] = 0;
-		  }
+      else
+      {
+        // make the pixel black, so that we can see it on the ground station:
+        disparity_image->image[ys[y] * disparity_image->w + xs[x]] = 0;
+      }
 		}
 	}
-
 
   // set the global variable n_points to the right value:
   n_points = p;
@@ -411,8 +384,10 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 	float rx = Q2.y - Q1.y;
 	float ry = -(Q2.x - Q1.x);
 	float norm_r = sqrtf(rx*rx+ry*ry);
-	float i_x = (rx / norm_r) * dist_line + P.x;
-	float i_y = (ry / norm_r) * dist_line + P.y;
+  rx = (rx / norm_r) * dist_line;
+  ry = (ry / norm_r) * dist_line;
+	float i_x = rx + P.x;
+	float i_y = ry + P.y;
 	struct point_f I;
   I.x = i_x;
   I.y = i_y;
@@ -443,34 +418,14 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
   float t_step = 0.05; // should depend on radius, but hey...
 	int x, y;
   float t;
-
 	for (t = 0.0f; t < (float)(2 * PI); t += t_step)
 	{
 		x = (int)x_center + (int)(cosf(t)*radius);
 		y = (int)y_center + (int)(sinf(t)*radius);
 		if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
-			Im->image[y * (Im->w) + x] = 128;
+      Im->image[y*Im->w+x] = color[0];
 		}
-
-	}/*
-  x_center = 64;
-  y_center = 48;
-
-  x = (int) x_center;
-  y = (int) y_center;
-
-  //Im->image[(y*128)+x] = 255;
-  /*
-  if (x >= 2 && x < Im->w-2 && y >= 2 && y < Im->h-2)
-  {
-	  for(x = (int)x_center-2; x < (int)x_center+2; x++)
-	  {
-		  for(y = (int)y_center-2; y < (int)y_center+2; y++)
-		  {
-			  Im->image[y*Im->w+x] = 255; //color[0];
-		  }
-	  }
-  }*/
+	}
   return;
 }
