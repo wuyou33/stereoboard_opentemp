@@ -13,7 +13,10 @@
 #include <stdlib.h>
 
 // variables that have to be remembered in between function calls:
-#define MAX_POINTS 150
+#define MAX_POINTS 300
+// since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, the order of columns / rows has to be "random":
+int ys[96] = {87, 83, 57, 50, 76, 84, 81, 73, 10, 33, 86, 3, 28, 49, 90, 25, 6, 16, 75, 89, 66, 85, 64, 30, 17, 60, 95, 92, 26, 20, 80, 40, 23, 70, 27, 4, 36, 43, 38, 65, 78, 51, 62, 96, 15, 29, 52, 94, 54, 45, 58, 72, 5, 71, 14, 44, 47, 41, 42, 79, 34, 74, 56, 69, 37, 93, 31, 63, 59, 88, 9, 55, 46, 11, 1, 35, 77, 32, 82, 18, 22, 7, 39, 48, 61, 68, 19, 67, 53, 91, 12, 2, 24, 13, 8, 21};
+int xs[128] = {49, 7, 4, 82, 53, 39, 118, 68, 55, 67, 106, 77, 116, 117, 127, 99, 103, 61, 74, 22, 48, 113, 31, 89, 2, 108, 112, 85, 6, 110, 62, 16, 95, 120, 30, 83, 21, 125, 71, 56, 14, 8, 90, 91, 40, 66, 51, 52, 17, 114, 88, 105, 33, 18, 5, 102, 38, 122, 107, 41, 44, 124, 79, 59, 29, 100, 27, 26, 69, 24, 94, 46, 76, 10, 75, 63, 81, 47, 54, 96, 87, 119, 123, 73, 128, 1, 45, 9, 28, 58, 42, 72, 36, 86, 97, 12, 121, 92, 64, 11, 126, 13, 50, 98, 32, 80, 43, 34, 15, 57, 84, 78, 20, 19, 109, 35, 70, 3, 111, 65, 23, 37, 93, 101, 115, 60, 104, 25};
 struct point_f points[MAX_POINTS];
 uint16_t n_points;
 
@@ -35,7 +38,7 @@ int STICK = 1;
 #define SQUARE 1
 int SHAPE = CIRCLE;
 int min_disparity = 2;
-float outlier_threshold = 25.0f;
+float outlier_threshold = 20.0f;
 
 
 // whether to draw on the disparity image:
@@ -231,13 +234,13 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
 		for (x = 0; x < (*disparity_image).w; x++)
 		{
       // get the disparity from the image:
-			disp = (*disparity_image).image[y*(*disparity_image).w + x];
+			disp = (*disparity_image).image[ys[y]*(*disparity_image).w + xs[x]];
 
 			if (disp > min_disparity * RESOLUTION_FACTOR)
 			{
         // add the points to the array, and use disparity as the weight:
-				points[p].x = (float) x;
-				points[p].y = (float) y;
+				points[p].x = (float) xs[x];
+				points[p].y = (float) ys[y];
 				weights[p] = (float) disp;
 
         // count the number of points:
@@ -253,7 +256,7 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
       else
       {
         // make the pixel black, so that we can see it on the ground station:
-        disparity_image->image[y * disparity_image->w + x] = 0;
+        disparity_image->image[ys[y] * disparity_image->w + xs[x]] = 0;
       }
 		}
 	}
