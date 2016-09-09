@@ -242,7 +242,7 @@ int get_command_detection_gate(uint8_t *current_image_buffer){
 //	int processed_pixels = stereo_vision_sparse_block_two_sided(current_image_buffer,
 //								 disparity_image.image, 10,
 //								 disparity_min, disparity_range, disparity_step, thr1, thr2,
-//								 min_y, max_y);
+//								 min_y, max_y); // add a histogram to it, if you uncomment
 	if(loc_y==length_activation_array/2){
 		return 1; // immer geradeaus
 	}

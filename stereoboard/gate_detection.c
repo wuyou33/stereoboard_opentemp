@@ -17,8 +17,8 @@
 // since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, we sample according to a "moving" grid
 // these starting points are made for a grid with step size 3
 #define GRID_STEP 3
-int Y0 = {0,1,2,0,1,2,0,1,2};
-int X0 = {0,0,0,1,1,1,2,2,2};
+int Y0[9] = {0,1,2,0,1,2,0,1,2};
+int X0[9] = {0,0,0,1,1,1,2,2,2};
 
 /*
 // since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, the order of columns / rows has to be "random":

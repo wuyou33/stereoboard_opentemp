@@ -388,6 +388,15 @@ int main(void)
     histogram_type = AVOID_ME_HISTOGRAM;
   }
 
+  // DRONERACE:
+  float x_center = 64;
+  float y_center = 48;
+  float radius = 50;
+  float fitness = 0.4f; 
+
+  // variable for making a sub-pixel disparity histogram:
+  q15_t sub_disp_histogram[disparity_range*RESOLUTION_FACTOR];
+
   // Disparity based velocity estimation variables
   uint8_t maxDispFound = 0;
   int disparity_velocity_step = 0;
@@ -473,7 +482,7 @@ int main(void)
             processed_pixels = stereo_vision_sparse_block_two_sided(current_image_buffer,
                                disparity_image.image, image_width, image_height,
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
-                               min_y, max_y);
+                               min_y, max_y, sub_disp_histogram);
           }
         }
       }
@@ -500,8 +509,7 @@ int main(void)
       }
 
       if(current_stereoboard_algorithm == DRONERACE){
-        float x_center, y_center, radius, fitness;
-        int initialize_fit_with_pars = 0;
+        int initialize_fit_with_pars = 1;
     	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars);
         SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
