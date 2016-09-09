@@ -509,10 +509,13 @@ int main(void)
       }
 
       if(current_stereoboard_algorithm == DRONERACE){
-        int initialize_fit_with_pars = 1;
-        int min_sub_disparity = disparity_range * RESOLUTION_FACTOR;
+    	int initialize_fit_with_pars = 0;
+    	if(fitness < BAD_FIT)
+    		  initialize_fit_with_pars = 1;
+
+        int min_sub_disparity = disparity_range * RESOLUTION_FACTOR-1;
         int sum_points = 0;
-        while(min_sub_disparity > 0 && sum_points < MAX_POINTS)
+        while( (min_sub_disparity > 0) && (sum_points < MAX_POINTS) )
         {
           min_sub_disparity--;
           sum_points += sub_disp_histogram[min_sub_disparity];

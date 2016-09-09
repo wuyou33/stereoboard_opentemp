@@ -27,6 +27,7 @@
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
 #define USART4_BAUD 2000000
+#define LED_TOGGLE
 
 
 

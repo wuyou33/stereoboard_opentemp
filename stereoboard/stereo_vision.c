@@ -78,7 +78,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
 
   // set sum vector back to zero for new window
   //arm_fill_q15(0, sum_counts, disparity_range);
-  arm_fill_q15(0, sub_disp_histogram, disparity_range);
+  arm_fill_q15(0, sub_disp_histogram, disparity_range*RESOLUTION_FACTOR);
   // check that disparity search stays within the bounds of the input image
   int8_t offset = DISPARITY_OFFSET_LEFT > DISPARITY_OFFSET_RIGHT ? DISPARITY_OFFSET_LEFT : DISPARITY_OFFSET_RIGHT;
   max_y = (max_y + offset) < image_height ? max_y : image_height - offset;
@@ -184,6 +184,8 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
                 processed_pixels++;
               }
               //sum_counts[disparity_value]++;
+              if(sub_disp >= 0 && sub_disp < disparity_range*RESOLUTION_FACTOR)
+				sub_disp_histogram[sub_disp]++;
   
             }
             //          out[superIndexInBuffer++]=c1_i;
@@ -254,7 +256,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
             if (locationInBuffer < 12288) {
 
               sub_disp = (disparity_range - 1 - disparity_value) * RESOLUTION_FACTOR;
-              out[locationInBuffer] = sub_disp;//c1_i;
+              //out[locationInBuffer+(sub_disp/RESOLUTION_FACTOR)] = sub_disp;//c1_i;
 
               if (disparity_value > 0 && disparity_value < disparity_max) {
                 x1 = disparity_value - 1;
@@ -276,7 +278,7 @@ uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t i
                 out[locationInBuffer] = 0;
                 sub_disp = 0;
               } else {
-                out[locationInBuffer] = sub_disp;
+                out[locationInBuffer-(sub_disp/RESOLUTION_FACTOR)] = sub_disp;
                 processed_pixels++;
               }
 
