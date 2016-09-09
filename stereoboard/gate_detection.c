@@ -485,23 +485,43 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
   float dist_line = distance_to_line(Q1, Q2, P);
 
 	// calculate intersection point:
-	float rx = Q2.y - Q1.y;
+	float rx = Q2.y - Q1.y; // always negative, -r
 	float ry = -(Q2.x - Q1.x);
 	float norm_r = sqrtf(rx*rx+ry*ry);
   rx = (rx / norm_r) * dist_line;
   ry = (ry / norm_r) * dist_line;
-	float i_x = rx + P.x;
-	float i_y = ry + P.y;
+
+  // rx < 0, so:
+  // if P.x > Q1.x, it should be P.x + rx
+  // else it should be P.x - rx
+	float i_x;
+	float i_y;
+  if(P.x > Q1.x)
+  {
+    i_x = P.x + rx;
+    i_y = P.y + ry;
+  }
+  else
+  {
+    i_x = P.x - rx;
+    i_y = P.y - ry;
+  }
 	struct point_f I;
   I.x = i_x;
   I.y = i_y;
+
+  /*
+  Slow code:
 	float dI = distance_to_line(Q1, Q2, I);
 	if (dI > 1e-10)
 	{
 		I.x = P.x - rx;
 		I.y = P.y - ry;
 	}
+  */
 		
+  /*
+  // Slow code:
 	// check if it is on the segment:
 	float d1 = sqrtf((Q1.x-I.x)*(Q1.x - I.x) + (Q1.y - I.y)*(Q1.y - I.y));
 	float d2 = sqrtf((Q2.x - I.x)*(Q2.x - I.x) + (Q2.y - I.y)*(Q2.y - I.y));
@@ -513,7 +533,21 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 		d2 = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
 		if (d2 < dist_line) dist_line = d2;
 	}
-		
+  */
+		 
+  // leave out superfluous sqrtf - for comparisons it does not matter (monotonously increasing functions)
+  // we can still precalculate (Q1.x - I.x) etc. but I don't know if it is actually calculated twice (optimized by compiler?)
+  float d1 = (Q1.x - I.x)*(Q1.x - I.x) + (Q1.y - I.y)*(Q1.y - I.y);
+	float d2 = (Q2.x - I.x)*(Q2.x - I.x) + (Q2.y - I.y)*(Q2.y - I.y);
+	float d_12 = (Q2.x - Q1.x)*(Q2.x - Q1.x) + (Q2.y - Q1.y)*(Q2.y - Q1.y);
+	if (d1 > d_12 || d2 > d_12)
+	{
+		// not on segment, determine minimum distance to one of the two extremities:
+		dist_line = (Q1.x - P.x)*(Q1.x - P.x) + (Q1.y - P.y)*(Q1.y - P.y);
+		d2 = (Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y);
+		if (d2 < dist_line) dist_line = sqrtf(d2);
+	}
+
 	return dist_line;
 }
 
