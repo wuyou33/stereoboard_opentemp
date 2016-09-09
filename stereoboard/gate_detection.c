@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 // variables that have to be remembered in between function calls:
-#define MAX_POINTS 150
+
 // since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, we sample according to a "moving" grid
 // these starting points are made for a grid with step size 3
 #define GRID_STEP 3
@@ -47,7 +47,8 @@ int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
-int min_disparity = 2;
+// Now a parameter:
+// int min_disparity = 2;
 float outlier_threshold = 20.0f;
 
 
@@ -61,10 +62,10 @@ int GRAPHICS = 1;
  * @author Guido
  */
 
-void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars)
+void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars, int min_sub_disparity)
 {
   // 1) convert the disparity map to a vector of points:
-	convert_disparitymap_to_points(disparity_image);
+	convert_disparitymap_to_points(disparity_image, min_sub_disparity);
 
   // if there are enough points close by:
 	if (n_points > min_points)
@@ -232,7 +233,7 @@ float get_sum(float* nums, int n_elements)
 	return sum;
 }
 
-void convert_disparitymap_to_points(struct image_i* disparity_image)
+void convert_disparitymap_to_points(struct image_i* disparity_image, int min_sub_disparity)
 {
   int y, x, sp;
 	uint8_t disp;
@@ -252,7 +253,7 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
         // get the disparity from the image:
 			  disp = (*disparity_image).image[y*(*disparity_image).w + x];
 
-			  if (disp > min_disparity * RESOLUTION_FACTOR)
+			  if (disp > min_sub_disparity)
 			  {
           // add the points to the array, and use disparity as the weight:
 				  points[p].x = (float) x;

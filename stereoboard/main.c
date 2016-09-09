@@ -510,7 +510,22 @@ int main(void)
 
       if(current_stereoboard_algorithm == DRONERACE){
         int initialize_fit_with_pars = 1;
-    	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars);
+        int min_sub_disparity = disparity_range * RESOLUTION_FACTOR;
+        int sum_points = 0;
+        while(min_sub_disparity > 0 && sum_points < MAX_POINTS)
+        {
+          min_sub_disparity--;
+          sum_points += sub_disp_histogram[min_sub_disparity];
+        }
+        if(sum_points > MAX_POINTS) 
+        {
+          // we should take one sub-disparity higher, as else we supersede the maximum number of points:
+          min_sub_disparity++;
+        }
+        // potentially enforce a minimum require disparity:
+        int enforced_min = 12;
+        min_sub_disparity = min_sub_disparity > enforced_min ? min_sub_disparity : enforced_min;
+    	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
         SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
       // determine phase of flight
