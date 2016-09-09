@@ -517,9 +517,11 @@ int main(void)
           min_sub_disparity--;
           sum_points += sub_disp_histogram[min_sub_disparity];
         }
-        if(sum_points > MAX_POINTS) 
+        if(sum_points > MAX_POINTS && sub_disp_histogram[min_sub_disparity] < MAX_POINTS / 2) 
         {
           // we should take one sub-disparity higher, as else we supersede the maximum number of points:
+          // however, if the number of points in the last bin is substantial, we rely on the cut-off in the
+          // convert disparity map function.
           min_sub_disparity++;
         }
         // potentially enforce a minimum require disparity:
