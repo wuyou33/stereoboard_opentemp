@@ -109,6 +109,8 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
       uint8_t color[1];
       color[0] = 255;
 		  draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);
+      if(STICK)
+        draw_stick(disparity_image, (*x_center), (*y_center), (*radius), color);
     }
 	}
 	else
@@ -567,3 +569,17 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
 	}
   return;
 }
+
+void draw_stick(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
+{
+  int x, y;
+  x = (int) x_center;
+  for(y = (int)(y_center - 2*radius); y <  (int)(y_center - radius); y++)
+  {
+    if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
+		{
+      Im->image[y*Im->w+x] = color[0];
+		} 
+  }
+}
+
