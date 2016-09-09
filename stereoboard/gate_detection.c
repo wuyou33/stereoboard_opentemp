@@ -13,21 +13,31 @@
 #include <stdlib.h>
 
 // variables that have to be remembered in between function calls:
-#define MAX_POINTS 300
+
+// since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, we sample according to a "moving" grid
+// these starting points are made for a grid with step size 3
+#define GRID_STEP 3
+int Y0[9] = {0,1,2,0,1,2,0,1,2};
+int X0[9] = {0,0,0,1,1,1,2,2,2};
+
+/*
 // since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, the order of columns / rows has to be "random":
 int ys[96] = {87, 83, 57, 50, 76, 84, 81, 73, 10, 33, 86, 3, 28, 49, 90, 25, 6, 16, 75, 89, 66, 85, 64, 30, 17, 60, 95, 92, 26, 20, 80, 40, 23, 70, 27, 4, 36, 43, 38, 65, 78, 51, 62, 96, 15, 29, 52, 94, 54, 45, 58, 72, 5, 71, 14, 44, 47, 41, 42, 79, 34, 74, 56, 69, 37, 93, 31, 63, 59, 88, 9, 55, 46, 11, 1, 35, 77, 32, 82, 18, 22, 7, 39, 48, 61, 68, 19, 67, 53, 91, 12, 2, 24, 13, 8, 21};
 int xs[128] = {49, 7, 4, 82, 53, 39, 118, 68, 55, 67, 106, 77, 116, 117, 127, 99, 103, 61, 74, 22, 48, 113, 31, 89, 2, 108, 112, 85, 6, 110, 62, 16, 95, 120, 30, 83, 21, 125, 71, 56, 14, 8, 90, 91, 40, 66, 51, 52, 17, 114, 88, 105, 33, 18, 5, 102, 38, 122, 107, 41, 44, 124, 79, 59, 29, 100, 27, 26, 69, 24, 94, 46, 76, 10, 75, 63, 81, 47, 54, 96, 87, 119, 123, 73, 128, 1, 45, 9, 28, 58, 42, 72, 36, 86, 97, 12, 121, 92, 64, 11, 126, 13, 50, 98, 32, 80, 43, 34, 15, 57, 84, 78, 20, 19, 109, 35, 70, 3, 111, 65, 23, 37, 93, 101, 115, 60, 104, 25};
+*/
 struct point_f points[MAX_POINTS];
 uint16_t n_points;
 
 // Settings for the evolution:
 #define N_INDIVIDUALS 10
 #define N_GENES 3
-uint16_t n_generations = 5; // could be reduced for instance when there are many points
+uint16_t n_generations = 30; // could be reduced for instance when there are many points
 float Population[N_INDIVIDUALS][N_GENES];
+
+// watch out: inliers fit does not work so well...
 #define DISTANCE_FIT 0
 #define INLIERS_FIT 1
-#define FF INLIERS_FIT
+#define FF DISTANCE_FIT
 
 // Settings for the fitting:
 float weights[MAX_POINTS];
@@ -37,7 +47,8 @@ int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
-int min_disparity = 2;
+// Now a parameter:
+// int min_disparity = 2;
 float outlier_threshold = 20.0f;
 
 
@@ -51,10 +62,10 @@ int GRAPHICS = 1;
  * @author Guido
  */
 
-void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars)
+void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars, int min_sub_disparity)
 {
   // 1) convert the disparity map to a vector of points:
-	convert_disparitymap_to_points(disparity_image);
+	convert_disparitymap_to_points(disparity_image, min_sub_disparity);
 
   // if there are enough points close by:
 	if (n_points > min_points)
@@ -78,7 +89,7 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 			mean_y /= n_points;
 			x0 = mean_x;
 			y0 = mean_y;
-			size0 = sqrt(mean_x*mean_x + mean_y*mean_y);
+			size0 = sqrtf(mean_x*mean_x + mean_y*mean_y);
 
   		// run the fit procedure:
   		fit_window_to_points(&x0, &y0, &size0, fitness);
@@ -118,7 +129,7 @@ void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
 		Population[i][2] = (*size0) + 5 * get_random_number() - 2.5f;
 	}
 
-  float total_sum_weights = get_sum(weights, N_INDIVIDUALS);
+  float total_sum_weights = get_sum(weights, n_points);
 
 	// large number, since we will minimize it:
 	(*fitness) = 1000000;
@@ -213,7 +224,7 @@ float get_minimum(float* nums, int n_elements, int *index)
 
 float get_sum(float* nums, int n_elements)
 {
-  float sum = 0.0f;
+  float sum = nums[0];
   uint16_t i;
 	for (i = 1; i < n_elements; i++)
 	{
@@ -222,8 +233,100 @@ float get_sum(float* nums, int n_elements)
 	return sum;
 }
 
-void convert_disparitymap_to_points(struct image_i* disparity_image)
+void convert_disparitymap_to_points(struct image_i* disparity_image, int min_sub_disparity)
 {
+  int y, x, sp;
+	uint8_t disp;
+	uint16_t p = 0;
+  
+  // We stop sampling at MAX_POINTS, but do not want our samples to be biased toward a certain
+  // part of the image. 
+  // We have different grid starting points (GRID_STEP*GRID_STEP) so that for every different 
+  // starting point sp, we will sample different positions in the image, finally covering the
+  // whole image.
+  for(sp = 0; sp < GRID_STEP*GRID_STEP; sp++)
+  {
+	  for (y = Y0[sp]; y < (*disparity_image).h; y+=GRID_STEP)
+	  {
+		  for (x = X0[sp]; x < (*disparity_image).w; x+=GRID_STEP)
+		  {
+        // get the disparity from the image:
+			  disp = (*disparity_image).image[y*(*disparity_image).w + x];
+
+			  if (disp > min_sub_disparity)
+			  {
+          // add the points to the array, and use disparity as the weight:
+				  points[p].x = (float) x;
+				  points[p].y = (float) y;
+				  weights[p] = (float) disp;
+
+          // count the number of points:
+          p++;
+
+          // if the maximum number of points is reached, return:
+          if(p == MAX_POINTS)
+          {
+            n_points = p;
+            return;
+          }
+			  }
+        else
+        {
+          // make the pixel black, so that we can see it on the ground station:
+          disparity_image->image[y * disparity_image->w + x] = 0;
+        }
+		  }
+	  }
+  }
+
+  /*
+  // THIS RESULTS IN VISITING CERTAIN ROWS FIRST
+	uint16_t x0 = 0;
+	uint8_t n_x = 5; // 5 x-coordinates at a time for each y coordinate
+
+  // ys and xs are permutations of the columns and rows, respectively
+  // we do batches of xs per y in order to prevent dominance of a single column:
+	while (x0 < (*disparity_image).w - n_x)
+	{
+		for (y = 0; y < (*disparity_image).h; y++)
+		{
+			for (x = x0; x < x0 + n_x; x++)
+			{
+				// get the disparity from the image:
+				disp = (*disparity_image).image[ys[y] * (*disparity_image).w + xs[x]];
+
+				if (disp > min_disparity * RESOLUTION_FACTOR)
+				{
+					// add the points to the array, and use disparity as the weight:
+					points[p].x = (float)xs[x];
+					points[p].y = (float)ys[y];
+					weights[p] = (float)disp;
+
+					// count the number of points:
+					p++;
+
+					// if the maximum number of points is reached, return:
+          // TODO: if still not working, don't return, but make remaining entries in disparity map 0
+					if (p == MAX_POINTS)
+					{
+						n_points = p;
+						return;
+					}
+				}
+				else
+				{
+					// make the pixel black, so that we can see it on the ground station:
+					disparity_image->image[ys[y] * disparity_image->w + xs[x]] = 0;
+				}
+			}
+		}
+		
+		x0 += n_x;
+	}
+  */
+
+  /* 
+  // OLD CODE that leads to biases in where points are sampled:
 
 	// convert the disparity map to points:
   int y, x;
@@ -260,6 +363,7 @@ void convert_disparitymap_to_points(struct image_i* disparity_image)
       }
 		}
 	}
+  */
 
   // set the global variable n_points to the right value:
   n_points = p;

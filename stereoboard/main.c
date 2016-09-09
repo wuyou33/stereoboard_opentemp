@@ -388,6 +388,15 @@ int main(void)
     histogram_type = AVOID_ME_HISTOGRAM;
   }
 
+  // DRONERACE:
+  float x_center = 64;
+  float y_center = 48;
+  float radius = 50;
+  float fitness = 0.4f; 
+
+  // variable for making a sub-pixel disparity histogram:
+  q15_t sub_disp_histogram[disparity_range*RESOLUTION_FACTOR];
+
   // Disparity based velocity estimation variables
   uint8_t maxDispFound = 0;
   int disparity_velocity_step = 0;
@@ -473,7 +482,7 @@ int main(void)
             processed_pixels = stereo_vision_sparse_block_two_sided(current_image_buffer,
                                disparity_image.image, image_width, image_height,
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
-                               min_y, max_y);
+                               min_y, max_y, sub_disp_histogram);
           }
         }
       }
@@ -500,9 +509,25 @@ int main(void)
       }
 
       if(current_stereoboard_algorithm == DRONERACE){
-        float x_center, y_center, radius, fitness;
-        int initialize_fit_with_pars = 0;
-    	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars);
+        int initialize_fit_with_pars = 1;
+        int min_sub_disparity = disparity_range * RESOLUTION_FACTOR;
+        int sum_points = 0;
+        while(min_sub_disparity > 0 && sum_points < MAX_POINTS)
+        {
+          min_sub_disparity--;
+          sum_points += sub_disp_histogram[min_sub_disparity];
+        }
+        if(sum_points > MAX_POINTS && sub_disp_histogram[min_sub_disparity] < MAX_POINTS / 2) 
+        {
+          // we should take one sub-disparity higher, as else we supersede the maximum number of points:
+          // however, if the number of points in the last bin is substantial, we rely on the cut-off in the
+          // convert disparity map function.
+          min_sub_disparity++;
+        }
+        // potentially enforce a minimum require disparity:
+        int enforced_min = 12;
+        min_sub_disparity = min_sub_disparity > enforced_min ? min_sub_disparity : enforced_min;
+    	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
         SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
       // determine phase of flight
