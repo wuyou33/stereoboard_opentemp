@@ -553,6 +553,31 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 	return dist_line;
 }
 
+float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P)
+{
+  // Calculating the distance to a vertical segment is actually quite simple:
+  // If the y coordinate of P is in between Q1.y and Q2.y, the shortest distance is orthogonal to the line
+  // If P.y > Q1.y (which is > Q2.y), then the distance to Q1 should be taken
+  // If P.y < Q2.y, then the distance to Q2 should be taken:
+  float dist_line;
+
+  if(P.y > Q1.y)
+  {
+  	dist_line = sqrtf((Q1.x - P.x)*(Q1.x - P.x) + (Q1.y - P.y)*(Q1.y - P.y));
+  }
+  else if(P.y >= Q2.y)
+  {
+    dist_line = fabs(P.x - Q1.x); // straight line to the vertical line segment
+  }
+  else
+  {
+    dist_line = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
+  }
+
+  return dist_line;
+}
+
+
 void draw_circle(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
 {
   float t_step = 0.05; // should depend on radius, but hey...

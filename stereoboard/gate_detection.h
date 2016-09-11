@@ -29,6 +29,7 @@
 
 	float distance_to_line(struct point_f Q1, struct point_f Q2, struct point_f P);
 	float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
+  float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
 
   // utility functions: should probably be placed in some other file:
 	float get_random_number(void);
