@@ -29,9 +29,9 @@ struct point_f points[MAX_POINTS];
 uint16_t n_points;
 
 // Settings for the evolution:
-#define N_INDIVIDUALS 10
+#define N_INDIVIDUALS 30
 #define N_GENES 3
-uint16_t n_generations = 30; // could be reduced for instance when there are many points
+uint16_t n_generations = 10; // could be reduced for instance when there are many points
 float Population[N_INDIVIDUALS][N_GENES];
 
 // watch out: inliers fit does not work so well...
@@ -43,7 +43,7 @@ float Population[N_INDIVIDUALS][N_GENES];
 float weights[MAX_POINTS];
 int min_points = 5;
 int WEIGHTED = 1; 
-int STICK = 1;
+int STICK = 0;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;
@@ -107,7 +107,7 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
     {
       // draw a circle on the disparity image:
       uint8_t color[1];
-      color[0] = 255;
+      color[0] = 128;
 		  draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);
       if(STICK)
         draw_stick(disparity_image, (*x_center), (*y_center), (*radius), color);

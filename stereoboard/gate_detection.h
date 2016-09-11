@@ -13,7 +13,7 @@
 
 #define GOOD_FIT 0.04
 #define BAD_FIT 0.12
-#define MAX_POINTS 150
+#define MAX_POINTS 250
 
   // main gate detection function:
   void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars, int min_sub_disparity);

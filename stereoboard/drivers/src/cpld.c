@@ -3,7 +3,6 @@
  */
 
 #include "cpld.h"
-
 #include "stm32f4xx_conf.h"
 #include "main_parameters.h"
 
