@@ -399,7 +399,7 @@ float mean_distance_to_circle(float* genome)
 			struct point_f stick2;
       stick2.x = x;
       stick2.y = y - 2*r;
-			error_stick = distance_to_segment(stick1, stick2, point);
+			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
 			if (error_stick < error) error = error_stick;
@@ -449,7 +449,7 @@ float get_outlier_ratio(float* genome, float total_sum_weights)
 			struct point_f stick2;
       stick2.x = x;
       stick2.y = y - 2*r;
-			error_stick = distance_to_segment(stick1, stick2, point);
+			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
 			if (error_stick < error) error = error_stick;
