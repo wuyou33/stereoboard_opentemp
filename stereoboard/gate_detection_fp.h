@@ -10,10 +10,11 @@
 
 #include "inttypes.h"
 #include "data_types.h"
+#include <arm_math.h>
 
-#define GOOD_FIT 0.04
-#define BAD_FIT 0.12
-#define MAX_POINTS 250  
+#define GOOD_FIT_FP 4
+#define BAD_FIT_FP 12
+#define MAX_POINTS_FP 250  
 
   void gate_detection_fp(struct image_i* disparity_image, q15_t* x_center, q15_t* y_center, q15_t* radius, q15_t* fitness, int initialize_fit_with_pars, int min_sub_disparity);
 

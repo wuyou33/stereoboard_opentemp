@@ -89,6 +89,7 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 			mean_y /= n_points;
 			x0 = mean_x;
 			y0 = mean_y;
+      // TODO: make a better size estimation - this is actually ridiculous:
 			size0 = sqrtf(mean_x*mean_x + mean_y*mean_y);
 
   		// run the fit procedure:
@@ -381,7 +382,7 @@ float mean_distance_to_circle(float* genome)
 	struct point_f point;
 	float dx, dy;
 	float dist_center, error, error_stick;
-  uint8_t p;
+  uint16_t p;
 	for (p = 0; p < n_points; p++)
 	{
 		point = points[p];
@@ -431,7 +432,7 @@ float get_outlier_ratio(float* genome, float total_sum_weights)
 	struct point_f point;
 	float dx, dy;
 	float dist_center, error, error_stick;
-  uint8_t p;
+  uint16_t p;
 	for (p = 0; p < n_points; p++)
 	{
 		point = points[p];
@@ -607,4 +608,3 @@ void draw_stick(struct image_i* Im, float x_center, float y_center, float radius
 		} 
   }
 }
-
