@@ -63,6 +63,7 @@
 #include "learning.h"
 #include "dronerace_gate_detector.h"
 #include "gate_detection.h"
+#include "gate_detection_fp.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
