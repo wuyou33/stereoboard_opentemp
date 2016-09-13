@@ -44,7 +44,7 @@ inline static uint32_t sys_time_get(void)
 
 inline static uint32_t get_timer_interval(uint32_t prev_time)
 {
-  uint32_t now = sys_time_get();
+  volatile uint32_t now = sys_time_get();
   if (now > prev_time) {
     return (now - prev_time);
   }

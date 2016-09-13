@@ -63,6 +63,7 @@
 #include "learning.h"
 #include "dronerace_gate_detector.h"
 #include "gate_detection.h"
+#include "gate_state_estimation.h"
 /********************************************************************/
 
 #define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
@@ -393,6 +394,7 @@ int main(void)
   float y_center = 48;
   float radius = 50;
   float fitness = 0.4f; 
+  float turn_rate = 0.0f;
 
   // variable for making a sub-pixel disparity histogram:
   q15_t sub_disp_histogram[disparity_range*RESOLUTION_FACTOR];
@@ -531,7 +533,10 @@ int main(void)
         int enforced_min = 12;
         min_sub_disparity = min_sub_disparity > enforced_min ? min_sub_disparity : enforced_min;
     	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
-        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+    	  update_filter(x_center, y_center, radius, fitness, &turn_rate, sys_time_get());
+    	  //SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+    	  uint8_t steer_command = turn_rate*10+10;
+    	  SendCommand((uint8_t) steer_command);
       }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
