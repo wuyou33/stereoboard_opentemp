@@ -23,13 +23,12 @@
 	void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness);
 	float mean_distance_to_circle(float* genome);
   float get_outlier_ratio(float* genome, float total_sum_weights);
-
-  // square not implemented for now, but could easily be done:
-	// float mean_distance_to_square();
+	float mean_distance_to_square(float* genome);
 
 	float distance_to_line(struct point_f Q1, struct point_f Q2, struct point_f P);
 	float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
   float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
+  float distance_to_horizontal_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
 
   // utility functions: should probably be placed in some other file:
 	float get_random_number(void);
