@@ -422,6 +422,73 @@ float mean_distance_to_circle(float* genome)
 	return mean_distance;
 }
 
+float mean_distance_to_square(float* genome)
+{
+	float x = genome[0];
+	float y = genome[1];
+	float r = genome[2];
+
+	float mean_distance = 0.0f;
+	struct point_f point;
+	float error, error_stick;
+  uint16_t p;
+  int index;
+
+  // determine corner points:
+  struct point_f square_top_left;
+  struct point_f square_top_right;
+  struct point_f square_bottom_right;
+  struct point_f square_bottom_left;
+  square_top_left.x = x-r;
+  square_top_left.y = y+r; // positive y direction is up
+  square_top_right.x = x+r;
+  square_top_right.y = y+r; // positive y direction is up
+  square_bottom_left.x = x-r;
+  square_bottom_left.y = y-r; // positive y direction is up
+  square_bottom_right.x = x+r;
+  square_bottom_right.y = y-r; // positive y direction is up
+  float side_distances[4];
+
+	for (p = 0; p < n_points; p++)
+	{
+    // determine the distance to the four sides of the square and select the smallest one:
+    side_distances[0] = distance_to_vertical_segment(square_top_left, square_bottom_left, point);
+    side_distances[1] = distance_to_vertical_segment(square_top_right, square_bottom_right, point);
+    side_distances[2] = distance_to_horizontal_segment(square_top_left, square_top_right, point);
+    side_distances[3] = distance_to_horizontal_segment(square_bottom_left, square_bottom_right, point);
+    error = get_minimum(side_distances, 4, &index);
+
+		if (STICK)
+		{
+			// determine distance to the stick:
+			struct point_f stick1;
+      stick1.x = x;
+      stick1.y = y - r;
+			struct point_f stick2;
+      stick2.x = x;
+      stick2.y = y - 2*r;
+			error_stick = distance_to_vertical_segment(stick1, stick2, point);
+
+			// take the smallest error:
+			if (error_stick < error) error = error_stick;
+		}
+
+		// apply outlier threshold before applying weights:
+		if (error > outlier_threshold) error = outlier_threshold;
+
+		if (WEIGHTED)
+		{
+			mean_distance += error * weights[p];
+		}
+		else
+		{
+			mean_distance += error;
+		}
+	}
+	mean_distance /= n_points;
+	return mean_distance;
+}
+
 float get_outlier_ratio(float* genome, float total_sum_weights)
 {
 	float x = genome[0];
@@ -556,6 +623,8 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 
 float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P)
 {
+  // Q1.y should be larger than Q2.y
+
   // Calculating the distance to a vertical segment is actually quite simple:
   // If the y coordinate of P is in between Q1.y and Q2.y, the shortest distance is orthogonal to the line
   // If P.y > Q1.y (which is > Q2.y), then the distance to Q1 should be taken
@@ -573,6 +642,32 @@ float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct 
   else
   {
     dist_line = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
+  }
+
+  return dist_line;
+}
+
+float distance_to_horizontal_segment(struct point_f Q1, struct point_f Q2, struct point_f P)
+{
+  // Q1.x should be smaller than Q2.x
+
+  // Calculating the distance to a horizontal segment is actually quite simple:
+  // If the x coordinate of P is in between Q1.x and Q2.x, the shortest distance is orthogonal to the line
+  // If P.x < Q1.x (which is < Q2.x), then the distance to Q1 should be taken
+  // If P.x > Q2.x, then the distance to Q2 should be taken:
+  float dist_line;
+
+  if(P.x > Q2.x)
+  {
+  	dist_line = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
+  }
+  else if(P.y >= Q1.x)
+  {
+    dist_line = fabs(P.y - Q1.y); // straight line to the horizontal line segment
+  }
+  else
+  {
+    dist_line = sqrtf((Q1.x - P.x)*(Q1.x - P.x) + (Q1.y - P.y)*(Q1.y - P.y));
   }
 
   return dist_line;

@@ -299,8 +299,83 @@ q15_t mean_distance_to_circle_fp(q15_t* genome)
 	return mean_distance;
 }
 
+q15_t mean_distance_to_square_fp(q15_t* genome)
+{
+  uint16_t p;
+  uint32_t index;
+	q15_t mean_distance = 0;
+  q15_t dist_center, error, error_stick;
+
+  // x = genome[0], y = genome[1], r = genome[2]
+	q15_t x = genome[0];
+	q15_t y = genome[1];
+	q15_t r = genome[2];
+
+  // determine points for the stick:
+	struct point_i stick1;
+	struct point_i stick2;
+  if(STICK_FP)
+  {
+    stick1.x = genome[0];
+    stick1.y = genome[1] - r;
+    stick2.x = genome[0];
+    stick2.y = genome[1] - 2*r;
+  }
+
+   // determine corner points:
+  struct point_f square_top_left;
+  struct point_f square_top_right;
+  struct point_f square_bottom_right;
+  struct point_f square_bottom_left;
+  square_top_left.x = x-r;
+  square_top_left.y = y+r; // positive y direction is up
+  square_top_right.x = x+r;
+  square_top_right.y = y+r; // positive y direction is up
+  square_bottom_left.x = x-r;
+  square_bottom_left.y = y-r; // positive y direction is up
+  square_bottom_right.x = x+r;
+  square_bottom_right.y = y-r; // positive y direction is up
+  q15_t side_distances[4];
+
+  for (p = 0; p < n_points_fp; p++)
+	{
+    // determine the distance to the four sides of the square and select the smallest one:
+    side_distances[0] = distance_to_vertical_segment(square_top_left, square_bottom_left, x, y);
+    side_distances[1] = distance_to_vertical_segment(square_top_right, square_bottom_right, x, y);
+    side_distances[2] = distance_to_horizontal_segment(square_top_left, square_top_right, x, y);
+    side_distances[3] = distance_to_horizontal_segment(square_bottom_left, square_bottom_right, x, y);
+    arm_min_q15(side_distances, (uint32_t) 4, &error, &index);
+
+		if (STICK_FP)
+		{
+			// determine distance to the stick:
+			error_stick = distance_to_vertical_segment_fp(stick1, stick2, genome[0], genome[1]);
+
+			// take the smallest error:
+			if (error_stick < error) error = error_stick;
+		}
+
+		// apply outlier threshold before applying weights_fp:
+		if (error > outlier_threshold_fp) error = outlier_threshold_fp;
+
+		if (WEIGHTED_FP)
+		{
+			mean_distance += error * weights_fp[p];
+		}
+		else
+		{
+			mean_distance += error;
+		}
+    
+  }
+	mean_distance /= n_points_fp;
+	return mean_distance;
+}
+
 q15_t distance_to_vertical_segment_fp(struct point_i Q1, struct point_i Q2, q15_t x, q15_t y)
 {
+  // Q1.y should be larger than Q2.y
+
   // Calculating the distance to a vertical segment is actually quite simple:
   // If the y coordinate of P is in between Q1.y and Q2.y, the shortest distance is orthogonal to the line
   // If P.y > Q1.y (which is > Q2.y), then the distance to Q1 should be taken
@@ -323,6 +398,32 @@ q15_t distance_to_vertical_segment_fp(struct point_i Q1, struct point_i Q2, q15_
   return dist_line;
 }
 
+q15_t distance_to_horizontal_segment_fp(struct point_i Q1, struct point_i Q2, q15_t x, q15_t y)
+{
+  // Q1.x should be smaller than Q2.x
+
+  // Calculating the distance to a horizontal segment is actually quite simple:
+  // If the x coordinate of P is in between Q1.x and Q2.x, the shortest distance is orthogonal to the line
+  // If P.x < Q1.x (which is < Q2.y), then the distance to Q1 should be taken
+  // If P.x > Q2.x, then the distance to Q2 should be taken:
+  q15_t dist_line;
+
+  if(x > Q2.x)
+  {
+    arm_sqrt_q15((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y), &dist_line);
+  }
+  else if(x >= Q1.x)
+  {
+    dist_line = abs(y - Q1.y); // straight line to the vertical line segment
+  }
+  else
+  {
+    arm_sqrt_q15((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y), &dist_line);
+  }
+
+  return dist_line;
+
+}
 
 void draw_circle_fp(struct image_i* Im, q15_t x_center, q15_t y_center, q15_t radius, uint8_t* color)
 {

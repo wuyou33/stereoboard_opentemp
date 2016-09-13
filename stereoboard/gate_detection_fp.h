@@ -23,6 +23,7 @@
 	void fit_window_to_points_fp(q15_t* x0, q15_t* y0, q15_t* size0, q15_t* fitness);
 	q15_t mean_distance_to_circle_fp(q15_t* genome);
   q15_t distance_to_vertical_segment_fp(struct point_i Q1, struct point_i Q2, q15_t x, q15_t y);
+  q15_t distance_to_horizontal_segment_fp(struct point_i Q1, struct point_i Q2, q15_t x, q15_t y);
 
   // utility functions: should probably be placed in some other file:
 	q15_t get_mutation_fp(void);
