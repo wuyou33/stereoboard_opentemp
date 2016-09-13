@@ -43,7 +43,7 @@ float Population[N_INDIVIDUALS][N_GENES];
 float weights[MAX_POINTS];
 int min_points = 5;
 int WEIGHTED = 1; 
-int STICK = 0;
+int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
 int SHAPE = CIRCLE;

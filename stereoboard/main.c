@@ -534,13 +534,16 @@ int main(void)
         min_sub_disparity = min_sub_disparity > enforced_min ? min_sub_disparity : enforced_min;
     	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
 
-        // SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
         dronerace_message[0] = (uint8_t) x_center;
         dronerace_message[1] = (uint8_t) y_center;
         dronerace_message[2] = (uint8_t) radius;
         dronerace_message[3] = (uint8_t) (100 * fitness);
         dronerace_message[4] = (uint8_t) frameRate;
-        SendArray(dronerace_message, 5, 1);
+        //SendArray(dronerace_message, 5, 1);
+
+        uint8_t steer_command = (dronerace_message[0]/5);
+        //SendCommand((uint8_t) steer_command);
       }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
