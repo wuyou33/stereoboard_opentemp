@@ -89,6 +89,7 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 			mean_y /= n_points;
 			x0 = mean_x;
 			y0 = mean_y;
+      // TODO: make a better size estimation - this is actually ridiculous:
 			size0 = sqrtf(mean_x*mean_x + mean_y*mean_y);
 
   		// run the fit procedure:
@@ -109,6 +110,8 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
       uint8_t color[1];
       color[0] = 128;
 		  draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);
+      if(STICK)
+        draw_stick(disparity_image, (*x_center), (*y_center), (*radius), color);
     }
 	}
 	else
@@ -379,7 +382,7 @@ float mean_distance_to_circle(float* genome)
 	struct point_f point;
 	float dx, dy;
 	float dist_center, error, error_stick;
-  uint8_t p;
+  uint16_t p;
 	for (p = 0; p < n_points; p++)
 	{
 		point = points[p];
@@ -397,7 +400,7 @@ float mean_distance_to_circle(float* genome)
 			struct point_f stick2;
       stick2.x = x;
       stick2.y = y - 2*r;
-			error_stick = distance_to_segment(stick1, stick2, point);
+			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
 			if (error_stick < error) error = error_stick;
@@ -429,7 +432,7 @@ float get_outlier_ratio(float* genome, float total_sum_weights)
 	struct point_f point;
 	float dx, dy;
 	float dist_center, error, error_stick;
-  uint8_t p;
+  uint16_t p;
 	for (p = 0; p < n_points; p++)
 	{
 		point = points[p];
@@ -447,7 +450,7 @@ float get_outlier_ratio(float* genome, float total_sum_weights)
 			struct point_f stick2;
       stick2.x = x;
       stick2.y = y - 2*r;
-			error_stick = distance_to_segment(stick1, stick2, point);
+			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
 			if (error_stick < error) error = error_stick;
@@ -485,23 +488,43 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
   float dist_line = distance_to_line(Q1, Q2, P);
 
 	// calculate intersection point:
-	float rx = Q2.y - Q1.y;
+	float rx = Q2.y - Q1.y; // always negative, -r
 	float ry = -(Q2.x - Q1.x);
 	float norm_r = sqrtf(rx*rx+ry*ry);
   rx = (rx / norm_r) * dist_line;
   ry = (ry / norm_r) * dist_line;
-	float i_x = rx + P.x;
-	float i_y = ry + P.y;
+
+  // rx < 0, so:
+  // if P.x > Q1.x, it should be P.x + rx
+  // else it should be P.x - rx
+	float i_x;
+	float i_y;
+  if(P.x > Q1.x)
+  {
+    i_x = P.x + rx;
+    i_y = P.y + ry;
+  }
+  else
+  {
+    i_x = P.x - rx;
+    i_y = P.y - ry;
+  }
 	struct point_f I;
   I.x = i_x;
   I.y = i_y;
+
+  /*
+  Slow code:
 	float dI = distance_to_line(Q1, Q2, I);
 	if (dI > 1e-10)
 	{
 		I.x = P.x - rx;
 		I.y = P.y - ry;
 	}
+  */
 		
+  /*
+  // Slow code:
 	// check if it is on the segment:
 	float d1 = sqrtf((Q1.x-I.x)*(Q1.x - I.x) + (Q1.y - I.y)*(Q1.y - I.y));
 	float d2 = sqrtf((Q2.x - I.x)*(Q2.x - I.x) + (Q2.y - I.y)*(Q2.y - I.y));
@@ -513,9 +536,48 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 		d2 = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
 		if (d2 < dist_line) dist_line = d2;
 	}
-		
+  */
+		 
+  // leave out superfluous sqrtf - for comparisons it does not matter (monotonously increasing functions)
+  // we can still precalculate (Q1.x - I.x) etc. but I don't know if it is actually calculated twice (optimized by compiler?)
+  float d1 = (Q1.x - I.x)*(Q1.x - I.x) + (Q1.y - I.y)*(Q1.y - I.y);
+	float d2 = (Q2.x - I.x)*(Q2.x - I.x) + (Q2.y - I.y)*(Q2.y - I.y);
+	float d_12 = (Q2.x - Q1.x)*(Q2.x - Q1.x) + (Q2.y - Q1.y)*(Q2.y - Q1.y);
+	if (d1 > d_12 || d2 > d_12)
+	{
+		// not on segment, determine minimum distance to one of the two extremities:
+		dist_line = (Q1.x - P.x)*(Q1.x - P.x) + (Q1.y - P.y)*(Q1.y - P.y);
+		d2 = (Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y);
+		if (d2 < dist_line) dist_line = sqrtf(d2);
+	}
+
 	return dist_line;
 }
+
+float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P)
+{
+  // Calculating the distance to a vertical segment is actually quite simple:
+  // If the y coordinate of P is in between Q1.y and Q2.y, the shortest distance is orthogonal to the line
+  // If P.y > Q1.y (which is > Q2.y), then the distance to Q1 should be taken
+  // If P.y < Q2.y, then the distance to Q2 should be taken:
+  float dist_line;
+
+  if(P.y > Q1.y)
+  {
+  	dist_line = sqrtf((Q1.x - P.x)*(Q1.x - P.x) + (Q1.y - P.y)*(Q1.y - P.y));
+  }
+  else if(P.y >= Q2.y)
+  {
+    dist_line = fabs(P.x - Q1.x); // straight line to the vertical line segment
+  }
+  else
+  {
+    dist_line = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
+  }
+
+  return dist_line;
+}
+
 
 void draw_circle(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
 {
@@ -532,4 +594,17 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
 		}
 	}
   return;
+}
+
+void draw_stick(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
+{
+  int x, y;
+  x = (int) x_center;
+  for(y = (int)(y_center - 2*radius); y <  (int)(y_center - radius); y++)
+  {
+    if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
+		{
+      Im->image[y*Im->w+x] = color[0];
+		} 
+  }
 }

@@ -29,13 +29,15 @@
 
 	float distance_to_line(struct point_f Q1, struct point_f Q2, struct point_f P);
 	float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
+  float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P);
 
   // utility functions: should probably be placed in some other file:
 	float get_random_number(void);
 	float get_minimum(float* nums, int n_elements, int *index);
 	float get_sum(float* nums, int n_elements);
-  // drawing function:
+  // drawing functions:
   void draw_circle(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color);
+  void draw_stick(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color);
 
   // calculating the color fit cannot be done with the current stereo output:
 	// float check_color_fit();
