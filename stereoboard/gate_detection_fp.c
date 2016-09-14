@@ -25,15 +25,13 @@ q15_t points_y[MAX_POINTS_FP];
 uint32_t n_points_fp;
 
 // Settings for the evolution:
-#define N_INDIVIDUALS_FP 30
+#define N_INDIVIDUALS_FP 10
 #define N_GENES_FP 3
-uint16_t n_generations_fp = 10; // could be reduced for instance when there are many points
+uint16_t n_generations_fp = 30; // could be reduced for instance when there are many points
 q15_t Population_fp[N_INDIVIDUALS_FP][N_GENES_FP];
 // mutations will give a number in the range [-MUTATION_RANGE, MUTATION_RANGE]
 #define MUTATION_RANGE 3
-// normally the fitness was between 0 an 1, more concentrated on low values 
-// now it will be between 0 and FITNESS_RESOLUTION
-#define FITNESS_RESOLUTION 100
+
 // Settings for the fitting:
 q15_t weights_fp[MAX_POINTS_FP];
 q15_t total_sum_weights;
@@ -46,7 +44,7 @@ int STICK_FP = 0;
 int SHAPE_FP = CIRCLE_FP;
 // Now a parameter:
 // int min_disparity = 2;
-int outlier_threshold_fp = 400; // 20^2
+int outlier_threshold_fp = 20; 
 
 // whether to draw on the disparity image:
 int GATE_GRAPHICS = 1;
@@ -74,12 +72,18 @@ void gate_detection_fp(struct image_i* disparity_image, q15_t* x_center, q15_t* 
       // determine the mean x and y coordinate:
       arm_mean_q15(points_x, n_points_fp, x_center);
       arm_mean_q15(points_y, n_points_fp, y_center); 
+      
       // we use the std dev of the points in x direction as initialization:
       // could be done better:
+
+      /*
+      // does not work:      
       q15_t std_x, std_y;
-      arm_std_q15 (points_x, n_points_fp, &std_x);
-      arm_std_q15 (points_y, n_points_fp, &std_y);
+      arm_std_q15(points_x, n_points_fp, &std_x);
+      arm_std_q15(points_y, n_points_fp, &std_y);
       (*radius) = (std_x+std_y) / 2;
+      */
+      (*radius) = 40;
 
   		// run the fit procedure:
   		fit_window_to_points_fp(x_center, y_center, radius, fitness);
@@ -94,7 +98,7 @@ void gate_detection_fp(struct image_i* disparity_image, q15_t* x_center, q15_t* 
     {
       // draw a circle on the disparity image:
       uint8_t color[1];
-      color[0] = 128;
+      color[0] = 255; // should be 128 for SmartUAV!!!
 		  draw_circle_fp(disparity_image, (*x_center), (*y_center), (*radius), color);
       if(STICK_FP)
         draw_stick_fp(disparity_image, (*x_center), (*y_center), (*radius), color);
@@ -212,6 +216,8 @@ void fit_window_to_points_fp(q15_t* x0, q15_t* y0, q15_t* size0, q15_t* fitness)
 				Population_fp[i][0] = min_genome[0] + get_mutation_fp();
 				Population_fp[i][1] = min_genome[1] + get_mutation_fp();
 				Population_fp[i][2] = min_genome[2] + get_mutation_fp();
+        // size should not become too small
+        Population_fp[i][2] = (Population_fp[i][2] < 10) ? 10 : Population_fp[i][2];
 			}
 		}
 	}
@@ -236,7 +242,7 @@ q15_t get_mutation_fp()
 q15_t mean_distance_to_circle_fp(q15_t* genome)
 {
   uint16_t p;
-	q15_t mean_distance = 0;
+	q31_t mean_distance = 0;
   q15_t dist_center, error, error_stick;
 
   // x = genome[0], y = genome[1], r = genome[2]
@@ -249,28 +255,31 @@ q15_t mean_distance_to_circle_fp(q15_t* genome)
   if(STICK_FP)
   {
     stick1.x = genome[0];
-    stick1.y = genome[1] - r;
+    stick1.y = genome[1] + r;
     stick2.x = genome[0];
-    stick2.y = genome[1] - 2*r;
+    stick2.y = genome[1] + 2*r;
   }
 
   // calculate distances to circle in a vector manner:
-  arm_fill_q15 (genome[0], xs, n_points_fp);
-  arm_fill_q15 (genome[1], ys, n_points_fp);
+  arm_fill_q15(genome[0], xs, n_points_fp);
+  arm_fill_q15(genome[1], ys, n_points_fp);
   // xs and ys will contain dxs, dys:
   arm_sub_q15(xs, points_x, xs, n_points_fp);
   arm_sub_q15(ys, points_y, ys, n_points_fp);
   // and now the squares, dx*dx and dy*dy:
-  arm_mult_q15(xs, xs, xs, n_points_fp);
-  arm_mult_q15(ys, ys, ys, n_points_fp);
+  // the arm one did not work... for some reason.
+  multiply(xs, xs, xs, n_points_fp);
+  multiply(ys, ys, ys, n_points_fp);
   // add them and put it in xs:
-  arm_add_q15 (xs, ys, xs, n_points_fp);
+  arm_add_q15(xs, ys, xs, n_points_fp);
 
   for (p = 0; p < n_points_fp; p++)
 	{
     // TODO: we could also leave out the sqrt, since for relative fitness it would not matter:
     // then r should become r^2
-    arm_sqrt_q15(dist_center, &dist_center);
+    // the arm one does not work... for some reason.
+    // arm_sqrt_q15(xs[p], &dist_center);
+    dist_center = sqrt((int) xs[p]);
     error = abs(dist_center - r);
     
 		if (STICK_FP)
@@ -328,7 +337,7 @@ q15_t mean_distance_to_square_fp(q15_t* genome)
   struct point_f square_bottom_right;
   struct point_f square_bottom_left;
   square_top_left.x = x-r;
-  square_top_left.y = y+r; // positive y direction is up
+  square_top_left.y = y+r; // positive y direction is up TODO: it is down!!!
   square_top_right.x = x+r;
   square_top_right.y = y+r; // positive y direction is up
   square_bottom_left.x = x-r;
@@ -374,25 +383,27 @@ q15_t mean_distance_to_square_fp(q15_t* genome)
 
 q15_t distance_to_vertical_segment_fp(struct point_i Q1, struct point_i Q2, q15_t x, q15_t y)
 {
-  // Q1.y should be larger than Q2.y
+  // Q1.y should be smaller than Q2.y
 
   // Calculating the distance to a vertical segment is actually quite simple:
   // If the y coordinate of P is in between Q1.y and Q2.y, the shortest distance is orthogonal to the line
-  // If P.y > Q1.y (which is > Q2.y), then the distance to Q1 should be taken
-  // If P.y < Q2.y, then the distance to Q2 should be taken:
+  // If P.y < Q1.y (which is < Q2.y), then the distance to Q1 should be taken
+  // If P.y > Q2.y, then the distance to Q2 should be taken:
   q15_t dist_line;
 
-  if(y > Q1.y)
+  if(y < Q1.y)
   {
-    arm_sqrt_q15((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y), &dist_line);
+    // arm_sqrt_q15((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y), &dist_line);
+    dist_line = sqrt((int)((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y)));
   }
-  else if(y >= Q2.y)
+  else if(y <= Q2.y)
   {
     dist_line = abs(x - Q1.x); // straight line to the vertical line segment
   }
   else
   {
-    arm_sqrt_q15((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y), &dist_line);
+    // arm_sqrt_q15((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y), &dist_line);    
+    dist_line = sqrt((int)((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y)));
   }
 
   return dist_line;
@@ -410,7 +421,8 @@ q15_t distance_to_horizontal_segment_fp(struct point_i Q1, struct point_i Q2, q1
 
   if(x > Q2.x)
   {
-    arm_sqrt_q15((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y), &dist_line);
+    // arm_sqrt_q15((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y), &dist_line);
+    dist_line = sqrt((int)((Q2.x - x)*(Q2.x - x) + (Q2.y - y)*(Q2.y - y)));
   }
   else if(x >= Q1.x)
   {
@@ -418,7 +430,8 @@ q15_t distance_to_horizontal_segment_fp(struct point_i Q1, struct point_i Q2, q1
   }
   else
   {
-    arm_sqrt_q15((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y), &dist_line);
+    // arm_sqrt_q15((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y), &dist_line);
+    dist_line = sqrt((int)((Q1.x - x)*(Q1.x - x) + (Q1.y - y)*(Q1.y - y)));
   }
 
   return dist_line;
@@ -446,11 +459,22 @@ void draw_stick_fp(struct image_i* Im, q15_t x_center, q15_t y_center, q15_t rad
 {
   int x, y;
   x = (int) x_center;
-  for(y = (int)(y_center - 2*radius); y <  (int)(y_center - radius); y++)
+  for(y = (int)(y_center + radius); y <  (int)(y_center + 2*radius); y++)
   {
     if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
       Im->image[y*Im->w+x] = color[0];
 		} 
+  }
+}
+
+void multiply(q15_t* a, q15_t* b, q15_t* result, uint32_t n_elements)
+{
+  uint32_t i = 0;
+  while(i < n_elements)
+  {
+    // no checking of overflow here...
+    result[i] = a[i] * b[i];
+    i++;
   }
 }

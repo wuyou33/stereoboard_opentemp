@@ -14,7 +14,11 @@
 
 #define GOOD_FIT_FP 4
 #define BAD_FIT_FP 12
+// maximum number of points to be used for fitting:
 #define MAX_POINTS_FP 250  
+// normally the fitness was between 0 an 1, more concentrated on low values 
+// now it will be between 0 and FITNESS_RESOLUTION
+#define FITNESS_RESOLUTION 100
 
   void gate_detection_fp(struct image_i* disparity_image, q15_t* x_center, q15_t* y_center, q15_t* radius, q15_t* fitness, int initialize_fit_with_pars, int min_sub_disparity);
 
@@ -27,6 +31,7 @@
 
   // utility functions: should probably be placed in some other file:
 	q15_t get_mutation_fp(void);
+  void multiply(q15_t* a, q15_t* b, q15_t* result, uint32_t n_elements);
 
   // drawing functions:
   void draw_circle_fp(struct image_i* Im, q15_t x_center, q15_t y_center, q15_t radius, uint8_t* color);

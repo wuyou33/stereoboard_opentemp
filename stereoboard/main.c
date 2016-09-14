@@ -394,6 +394,10 @@ int main(void)
   float y_center = 48;
   float radius = 50;
   float fitness = 0.4f; 
+  q15_t x_center_fp = 64;
+  q15_t y_center_fp = 48;
+  q15_t radius_fp = 50;
+  q15_t fitness_fp = 4;
   uint8_t dronerace_message[5]; // the above + frame rate
 
   // variable for making a sub-pixel disparity histogram:
@@ -511,10 +515,11 @@ int main(void)
       }
 
       if(current_stereoboard_algorithm == DRONERACE){
-    	int initialize_fit_with_pars = 0;
-    	if(fitness < BAD_FIT)
+      	int initialize_fit_with_pars = 0;
+        int FP = 0;
+        // TODO: Only correct for circle detection:
+      	if(fitness < BAD_FIT && FP == 0)
     		  initialize_fit_with_pars = 1;
-
         int min_sub_disparity = disparity_range * RESOLUTION_FACTOR-1;
         int sum_points = 0;
         while( (min_sub_disparity > 0) && (sum_points < MAX_POINTS) )
@@ -532,15 +537,33 @@ int main(void)
         // potentially enforce a minimum require disparity:
         int enforced_min = 12;
         min_sub_disparity = min_sub_disparity > enforced_min ? min_sub_disparity : enforced_min;
-    	  gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
 
-        // SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+        if(!FP)
+        {
+    	    gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
+        }
+        else
+        {
+          // fixed point implementation:
+          gate_detection_fp(&disparity_image, &x_center_fp, &y_center_fp, &radius_fp, &fitness_fp, initialize_fit_with_pars, min_sub_disparity);
+          x_center = (float) x_center_fp;
+          y_center = (float) y_center_fp;
+          radius = (float) radius_fp;
+          fitness = ((float) fitness_fp) / FITNESS_RESOLUTION;
+        }
+
+        // send disparity image:
+        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);        
+
+        /*
+        // send message:
         dronerace_message[0] = (uint8_t) x_center;
         dronerace_message[1] = (uint8_t) y_center;
         dronerace_message[2] = (uint8_t) radius;
         dronerace_message[3] = (uint8_t) (100 * fitness);
         dronerace_message[4] = (uint8_t) frameRate;
         SendArray(dronerace_message, 5, 1);
+        */
       }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
