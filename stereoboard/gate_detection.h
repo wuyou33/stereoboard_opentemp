@@ -37,6 +37,7 @@
   // drawing functions:
   void draw_circle(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color);
   void draw_stick(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color);
+  void draw_line_segment(struct image_i* Im, struct point_f Q1, struct point_f Q2, uint8_t* color);
 
   // calculating the color fit cannot be done with the current stereo output:
 	// float check_color_fit();

@@ -29,9 +29,10 @@ struct point_f points[MAX_POINTS];
 uint16_t n_points;
 
 // Settings for the evolution:
+// 10 individuals 30 generations is a normal setting
 #define N_INDIVIDUALS 10
 #define N_GENES 3
-uint16_t n_generations = 5; // could be reduced for instance when there are many points
+uint16_t n_generations = 30; // could be reduced for instance when there are many points
 float Population[N_INDIVIDUALS][N_GENES];
 
 // watch out: inliers fit does not work so well...
@@ -46,7 +47,7 @@ int WEIGHTED = 1;
 int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
-int SHAPE = CIRCLE;
+int SHAPE = SQUARE;
 // Now a parameter:
 // int min_disparity = 2;
 float outlier_threshold = 20.0f;
@@ -90,7 +91,7 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 			x0 = mean_x;
 			y0 = mean_y;
       // TODO: make a better size estimation - this is actually ridiculous:
-			size0 = sqrtf(mean_x*mean_x + mean_y*mean_y);
+			size0 = 40.0f;//sqrtf(mean_x*mean_x + mean_y*mean_y);
 
   		// run the fit procedure:
   		fit_window_to_points(&x0, &y0, &size0, fitness);
@@ -109,7 +110,35 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
       // draw a circle on the disparity image:
       uint8_t color[1];
       color[0] = 128;
-		  draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);
+      if(SHAPE == CIRCLE)
+      {
+		    draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);
+      }
+      else
+      {
+        color[0] = 255;
+        // square:
+        int x = (*x_center);
+        int y = (*y_center);
+        int r = (*radius);
+        struct point_f square_top_left;
+        struct point_f square_top_right;
+        struct point_f square_bottom_right;
+        struct point_f square_bottom_left;
+        square_top_left.x = x-r;
+        square_top_left.y = y-r; // positive y direction is down
+        square_top_right.x = x+r;
+        square_top_right.y = y-r; 
+        square_bottom_left.x = x-r;
+        square_bottom_left.y = y+r; 
+        square_bottom_right.x = x+r;
+        square_bottom_right.y = y+r;
+        // draw lines:
+        draw_line_segment(disparity_image, square_top_left, square_top_right, color);
+        draw_line_segment(disparity_image, square_top_left, square_bottom_left, color);
+        draw_line_segment(disparity_image, square_bottom_left, square_bottom_right, color);
+        draw_line_segment(disparity_image, square_bottom_right, square_top_right, color);
+      }
       if(STICK)
         draw_stick(disparity_image, (*x_center), (*y_center), (*radius), color);
     }
@@ -158,6 +187,11 @@ void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
           fits[i] = get_outlier_ratio(Population[i], total_sum_weights);
         }
 			}
+      else
+      {
+          // optimize mean distance to square (and possibly stick) 
+				  fits[i] = mean_distance_to_square(Population[i]);
+      }
 		}
 
 		// get the best individual and store it in min_genome:
@@ -396,10 +430,10 @@ float mean_distance_to_circle(float* genome)
 			// determine distance to the stick:
 			struct point_f stick1;
       stick1.x = x;
-      stick1.y = y - r;
+      stick1.y = y + r;
 			struct point_f stick2;
       stick2.x = x;
-      stick2.y = y - 2*r;
+      stick2.y = y + 2*r;
 			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
@@ -440,33 +474,35 @@ float mean_distance_to_square(float* genome)
   struct point_f square_bottom_right;
   struct point_f square_bottom_left;
   square_top_left.x = x-r;
-  square_top_left.y = y+r; // positive y direction is up
+  square_top_left.y = y-r; // positive y direction is down
   square_top_right.x = x+r;
-  square_top_right.y = y+r; // positive y direction is up
+  square_top_right.y = y-r; 
   square_bottom_left.x = x-r;
-  square_bottom_left.y = y-r; // positive y direction is up
+  square_bottom_left.y = y+r; 
   square_bottom_right.x = x+r;
-  square_bottom_right.y = y-r; // positive y direction is up
-  float side_distances[4];
+  square_bottom_right.y = y+r;
+  float side_distances[2];
 
 	for (p = 0; p < n_points; p++)
 	{
+    // get the current point:
+    point = points[p];
     // determine the distance to the four sides of the square and select the smallest one:
     side_distances[0] = distance_to_vertical_segment(square_top_left, square_bottom_left, point);
     side_distances[1] = distance_to_vertical_segment(square_top_right, square_bottom_right, point);
-    side_distances[2] = distance_to_horizontal_segment(square_top_left, square_top_right, point);
-    side_distances[3] = distance_to_horizontal_segment(square_bottom_left, square_bottom_right, point);
-    error = get_minimum(side_distances, 4, &index);
+    //side_distances[2] = distance_to_horizontal_segment(square_top_left, square_top_right, point);
+    //side_distances[3] = distance_to_horizontal_segment(square_bottom_left, square_bottom_right, point);
+    error = get_minimum(side_distances, 2, &index);
 
 		if (STICK)
 		{
 			// determine distance to the stick:
 			struct point_f stick1;
       stick1.x = x;
-      stick1.y = y - r;
+      stick1.y = y + r;
 			struct point_f stick2;
       stick2.x = x;
-      stick2.y = y - 2*r;
+      stick2.y = y + 2*r;
 			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
@@ -513,10 +549,10 @@ float get_outlier_ratio(float* genome, float total_sum_weights)
 			// determine distance to the stick:
 			struct point_f stick1;
       stick1.x = x;
-      stick1.y = y - r;
+      stick1.y = y + r;
 			struct point_f stick2;
       stick2.x = x;
-      stick2.y = y - 2*r;
+      stick2.y = y + 2*r;
 			error_stick = distance_to_vertical_segment(stick1, stick2, point);
 
 			// take the smallest error:
@@ -623,19 +659,20 @@ float distance_to_segment(struct point_f Q1, struct point_f Q2, struct point_f P
 
 float distance_to_vertical_segment(struct point_f Q1, struct point_f Q2, struct point_f P)
 {
-  // Q1.y should be larger than Q2.y
+  // Q1.y should be smaller than Q2.y, y positive down
+  // so first top then bottom
 
   // Calculating the distance to a vertical segment is actually quite simple:
   // If the y coordinate of P is in between Q1.y and Q2.y, the shortest distance is orthogonal to the line
-  // If P.y > Q1.y (which is > Q2.y), then the distance to Q1 should be taken
-  // If P.y < Q2.y, then the distance to Q2 should be taken:
+  // If P.y < Q1.y (which is < Q2.y), then the distance to Q1 should be taken
+  // If P.y > Q2.y, then the distance to Q2 should be taken:
   float dist_line;
 
-  if(P.y > Q1.y)
+  if(P.y < Q1.y)
   {
   	dist_line = sqrtf((Q1.x - P.x)*(Q1.x - P.x) + (Q1.y - P.y)*(Q1.y - P.y));
   }
-  else if(P.y >= Q2.y)
+  else if(P.y <= Q2.y)
   {
     dist_line = fabs(P.x - Q1.x); // straight line to the vertical line segment
   }
@@ -661,7 +698,7 @@ float distance_to_horizontal_segment(struct point_f Q1, struct point_f Q2, struc
   {
   	dist_line = sqrtf((Q2.x - P.x)*(Q2.x - P.x) + (Q2.y - P.y)*(Q2.y - P.y));
   }
-  else if(P.y >= Q1.x)
+  else if(P.x >= Q1.x)
   {
     dist_line = fabs(P.y - Q1.y); // straight line to the horizontal line segment
   }
@@ -695,7 +732,7 @@ void draw_stick(struct image_i* Im, float x_center, float y_center, float radius
 {
   int x, y;
   x = (int) x_center;
-  for(y = (int)(y_center - 2*radius); y <  (int)(y_center - radius); y++)
+  for(y = (int)(y_center + radius); y <  (int)(y_center + 2*radius); y++)
   {
     if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
@@ -703,3 +740,21 @@ void draw_stick(struct image_i* Im, float x_center, float y_center, float radius
 		} 
   }
 }
+
+void draw_line_segment(struct image_i* Im, struct point_f Q1, struct point_f Q2, uint8_t* color)
+{
+  float t_step = 0.05; // should depend on distance, but hey...
+	int x, y;
+  float t;
+	for (t = 0.0f; t < 1.0f; t += t_step)
+	{
+		x = (int)(t * Q1.x + (1.0f - t) * Q2.x);
+		y = (int)(t * Q1.y + (1.0f - t) * Q2.y);
+		if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
+		{
+      Im->image[y*Im->w+x] = color[0];
+		}
+	}
+  return;
+}
+

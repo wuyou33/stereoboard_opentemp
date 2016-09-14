@@ -174,6 +174,15 @@ erase_flash:
 cleanspaces:
 	make -C style
 
+debug:
+	@echo "Using Black Magic Probe"
+	@echo "Debugging using GDB = $(GDB)"
+	$(GDB) $(TARGET).elf                             \
+          -ex 'target extended-remote $(BMP_PORT)' \
+          -ex 'mon swdp_scan'                      \
+          -ex 'attach 1'                           \
+          -ex 'run'
+
 quick_build: print $(BIN_IMAGE)
 
 BOARD_FILES = $(wildcard boards/*.h)
