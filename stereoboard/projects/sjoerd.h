@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION DRONERACE//SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION DRONERACE//SEND_DISPARITY_MAP//DRONERACE//SEND_IMAGE
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT 1
 

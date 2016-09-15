@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include "sys_time.h"
 
-float angle_gate = 0.0f;
+float 	current_angle_gate = 0.0f;
 float	predicted_x_gate = 0.0f;
 float	previous_x_gate = 0.0f;
 float	predicted_y_gate = 5.0f;;
@@ -38,21 +38,21 @@ float velocity_gate = -0.6f; // opposite to the speed of the DelFly -> would bes
 float gate_size_meters = 1.0f;
 float P_gain = 1.0f;
 
-void update_filter(float x_center, float y_center, float radius, float fitness, float* turn_rate)
+void update_filter(float x_center, float y_center, float radius, float fitness, float* turn_rate, volatile uint32_t sys_time)
 {
 
   // First time: reset all states, timers, and exit:
   if(first_time)
   {
     // initialize the filter:
-    reset_states();
+    reset_states(sys_time);
     first_time = 0;
-    prev_time = sys_time_get();
+    prev_time = sys_time;
 
 		// start the FSM
 		// started = 1;
 		// start_FSM = 0;
-		prev_FSM_time = sys_time_get();
+		prev_FSM_time = sys_time;
 		state = 0;
 
     return;
@@ -63,21 +63,23 @@ void update_filter(float x_center, float y_center, float radius, float fitness, 
 	// ****************
 
 	// get the time and time difference with the last call:
-  uint32_t DT = (get_timer_interval(prev_time) * TIME_RESOLUTION) / TIMER_TICKS_PER_SEC;
+  volatile uint32_t DT = (get_timer_interval(prev_time) * TIME_RESOLUTION) / TIMER_TICKS_PER_SEC;
+  //volatile uint32_t DT = ((sys_time-prev_time) * TIME_RESOLUTION) / TIMER_TICKS_PER_SEC;
   float dt = ((float) DT) / TIME_RESOLUTION;
-  prev_time = sys_time_get();
+  prev_time = sys_time;
 
   // if the filter has not run for a long time, reset the states and exit:
 	if (dt > 1.0f)
 	{
-		reset_states();
+		reset_states(sys_time);
 		return;
 	}
 	
 	// predict the new location:
 	float gate_turn_rate = -(*turn_rate); 
-	float dx_gate = dt * (cosf(angle_gate) * gate_turn_rate);
-	float dy_gate = dt * (velocity_gate - sinf(angle_gate) * gate_turn_rate);
+	float current_distance = sqrtf(current_x_gate*current_x_gate+current_y_gate*current_y_gate);
+	float dx_gate = dt * (cosf(current_angle_gate) * gate_turn_rate * current_distance);
+	float dy_gate = dt * (velocity_gate - sinf(current_angle_gate) * gate_turn_rate * current_distance);
 	predicted_x_gate = previous_x_gate + dx_gate;
 	predicted_y_gate = previous_y_gate + dy_gate;
 
@@ -94,19 +96,20 @@ void update_filter(float x_center, float y_center, float radius, float fitness, 
 		// Mix the measurement with the prediction:
 		float weight_measurement;
 		if (uncertainty_gate > UNCERTAINTY_LIMIT)
-    {
-      // if the gate was out of sight for too long, accept any measurement as the new state:
-			weight_measurement = 1.0f;
-    }
+		{
+		  // if the gate was out of sight for too long, accept any measurement as the new state:
+				weight_measurement = 1.0f;
+		}
 		else
-    {
-      // scale the fitness (lower is better) between 0 and 1, topping bad fits off:
-      fitness = fitness > max_fitness ? max_fitness : fitness;
-			weight_measurement = (max_fitness - fitness) / max_fitness; 
-    }
+		{
+		  // scale the fitness (lower is better) between 0 and 1, topping bad fits off:
+		  fitness = fitness > max_fitness ? max_fitness : fitness;
+				weight_measurement = (max_fitness - fitness) / max_fitness;
+		}
 
 		current_x_gate = weight_measurement * measured_x_gate + (1.0f - weight_measurement) * predicted_x_gate;
 		current_y_gate = weight_measurement * measured_y_gate + (1.0f - weight_measurement) * predicted_y_gate;
+		current_angle_gate = atan2(current_x_gate,current_y_gate);
 
 		// reset uncertainty:
 		uncertainty_gate = 0;
@@ -116,6 +119,7 @@ void update_filter(float x_center, float y_center, float radius, float fitness, 
 		// just the prediction
 		current_x_gate = predicted_x_gate;
 		current_y_gate = predicted_y_gate;
+		current_angle_gate = atan2(current_x_gate,current_y_gate);
 
 		// increase uncertainty
 		uncertainty_gate++;
@@ -171,7 +175,7 @@ void update_filter(float x_center, float y_center, float radius, float fitness, 
 		if (fitness < GOOD_FIT)
 		{
 			state = TRACK;
-			prev_FSM_time = sys_time_get();
+			prev_FSM_time = sys_time;
 		}
 
 		break;
@@ -186,7 +190,7 @@ void update_filter(float x_center, float y_center, float radius, float fitness, 
 		if (current_y_gate < 0)
 		{
 			state = SEARCH;
-			prev_FSM_time = sys_time_get();
+			prev_FSM_time = sys_time;
 		}
 
 		break;
@@ -198,9 +202,9 @@ void update_filter(float x_center, float y_center, float radius, float fitness, 
 	//}
 }
 
-void reset_states()
+void reset_states(uint32_t sys_time)
 {
-	angle_gate = 0.0f;
+	current_angle_gate = 0.0f;
 	predicted_x_gate = 0.0f;
 	previous_x_gate = 0.0f;
 	predicted_y_gate = 5.0f;;
@@ -208,8 +212,8 @@ void reset_states()
 	current_x_gate = 0.0f;
 	current_y_gate = 5.0f;
 	uncertainty_gate = 0.0f;
-  prev_time = sys_time_get();
-  prev_FSM_time = sys_time_get();
+  prev_time = sys_time;
+  prev_FSM_time = sys_time;
 }
 
 float deg2rad(float deg)

@@ -12,6 +12,8 @@ uint16_t stereo_vision_sparse_block_features(uint8_t *in, q7_t *out, uint8_t *fe
     uint32_t image_width, uint32_t image_height,
     uint32_t disparity_min, uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y,
     uint8_t max_y);
+uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, float *features, uint16_t features_max_number, uint32_t image_width, uint32_t image_height,
+    uint32_t disparity_min, uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y, q15_t* sub_disp_histogram);
 uint16_t stereo_vision_sparse_block_two_sided(uint8_t *in, q7_t *out, uint32_t image_width, uint32_t image_height,
     uint32_t disparity_min,
     uint32_t disparity_range, uint32_t disparity_step, uint8_t thr1, uint8_t thr2, uint8_t min_y, uint8_t max_y, q15_t* sub_disp_histogram); 
