@@ -14,7 +14,7 @@
 #define DEFAULT_BOARD_FUNCTION DRONERACE
 //SEND_MEANSHIFT
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#define CAPTURE_MODE_SNAPSHOT
+#define CAPTURE_MODE_SNAPSHOT 1
 
 //////////////////////////////////////////////////////
 // Settings
