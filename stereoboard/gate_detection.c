@@ -20,11 +20,6 @@
 int Y0[9] = {0,1,2,0,1,2,0,1,2};
 int X0[9] = {0,0,0,1,1,1,2,2,2};
 
-/*
-// since MAX_POINTS means that the algorithm will stop gathering points after MAX_POINTS, the order of columns / rows has to be "random":
-int ys[96] = {87, 83, 57, 50, 76, 84, 81, 73, 10, 33, 86, 3, 28, 49, 90, 25, 6, 16, 75, 89, 66, 85, 64, 30, 17, 60, 95, 92, 26, 20, 80, 40, 23, 70, 27, 4, 36, 43, 38, 65, 78, 51, 62, 96, 15, 29, 52, 94, 54, 45, 58, 72, 5, 71, 14, 44, 47, 41, 42, 79, 34, 74, 56, 69, 37, 93, 31, 63, 59, 88, 9, 55, 46, 11, 1, 35, 77, 32, 82, 18, 22, 7, 39, 48, 61, 68, 19, 67, 53, 91, 12, 2, 24, 13, 8, 21};
-int xs[128] = {49, 7, 4, 82, 53, 39, 118, 68, 55, 67, 106, 77, 116, 117, 127, 99, 103, 61, 74, 22, 48, 113, 31, 89, 2, 108, 112, 85, 6, 110, 62, 16, 95, 120, 30, 83, 21, 125, 71, 56, 14, 8, 90, 91, 40, 66, 51, 52, 17, 114, 88, 105, 33, 18, 5, 102, 38, 122, 107, 41, 44, 124, 79, 59, 29, 100, 27, 26, 69, 24, 94, 46, 76, 10, 75, 63, 81, 47, 54, 96, 87, 119, 123, 73, 128, 1, 45, 9, 28, 58, 42, 72, 36, 86, 97, 12, 121, 92, 64, 11, 126, 13, 50, 98, 32, 80, 43, 34, 15, 57, 84, 78, 20, 19, 109, 35, 70, 3, 111, 65, 23, 37, 93, 101, 115, 60, 104, 25};
-*/
 struct point_f points[MAX_POINTS];
 uint16_t n_points;
 
@@ -58,12 +53,13 @@ int GRAPHICS = 1;
 
 /**
  * Function takes a disparity image and fits a circular gate to the close-by points.
- * - initialize_fit_with_pars will use the x_center, y_center, etc. to initialize the population used in the evolutionary algorithm to make the fit.
- * - The results are put back in the parameters. 
+ * - x0, y0, size0 contain an initial guess and indicate where the closest object probably is
+ * - x_center, y_center, and radius are also used for initializing the optimization. The optimized results are put back in these parameters.
+ * - fitness: how good is the hypothesis of x_center, etc. 
  * @author Guido
  */
 
-void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, int initialize_fit_with_pars, int min_sub_disparity)
+void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, float* x0, float* y0, float* size0, int min_sub_disparity)
 {
   // 1) convert the disparity map to a vector of points:
 	convert_disparitymap_to_points(disparity_image, min_sub_disparity);
@@ -73,50 +69,38 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 	{
 		// 2) fit a window to the points
 
-		// determine initial guess:
-		if (!initialize_fit_with_pars)
+		// determine initial guess (we always do):
+		// initialize with average position and size
+		float mean_x = 0;
+		float mean_y = 0;
+    
+    uint16_t i;
+		for (i = 0; i < n_points; i++)
 		{
-  		float x0, y0, size0;
-			// initialize with average position and size
-			float mean_x = 0;
-			float mean_y = 0;
-      uint16_t i;
-			for (i = 0; i < n_points; i++)
-			{
-				mean_x += points[i].x;
-				mean_y += points[i].y;
-			}
-			mean_x /= n_points;
-			mean_y /= n_points;
-			x0 = mean_x;
-			y0 = mean_y;
-      // TODO: make a better size estimation - this is actually ridiculous:
-			size0 = 40.0f;//sqrtf(mean_x*mean_x + mean_y*mean_y);
+			mean_x += points[i].x; // could still do a weighted average
+			mean_y += points[i].y;
+		}
+		mean_x /= n_points;
+		mean_y /= n_points;
+		(*x0) = mean_x;
+		(*y0) = mean_y;
+    // TODO: make a better size estimation - this is actually ridiculous:
+		(*size0) = 40.0f;//sqrtf(mean_x*mean_x + mean_y*mean_y);
 
-  		// run the fit procedure:
-  		fit_window_to_points(&x0, &y0, &size0, fitness);
-      (*x_center) = x0;
-      (*y_center) = y0;
-      (*radius) = size0;
-		}
-		else
-		{
-  		// run the fit procedure:
-      fit_window_to_points(x_center, y_center, radius, fitness);
-		}
+		// run the fit procedure:
+		fit_window_to_points(x0, y0, size0, x_center, y_center, radius, fitness);
 
     if(GRAPHICS)
     {
       // draw a circle on the disparity image:
       uint8_t color[1];
-      color[0] = 128;
+      color[0] = 255;
       if(SHAPE == CIRCLE)
       {
 		    draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);
       }
       else
       {
-        color[0] = 255;
         // square:
         int x = (*x_center);
         int y = (*y_center);
@@ -141,6 +125,18 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
       }
       if(STICK)
         draw_stick(disparity_image, (*x_center), (*y_center), (*radius), color);
+
+      // draw initial guess as a crosshair:
+      struct point_f top;
+      struct point_f bottom;
+      struct point_f left;
+      struct point_f right;
+      top.x = (*x0); top.y = (*y0) - 5;
+      bottom.x = (*x0); bottom.y = (*y0) + 5;
+      left.x = (*x0) - 5; left.y = (*y0);
+      right.x = (*x0) + 5; right.y = (*y0);
+      draw_line_segment(disparity_image, top, bottom, color);
+      draw_line_segment(disparity_image, left, right, color);
     }
 	}
 	else
@@ -150,15 +146,23 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
 
 }
 
-void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
+void fit_window_to_points(float* x0, float* y0, float* size0, float* x_center, float* y_center, float* radius, float* fitness)
 {
-  // a) initialize Population, seeding it with the initial guess:
+  // a) initialize Population, seeding it with the initial guess and the previous best individuals:
+  // The idea behind this is that evolution can extend over multiple images, while a wrong tracking will not
+  // influence the tracking excessively long.
   uint16_t i, g, ge;
-	for (i = 0; i < N_INDIVIDUALS; i++)
+	for (i = 0; i < N_INDIVIDUALS/2; i++)
 	{
     Population[i][0] = (*x0) + 5 * get_random_number() - 2.5f;
     Population[i][1] = (*y0) + 5 * get_random_number() - 2.5f;
 		Population[i][2] = (*size0) + 5 * get_random_number() - 2.5f;
+	}
+	for (i = N_INDIVIDUALS/2; i < N_INDIVIDUALS; i++)
+	{
+    Population[i][0] = (*x_center) + 5 * get_random_number() - 2.5f;
+    Population[i][1] = (*y_center) + 5 * get_random_number() - 2.5f;
+		Population[i][2] = (*radius) + 5 * get_random_number() - 2.5f;
 	}
 
   float total_sum_weights = get_sum(weights, n_points);
@@ -229,9 +233,9 @@ void fit_window_to_points(float* x0, float* y0, float* size0, float* fitness)
 
   // put the final values back in the parameters:
   if(FF == DISTANCE_FIT) (*fitness) /= total_sum_weights;
-	(*x0) = best_genome[0];
-	(*y0) = best_genome[1];
-	(*size0) = best_genome[2];
+	(*x_center) = best_genome[0];
+	(*y_center) = best_genome[1];
+	(*radius) = best_genome[2];
 
   return;
 }
@@ -315,92 +319,6 @@ void convert_disparitymap_to_points(struct image_i* disparity_image, int min_sub
 		  }
 	  }
   }
-
-  /*
-  // THIS RESULTS IN VISITING CERTAIN ROWS FIRST
-	uint16_t x0 = 0;
-	uint8_t n_x = 5; // 5 x-coordinates at a time for each y coordinate
-
-  // ys and xs are permutations of the columns and rows, respectively
-  // we do batches of xs per y in order to prevent dominance of a single column:
-	while (x0 < (*disparity_image).w - n_x)
-	{
-		for (y = 0; y < (*disparity_image).h; y++)
-		{
-			for (x = x0; x < x0 + n_x; x++)
-			{
-				// get the disparity from the image:
-				disp = (*disparity_image).image[ys[y] * (*disparity_image).w + xs[x]];
-
-				if (disp > min_disparity * RESOLUTION_FACTOR)
-				{
-					// add the points to the array, and use disparity as the weight:
-					points[p].x = (float)xs[x];
-					points[p].y = (float)ys[y];
-					weights[p] = (float)disp;
-
-					// count the number of points:
-					p++;
-
-					// if the maximum number of points is reached, return:
-          // TODO: if still not working, don't return, but make remaining entries in disparity map 0
-					if (p == MAX_POINTS)
-					{
-						n_points = p;
-						return;
-					}
-				}
-				else
-				{
-					// make the pixel black, so that we can see it on the ground station:
-					disparity_image->image[ys[y] * disparity_image->w + xs[x]] = 0;
-				}
-			}
-		}
-		
-		x0 += n_x;
-	}
-  */
-
-  /* 
-  // OLD CODE that leads to biases in where points are sampled:
-
-	// convert the disparity map to points:
-  int y, x;
-  uint8_t disp;
-  uint16_t p = 0;
-	for (y = 0; y < (*disparity_image).h; y++)
-	{
-		for (x = 0; x < (*disparity_image).w; x++)
-		{
-      // get the disparity from the image:
-			disp = (*disparity_image).image[ys[y]*(*disparity_image).w + xs[x]];
-
-			if (disp > min_disparity * RESOLUTION_FACTOR)
-			{
-        // add the points to the array, and use disparity as the weight:
-				points[p].x = (float) xs[x];
-				points[p].y = (float) ys[y];
-				weights[p] = (float) disp;
-
-        // count the number of points:
-        p++;
-
-        // if the maximum number of points is reached, return:
-        if(p == MAX_POINTS)
-        {
-          n_points = p;
-          return;
-        }
-			}
-      else
-      {
-        // make the pixel black, so that we can see it on the ground station:
-        disparity_image->image[ys[y] * disparity_image->w + xs[x]] = 0;
-      }
-		}
-	}
-  */
 
   // set the global variable n_points to the right value:
   n_points = p;

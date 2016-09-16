@@ -393,6 +393,9 @@ int main(void)
   float x_center = 64;
   float y_center = 48;
   float radius = 50;
+  float x0 = x_center;
+  float y0 = y_center;
+  float size0 = radius;
   float fitness = 0.4f; 
   q15_t x_center_fp = 64;
   q15_t y_center_fp = 48;
@@ -529,17 +532,16 @@ int main(void)
 
       	int initialize_fit_with_pars = 0;
         int FP = 0;
-        // TODO: Only correct for circle detection:
-      	if(fitness < BAD_FIT && FP == 0)
-    		  initialize_fit_with_pars = 1;
-
         int min_sub_disparity = disparity_range * RESOLUTION_FACTOR-1;
         int sum_points = 0;
+        uint32_t mean_disparity = 0;
         while( (min_sub_disparity > 0) && (sum_points < MAX_POINTS) )
         {
-          min_sub_disparity--;
+          min_sub_disparity--; // TODO: don't we skip the first value like this?
           sum_points += sub_disp_histogram[min_sub_disparity];
+          mean_disparity += sub_disp_histogram[min_sub_disparity] * min_sub_disparity; 
         }
+        mean_disparity /= sum_points;
         if(sum_points > MAX_POINTS && sub_disp_histogram[min_sub_disparity] < MAX_POINTS / 2) 
         {
           // we should take one sub-disparity higher, as else we supersede the maximum number of points:
@@ -553,11 +555,12 @@ int main(void)
 
         if(!FP)
         {
-    	    gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars, min_sub_disparity);
+    	    gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, &x0, &y0, &size0, min_sub_disparity);
         }
         else
         {
           // fixed point implementation:
+          int initialize_fit_with_pars = 0;
           gate_detection_fp(&disparity_image, &x_center_fp, &y_center_fp, &radius_fp, &fitness_fp, initialize_fit_with_pars, min_sub_disparity);
           x_center = (float) x_center_fp;
           y_center = (float) y_center_fp;
@@ -565,18 +568,28 @@ int main(void)
           fitness = ((float) fitness_fp) / FITNESS_RESOLUTION;
         }
 
-        // send disparity image:
-        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
-
-        /*
-        // send message:
-        dronerace_message[0] = (uint8_t) x_center;
-        dronerace_message[1] = (uint8_t) y_center;
+        // fit parameters, where the gate is likely to be:
+        dronerace_message[0] = (uint8_t) x_center; // TODO: what if these are outside of the image?
+        dronerace_message[1] = (uint8_t) y_center; // what if these are outside of the image?
         dronerace_message[2] = (uint8_t) radius;
+        // fitness of the fit - lower is better:
         dronerace_message[3] = (uint8_t) (100 * fitness);
+        // what is our update rate?
         dronerace_message[4] = (uint8_t) frameRate;
-        SendArray(dronerace_message, 5, 1);
-        */
+        // these last three message elements indicate where the closest obstacle roughly is:
+        dronerace_message[5] = (uint8_t) x0;
+        dronerace_message[6] = (uint8_t) y0;
+        dronerace_message[7] = (uint8_t) (mean_disparity / RESOLUTION_FACTOR);
+
+        // send disparity image:
+        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);        
+        
+        // send message:
+        // Note:
+        // In the project file, the baud rate should be changed
+        // For max speed, the drawing functions in gate_detection should be switched off (GRAPHICS, GRAPHICS_FP)
+        // SendArray(dronerace_message, 8, 1);
+        
       }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {

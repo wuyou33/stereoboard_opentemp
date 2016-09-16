@@ -313,7 +313,7 @@ q15_t mean_distance_to_square_fp(q15_t* genome)
   uint16_t p;
   uint32_t index;
 	q15_t mean_distance = 0;
-  q15_t dist_center, error, error_stick;
+  q15_t error, error_stick;
 
   // x = genome[0], y = genome[1], r = genome[2]
 	q15_t x = genome[0];
@@ -332,10 +332,10 @@ q15_t mean_distance_to_square_fp(q15_t* genome)
   }
 
    // determine corner points:
-  struct point_f square_top_left;
-  struct point_f square_top_right;
-  struct point_f square_bottom_right;
-  struct point_f square_bottom_left;
+  struct point_i square_top_left;
+  struct point_i square_top_right;
+  struct point_i square_bottom_right;
+  struct point_i square_bottom_left;
   square_top_left.x = x-r;
   square_top_left.y = y+r; // positive y direction is up TODO: it is down!!!
   square_top_right.x = x+r;
@@ -349,10 +349,10 @@ q15_t mean_distance_to_square_fp(q15_t* genome)
   for (p = 0; p < n_points_fp; p++)
 	{
     // determine the distance to the four sides of the square and select the smallest one:
-    side_distances[0] = distance_to_vertical_segment(square_top_left, square_bottom_left, x, y);
-    side_distances[1] = distance_to_vertical_segment(square_top_right, square_bottom_right, x, y);
-    side_distances[2] = distance_to_horizontal_segment(square_top_left, square_top_right, x, y);
-    side_distances[3] = distance_to_horizontal_segment(square_bottom_left, square_bottom_right, x, y);
+    side_distances[0] = distance_to_vertical_segment_fp(square_top_left, square_bottom_left, x, y);
+    side_distances[1] = distance_to_vertical_segment_fp(square_top_right, square_bottom_right, x, y);
+    side_distances[2] = distance_to_horizontal_segment_fp(square_top_left, square_top_right, x, y);
+    side_distances[3] = distance_to_horizontal_segment_fp(square_bottom_left, square_bottom_right, x, y);
     arm_min_q15(side_distances, (uint32_t) 4, &error, &index);
 
 		if (STICK_FP)
