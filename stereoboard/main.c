@@ -399,6 +399,9 @@ int main(void)
   q15_t radius_fp = 50;
   q15_t fitness_fp = 4;
   uint8_t dronerace_message[5]; // the above + frame rate
+  float feature_list_f [4 * features_max_number];
+
+
 
   // variable for making a sub-pixel disparity histogram:
   q15_t sub_disp_histogram[disparity_range*RESOLUTION_FACTOR];
@@ -470,7 +473,7 @@ int main(void)
           current_stereoboard_algorithm == SEND_FRAMERATE_STEREO || current_stereoboard_algorithm == SEND_WINDOW ||
           current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR
           || current_stereoboard_algorithm == SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == DISPARITY_BASED_VELOCITY
-          || current_stereoboard_algorithm == DRONERACE || (current_stereoboard_algorithm == STEREO_VELOCITY && !SUB_SAMPLING)) {
+          || (current_stereoboard_algorithm == STEREO_VELOCITY && !SUB_SAMPLING)) {
 
         // If we do STEREO_VELOCITY we only determine disparities from time to time:
         if (current_stereoboard_algorithm != STEREO_VELOCITY || frame_counter % inv_freq_stereo == 0) {
@@ -515,6 +518,15 @@ int main(void)
       }
 
       if(current_stereoboard_algorithm == DRONERACE){
+    	//First run specific stereo algorithm that filters away background disparity values
+    	min_y = 0;
+		max_y = 96;
+		memset(disparity_image.image, 0, FULL_IMAGE_SIZE / 2);
+		processed_pixels = stereo_vision_sparse_block_two_sided_features(current_image_buffer,
+							 disparity_image.image, feature_list_f, features_max_number,
+							 image_width, image_height, disparity_min, disparity_range, disparity_step,
+							 thr1, thr2, min_y, max_y, sub_disp_histogram);
+
       	int initialize_fit_with_pars = 0;
         int FP = 0;
         // TODO: Only correct for circle detection:
@@ -554,7 +566,7 @@ int main(void)
         }
 
         // send disparity image:
-        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);        
+        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
 
         /*
         // send message:

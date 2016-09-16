@@ -327,17 +327,32 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
 {
 
   uint16_t processed_pixels = 0; // number of points in disparity map
+  uint32_t locationInBuffer = 0;
 
   // variables for feature computation
-  uint16_t feature_count = 0;
-  uint16_t feature_index = 0;
-  float scaling_factor;
-  float image_width_2 = (float) image_width / 2;
-  float image_height_2 = (float) image_height / 2;
+  int feature_count = 0;
+  int feature_index = 0;
+  int data_size = 4; // data consists of [X Y Z disparity_map_index]
+  volatile float scaling_factor;
+  uint32_t image_width_2 = image_width/2;
+  uint32_t image_height_2 = image_height/2;
   float baseline = 60; // real number [mm]
   float focal_length = 120; // real number, approximate estimate, might differ per camera [px], not millimeters
 
+  // object filtering
+  float histogram_bin_size = 250.0; // [mm]
+  float Y_threshold = 500; // [mm], points are only stored if their Y coordinate is smaller (Y is positive down)
+  float search_range = 5000; // [mm] maximum distance to search for the object
+  float X,Y,Z,locationInBuffer_f;
 
+  uint16_t histogram [100];
+  uint16_t histogram_acc [100];
+  int histogram_index;
+   for (histogram_index = 0; histogram_index<100; histogram_index++)
+  {
+	  histogram[histogram_index] = 0;
+	  histogram_acc[histogram_index] = 0;
+  }
 
   disparity_min = -DISPARITY_OFFSET_HORIZONTAL / RESOLUTION_FACTOR;
 
@@ -357,6 +372,7 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
 
   int fakeShitImageWidth = 128;
   int half_imageWidth = fakeShitImageWidth / 2;
+  int half_imageHeight = 48;
   int idx0 = 0; // line starting point index
   int idx_SAD = -1; // SAD block index
   int idx_line = 100; // SAD block index
@@ -471,7 +487,7 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
 
           if ((c2 * 100) / c1 > PKRN_THRESHOLD) {
 
-            uint32_t locationInBuffer = (uint32_t)(fakeShitImageWidth * (lineIndex - half_vertical_block_size)) + i;
+            locationInBuffer = (uint32_t)(fakeShitImageWidth * (lineIndex - half_vertical_block_size)) + i;
             if (locationInBuffer < 12288) {
 
               sub_disp = disparity_value * RESOLUTION_FACTOR;
@@ -498,15 +514,16 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
               } else {
                 out[locationInBuffer] = sub_disp;
                 processed_pixels++;
-
+/*
                 if (feature_count < features_max_number) {
-				  feature_index = feature_count * 3;
+				  feature_index = feature_count * data_size;
 				  scaling_factor = (float) baseline/sub_disp;
 				  features[feature_index] = (float) (i-image_width_2)*scaling_factor; // X (positive to the right)
 				  features[feature_index + 1] = (float) (lineIndex-image_height_2)*scaling_factor; // Y (positive down)
 				  features[feature_index + 2] = focal_length*scaling_factor; // Z (positive forward
 				  feature_count++;
 				}
+				*/
               }
               //sum_counts[disparity_value]++;
               if(sub_disp >= 0 && sub_disp < disparity_range*RESOLUTION_FACTOR)
@@ -574,7 +591,7 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
 
           if ((c2 * 100) / c1 > PKRN_THRESHOLD) {
 
-            uint32_t locationInBuffer = (uint32_t)(fakeShitImageWidth * (lineIndex - half_vertical_block_size)) + ii;
+            locationInBuffer = (uint32_t)(fakeShitImageWidth * (lineIndex - half_vertical_block_size)) + ii;
             if (locationInBuffer < 12288) {
 
               sub_disp = (disparity_range - 1 - disparity_value) * RESOLUTION_FACTOR;
@@ -601,15 +618,27 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
               } else {
                 out[locationInBuffer-(sub_disp/RESOLUTION_FACTOR)] = sub_disp;
                 processed_pixels++;
-
+/*
                 if (feature_count < features_max_number) {
-				  feature_index = feature_count * 3;
-				  scaling_factor = (float) baseline/sub_disp;
-				  features[feature_index] = (float) (i-image_width_2)*scaling_factor; // X (positive to the right)
-				  features[feature_index + 1] = (float) (lineIndex-image_height_2)*scaling_factor; // Y (positive down)
-				  features[feature_index + 2] = focal_length*scaling_factor; // Z (positive forward
-				  feature_count++;
+				  feature_index = feature_count * data_size;
+				  scaling_factor = (float) baseline/sub_disp*RESOLUTION_FACTOR;
+				  X = (float) (i-half_imageWidth)*scaling_factor;
+				  Y = (float) (lineIndex-half_imageHeight)*scaling_factor;
+				  Z = focal_length*scaling_factor;
+				  locationInBuffer_f = (float) locationInBuffer-(sub_disp/RESOLUTION_FACTOR);
+				  features[feature_index] = X; // X (positive to the right)
+				  features[feature_index + 1] = Y; // Y (positive down)
+				  features[feature_index + 2] = Z; // Z (positive forward
+				  features[feature_index + 3] = locationInBuffer_f;
+
+				  if (features[feature_index + 1] < Y_threshold)
+				  {
+					  feature_count++;
+					  histogram_index = (int) features[feature_index + 2]/histogram_bin_size;
+					  histogram[histogram_index]++;
+				  }
 				}
+				*/
               }
 
               if(sub_disp >= 0 && sub_disp < disparity_range*RESOLUTION_FACTOR)
@@ -621,7 +650,36 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
       }
     }
   }
+/*
+  // Now search for peak in histogram within search range
+  int max_histogram_index = (int) search_range/histogram_bin_size;
+  for ( histogram_index = 1; histogram_index<max_histogram_index; histogram_index++ )
+  {
+	  histogram_acc[histogram_index] = histogram[histogram_index-1]+histogram[histogram_index]+histogram[histogram_index+1];
+  }
+  int max_histogram_value = 0;
+  int peak_histogram_index = 0;
+  for ( histogram_index = 1; histogram_index<max_histogram_index; histogram_index++ )
+  {
+	  if (histogram_acc[histogram_index] > max_histogram_value )
+	  {
+		  max_histogram_value = histogram_acc[histogram_index];
+		  peak_histogram_index = histogram_index;
+	  }
+  }
 
+  float min_Y = (float) (peak_histogram_index-1)*histogram_bin_size;
+  float max_Y = (float) (peak_histogram_index+1)*histogram_bin_size;
+
+  for ( feature_index = 0; feature_index<feature_count*data_size; feature_index+=data_size)
+  {
+	  if ( features[feature_index + 2] < min_Y || features[feature_index + 2] > max_Y )
+	  {
+		  locationInBuffer = (int) features[feature_index + 3];
+		  out[locationInBuffer] = 0; // remove point from disparity map
+	  }
+  }
+*/
   return processed_pixels;
 
 }
