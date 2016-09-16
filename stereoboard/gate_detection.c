@@ -27,7 +27,7 @@ uint16_t n_points;
 // 10 individuals 30 generations is a normal setting
 #define N_INDIVIDUALS 10
 #define N_GENES 3
-uint16_t n_generations = 30; // could be reduced for instance when there are many points
+uint16_t n_generations = 10; // could be reduced for instance when there are many points
 float Population[N_INDIVIDUALS][N_GENES];
 
 // watch out: inliers fit does not work so well...
@@ -42,14 +42,14 @@ int WEIGHTED = 1;
 int STICK = 1;
 #define CIRCLE 0
 #define SQUARE 1
-int SHAPE = SQUARE;
+int SHAPE = CIRCLE;
 // Now a parameter:
 // int min_disparity = 2;
 float outlier_threshold = 20.0f;
 
 
 // whether to draw on the disparity image:
-int GRAPHICS = 1;
+int GRAPHICS = 0;
 
 /**
  * Function takes a disparity image and fits a circular gate to the close-by points.
@@ -94,7 +94,7 @@ void gate_detection(struct image_i* disparity_image, float* x_center, float* y_c
     {
       // draw a circle on the disparity image:
       uint8_t color[1];
-      color[0] = 255;
+      color[0] = 128;
       if(SHAPE == CIRCLE)
       {
 		    draw_circle(disparity_image, (*x_center), (*y_center), (*radius), color);

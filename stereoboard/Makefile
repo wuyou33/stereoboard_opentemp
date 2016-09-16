@@ -17,7 +17,7 @@ GDB           = $(CROSS)gdb
 
 COMMONFLAGS = -mcpu=cortex-m4 -mthumb
 
-CFLAGS        = -g -Og -mlittle-endian -DHSE_VALUE=12000000
+CFLAGS        = -g -O1 -mlittle-endian -DHSE_VALUE=12000000
 CFLAGS       += $(COMMONFLAGS) -DARM_MATH_CM4 -fsingle-precision-constant
 CFLAGS       += -ffreestanding -nostdlib
 

@@ -361,7 +361,7 @@ int main(void)
   }
 
 
-  uint16_t features_max_number = 300;
+  uint16_t features_max_number = 500;
   uint8_t feature_image_coordinates [3 * features_max_number];
 
   int pos_y = 0;
@@ -529,6 +529,7 @@ int main(void)
 							 disparity_image.image, feature_list_f, features_max_number,
 							 image_width, image_height, disparity_min, disparity_range, disparity_step,
 							 thr1, thr2, min_y, max_y, sub_disp_histogram);
+		//SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
 
       	int initialize_fit_with_pars = 0;
         int FP = 0;
@@ -582,13 +583,13 @@ int main(void)
         dronerace_message[7] = (uint8_t) (mean_disparity / RESOLUTION_FACTOR);
 
         // send disparity image:
-        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);        
+        //SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
         
         // send message:
         // Note:
         // In the project file, the baud rate should be changed
         // For max speed, the drawing functions in gate_detection should be switched off (GRAPHICS, GRAPHICS_FP)
-        // SendArray(dronerace_message, 8, 1);
+        SendArray(dronerace_message, 5, 1);
         
       }
       // determine phase of flight
@@ -734,7 +735,6 @@ int main(void)
           max_y = MIN(image_height, pos_y - search_window);
         }
 
-        // run stereo vision algorithm
         stereo_vision_sparse_block_fast_version(current_image_buffer,
                                                 disparity_image.image, image_width, image_height,
                                                 disparity_min, disparity_range, disparity_step, thr1, thr2,
