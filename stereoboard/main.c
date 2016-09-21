@@ -401,7 +401,7 @@ int main(void)
   q15_t y_center_fp = 48;
   q15_t radius_fp = 50;
   q15_t fitness_fp = 4;
-  uint8_t dronerace_message[5]; // the above + frame rate
+  uint8_t dronerace_message[8]; // the above + frame rate
   float feature_list_f [4 * features_max_number];
 
 
