@@ -15,6 +15,7 @@
 //SEND_MEANSHIFT
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 #define CAPTURE_MODE_SNAPSHOT
+#define LED_TOGGLE
 
 //////////////////////////////////////////////////////
 // Settings

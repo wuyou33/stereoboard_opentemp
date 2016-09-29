@@ -6,6 +6,7 @@
  */
 
 #include "stereo_protocol.h"
+#include "main_parameters.h"
 
 
 /**
@@ -86,21 +87,23 @@ uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *inse
       *msg_start = *extract_loc;
     } else if (stereoprot_isEndOfMsg(ser_read_buf, *extract_loc,buffer_size)) { // process msg
 
+      if (msgProperties.height * msgProperties.width < STEREO_BUF_SIZE){
 
-    	// Find the properties of the image by iterating over the complete image
-      stereoprot_get_msg_properties(ser_read_buf, &msgProperties, *msg_start,buffer_size);
-      // Copy array to circular buffer and remove all bytes that are indications of start and stop lines
-      uint16_t i = stereoprot_add(*msg_start, 8,buffer_size), j = 0, k = 0, index = 0;
-      for (k = 0; k < msgProperties.height; k++) {
-        for (j = 0; j < msgProperties.width; j++) {
-          msg_buf[index++] = ser_read_buf[i];
-          i = stereoprot_add(i, 1,buffer_size);
-        }
-        i = stereoprot_add(i, 8,buffer_size);    // step over EOL and SOL
-      } // continue search for new line
-      *stereocam_datalen = msgProperties.width * msgProperties.height;
-      *stereocam_dataheight = msgProperties.height;
-      *stereocam_datadata_new = 1;
+      	// Find the properties of the image by iterating over the complete image
+        stereoprot_get_msg_properties(ser_read_buf, &msgProperties, *msg_start,buffer_size);
+        // Copy array to circular buffer and remove all bytes that are indications of start and stop lines
+        uint16_t i = stereoprot_add(*msg_start, 8,buffer_size), j = 0, k = 0, index = 0;
+        for (k = 0; k < msgProperties.height; k++) {
+          for (j = 0; j < msgProperties.width; j++) {
+            msg_buf[index++] = ser_read_buf[i];
+            i = stereoprot_add(i, 1, buffer_size);
+          }
+          i = stereoprot_add(i, 8,buffer_size);    // step over EOL and SOL
+        } // continue search for new line
+        *stereocam_datalen = msgProperties.width * msgProperties.height;
+        *stereocam_dataheight = msgProperties.height;
+        *stereocam_datadata_new = 1;
+      }
       *extract_loc = stereoprot_add(*extract_loc, 4,buffer_size);      // step over EOM string
 
       return 1;

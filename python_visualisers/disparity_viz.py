@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import time
-ser = serial.Serial('/dev/ttyUSB0',115200,timeout=None)
+ser = serial.Serial('/dev/ttyUSB0',1000000,timeout=None)
 frameNumber = 0
 saveImages= False
 treshold=0.3
