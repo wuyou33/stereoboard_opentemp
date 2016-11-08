@@ -17,7 +17,7 @@ GDB           = $(CROSS)gdb
 
 COMMONFLAGS = -mcpu=cortex-m4 -mthumb
 
-CFLAGS        = -g -O3 -mlittle-endian -DHSE_VALUE=12000000
+CFLAGS        = -g -O3 -mlittle-endian -DHSE_VALUE=12000000 -fvar-tracking
 CFLAGS       += $(COMMONFLAGS) -DARM_MATH_CM4 -fsingle-precision-constant
 CFLAGS       += -ffreestanding -nostdlib
 
@@ -31,24 +31,24 @@ ifeq ($(findstring .h,$(PROJECT)), .h)
 else
 	PROJECT_PATH = projects/$(PROJECT).h
 endif
-CFLAGS   += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPROJECT_FILE=\"./$(PROJECT_PATH)\"
+CFLAGS        += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPROJECT_FILE=\"./$(PROJECT_PATH)\"
 
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
-CFLAGS       += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress -Wstrict-prototypes #-Wextra
+CFLAGS        += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress -Wstrict-prototypes #-Wextra
 
-LFLAGS        =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
+LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld
 
 CV_PATH       = ../dronevision/cv
-STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
-STDPH_PATH    = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
-CMSIS_PATH    = ${STMLIB_PATH}/Libraries/CMSIS
-CORESUP_PATH  = ${CMSIS_PATH}/Include
-DEVSUP_PATH   = ${CMSIS_PATH}/Device/ST/STM32F4xx/Include
-DSP_LIB_PATH  = ${CMSIS_PATH}/DSP_Lib/Source
-USB_PATH      = ../libs/STM32_USB_Device_Library/
-USB_OTG_PATH  = ../libs/STM32_USB_OTG_Driver/
+STMLIB_PATH    = ../ext/libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
+STDPH_PATH     = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
+CMSIS_PATH     = ${STMLIB_PATH}/Libraries/CMSIS
+CORESUP_PATH   = ${CMSIS_PATH}/Include
+DEVSUP_PATH    = ${CMSIS_PATH}/Device/ST/STM32F4xx/Include
+DSP_LIB_PATH   = ${CMSIS_PATH}/DSP_Lib/Source
+USB_PATH       = ../ext/libs/STM32_USB_Device_Library/
+USB_OTG_PATH   = ../ext/libs/STM32_USB_OTG_Driver/
 
 ifeq ($(OS),Windows_NT)
     #Windows stuff
@@ -62,15 +62,7 @@ CFLAGS+=-Idrivers/inc
 CFLAGS+=-I${CORESUP_PATH}
 CFLAGS+=-I${DEVSUP_PATH}
 CFLAGS+=-I${STDPH_PATH}/inc
-
-CFLAGS+=-I${USB_PATH}
-CFLAGS+=-I${USB_PATH}/Core/inc
-CFLAGS+=-I${USB_PATH}/Class/cdc/inc
-
-CFLAGS+=-I${USB_OTG_PATH}/inc
-CFLAGS+=-DUSE_USB_OTG_FS=1
 CFLAGS+=-DSTM32F40_41xxx -DUSE_STDPERIPH_DRIVER=1
-
 CFLAGS+=-I../common
 
 CFLAGS+=-I${CV_PATH}/encoding
@@ -85,15 +77,7 @@ STDP_SRCS += $(wildcard ${DSP_LIB_PATH}/**/*.c)
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 
-USB_SRCS = \
-../libs/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.c \
-../libs/STM32_USB_Device_Library/Core/src/usbd_core.c  \
-../libs/STM32_USB_Device_Library/Core/src/usbd_ioreq.c \
-../libs/STM32_USB_Device_Library/Core/src/usbd_req.c \
-../libs/STM32_USB_OTG_Driver/src/usb_dcd.c      \
-../libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
-
-all: check_user_inputs submodule print $(BIN_IMAGE)
+all: check_user_inputs print $(BIN_IMAGE)
 	$(info Build Successful!)
 
 check_user_inputs:
@@ -119,29 +103,51 @@ MAIN_SRCS += $(CV_PATH)/encoding/jpeg.c
 
 MAIN_SRCS := $(filter-out droplet.c, $(MAIN_SRCS))
 
+# if building multigaze, include usb drivers
+ifneq ($(PROJECT),"multigaze")
+  CFLAGS+=-DUSE_USB
+  CFLAGS+=-DUSE_USB_OTG_FS=1    # todo move to multigaze project file
+  
+  CFLAGS+=-I${USB_PATH}
+  CFLAGS+=-I${USB_PATH}/Core/inc
+  CFLAGS+=-I${USB_PATH}/Class/cdc/inc
+
+  CFLAGS+=-I${USB_OTG_PATH}/inc
+  
+  USB_SRCS = \
+  ../ext/libs/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.c  \
+  ../ext/libs/STM32_USB_Device_Library/Core/src/usbd_core.c           \
+  ../ext/libs/STM32_USB_Device_Library/Core/src/usbd_ioreq.c          \
+  ../ext/libs/STM32_USB_Device_Library/Core/src/usbd_req.c            \
+  ../ext/libs/STM32_USB_OTG_Driver/src/usb_dcd.c                      \
+  ../ext/libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
+  
+  MAIN_SRCS += $(USB_SRCS)
+else
+  MAIN_SRCS := $(filter-out $(wildcard drivers/src/usb*.c), $(MAIN_SRCS))
+endif
+
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 MAIN_LST = $(MAIN_SRCS:.c=.lst)
 
 $(EXECUTABLE): 	\
     startup_stm32f4xx.s \
     ${STDP_LIB} \
-    ${USB_SRCS} \
 		$(MAIN_OBJS)
 
 	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
 
 clean:
-	rm -rf $(EXECUTABLE)
-	rm -rf $(BIN_IMAGE)
-	rm -rf drivers/src/*.o
-	rm -rf *.lst *.o
+	@rm -rf $(EXECUTABLE)
+	@rm -rf $(BIN_IMAGE)
+	@rm -rf $(MAIN_LST) $(MAIN_OBJS)
 
 mrproper:
 	make clean -C ./
 	make stdplib_clean -C ./
 
 submodule:
-	cd ../ && git submodule init && git submodule sync && git submodule update
+	@make -C ../ext/
 
 com:
 	minicom -D /dev/ttyACM2 -o -w -t ansi
@@ -162,21 +168,18 @@ endif
 
 upload:
 	@echo "Using Black Magic Probe"
-	@echo "Using GDB = $(GDB)"
+	@echo "Flashing ${EXECUTABLE} using GDB = $(GDB)"
 	$(GDB) --batch \
                 -ex 'target extended-remote $(BMP_PORT)' \
                 -x black_magic_probe_flash.scr ${EXECUTABLE}
 
 erase_flash:
 	@echo "Using Black Magic Probe"
-	@echo "Using GDB = $(GDB)"
+	@echo "Erasing flash using GDB = $(GDB)"
 	$(GDB) --batch \
                 -ex 'target extended-remote $(BMP_PORT)' \
                 -x black_magic_probe_erase_flash.scr ${EXECUTABLE}
 #endif
-
-cleanspaces:
-	make -C style
 
 debug:
 	@echo "Using Black Magic Probe"
@@ -189,21 +192,22 @@ debug:
 
 quick_build: print $(BIN_IMAGE)
 
+test: testallboards testallprojects
 BOARD_FILES = $(wildcard boards/*.h)
 testallboards:
 	$(foreach var,$(BOARD_FILES), make clean && make quick_build BOARD=$(var);)
 
 PROJECT_FILES = $(wildcard projects/*.h)
-testallprojects: 
+testallprojects:
 	$(foreach var,$(PROJECT_FILES), make clean && make quick_build PROJECT=$(var);)
 
 style:
-	find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/\r$$//' \;
-	find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/\r$$//' \;
-	find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
-	find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
-	./fix_code_style.sh *.c
-	./fix_code_style.sh *.h
+	@find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/\r$$//' \;
+	@find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/\r$$//' \;
+	@find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
+	@find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
+	@../fix_code_style.sh *.c
+	@../fix_code_style.sh *.h
 
 stdplib: $(STDP_LIB)
 
@@ -229,10 +233,7 @@ kimberly: all
 stereoavoid: PROJECT_FILE=projects/stereo_avoid_demo.h BOARD_FILE="boards/board_6.h"
 stereoavoid: all
 
-
 explorer: PROJECT_FILE="projects/explorer.h" BOARD_FILE="boards/board_6.h"
 explorer: all
 
-
-
-.PHONY: all clean style cleanspaces
+.PHONY: all clean style testallprojects testallboards
