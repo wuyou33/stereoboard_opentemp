@@ -68,10 +68,8 @@ uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16
 
     uint16_t i;
     for (i = 0; i < len; i++) {
-
       dev->usart_tx_buffer[dev->usart_tx_counter_write] = ch[i];
       dev->usart_tx_counter_write = (dev->usart_tx_counter_write + 1) % TXBUFFERSIZE;
-
     }
 
     USART_ITConfig(dev->device, USART_IT_TXE, ENABLE);
@@ -121,8 +119,6 @@ static inline uint8_t usart_rx_ringbuffer_push_from_usart(struct UartDataStruct 
 
 static inline uint8_t usart_tx_ringbuffer_pop_to_usart(struct UartDataStruct *dev)
 {
-
-
   if (dev->usart_tx_counter_read != dev->usart_tx_counter_write) {
 
     USART_SendData(dev->device, dev->usart_tx_buffer[dev->usart_tx_counter_read]);
@@ -148,7 +144,6 @@ void usart_isr(struct UartDataStruct *dev)
       /* Disable the Transmit interrupt if buffer is empty */
       USART_ITConfig(dev->device, USART_IT_TXE, DISABLE);
     }
-
     return;
   }
 }
@@ -188,15 +183,11 @@ void uart_init_hw(struct UartDataStruct *dev, int baudrate)
   * the receive data register is not empty
   */
   USART_ITConfig(dev->device, USART_IT_RXNE, ENABLE);
-
 }
 
 
-
-
-void usart_init()
+void usart_init(void)
 {
-
   // Configures the nested vectored interrupt controller.
   NVIC_InitTypeDef NVIC_InitStructure;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
@@ -209,7 +200,6 @@ void usart_init()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-
 
 #ifdef USE_USART1
   // USART1:
@@ -239,9 +229,8 @@ void usart_init()
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
   uart_init_hw(&USART1_Data, USART1_BAUD);
-#endif
 
-#ifdef USE_USART1B
+#elif defined(USE_USART1B)
   // USART1B:
   // Tx1 = PB6
   // Rx1 = PB7
@@ -256,7 +245,7 @@ void usart_init()
   /* Enable GPIO clock */
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-  /* Connect UART pins to PA9, PA10 */
+  /* Connect UART pins to PB6, PB7 */
   GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
   GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
 
@@ -269,9 +258,8 @@ void usart_init()
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
   uart_init_hw(&USART1_Data, USART1_BAUD);
-#endif
 
-#ifdef USE_USART1MUX
+#elif defined(USE_USART1MUX)
   // USART1:
   // Tx1 = PA9
   // Tx1b = PB6

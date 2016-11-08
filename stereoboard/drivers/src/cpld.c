@@ -7,11 +7,10 @@
 #include "main_parameters.h"
 
 /**
- *    DCMI8 = PC10  = Manual
- *    DCMI9 = PC12  = PxMux
+ *    DCMI8   = PC10    = Manual
+ *    DCMI9   = PC12    = PxMux
  *    DCMI10  =   PB5   = LnMux
  */
-
 
 
 // Setup IO Pins for image merging configuration

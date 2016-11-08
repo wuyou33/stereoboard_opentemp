@@ -9,20 +9,24 @@
 #define USART_H_
 
 #include <stdint.h>
-#include "main_parameters.h"
+#include PROJECT_FILE
 
 #define TXBUFFERSIZE    (64*64) // 4 KByte
 #define RXBUFFERSIZE    (64*64) // 4 KByte
 
-
 #define USART_SUCCESS   1
 #define USART_FAIL      0
 
-
 #ifndef UsartTx
-#warning NO Standard Usart defined: Using USART1
-#define USE_USART1
-#define UsartTx  Usart1Tx
+#warning No default Usart defined: Using USART4
+//////////////////////////////////////////////////////
+// The default communication via UsartTx must be connected to a Usart
+// Stereoboard bottom = Usart1
+// Stereoboard top(cpld) = Usart4
+#define USE_USART4
+#define UsartTx Usart4Tx
+#define UsartRx Usart4Rx
+#define UsartCh Usart4Ch
 #endif
 
 struct UartDataStruct {
@@ -48,7 +52,6 @@ struct UartDataStruct {
 
 // Low-level interaction
 void usart_init(void);
-
 int usart_char_available(struct UartDataStruct *dev);
 uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev);
 uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16_t len);
