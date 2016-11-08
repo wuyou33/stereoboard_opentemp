@@ -40,6 +40,7 @@ LFLAGS        =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld
 
+CV_PATH       = ../dronevision/cv
 STMLIB_PATH   = ../libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
 STDPH_PATH    = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
 CMSIS_PATH    = ${STMLIB_PATH}/Libraries/CMSIS
@@ -71,6 +72,8 @@ CFLAGS+=-DUSE_USB_OTG_FS=1
 CFLAGS+=-DSTM32F40_41xxx -DUSE_STDPERIPH_DRIVER=1
 
 CFLAGS+=-I../common
+
+CFLAGS+=-I${CV_PATH}/encoding
 
 # Standard Peripheral Library
 STDP_LIB = libSTM32F4xx_StdPeriph_Driver.a
@@ -112,6 +115,7 @@ $(BIN_IMAGE): $(EXECUTABLE)
 MAIN_SRCS  = $(wildcard drivers/src/*.c)
 MAIN_SRCS += $(wildcard ../common/*.c)
 MAIN_SRCS += $(wildcard *.c)
+MAIN_SRCS += $(CV_PATH)/encoding/jpeg.c
 
 MAIN_SRCS := $(filter-out droplet.c, $(MAIN_SRCS))
 
