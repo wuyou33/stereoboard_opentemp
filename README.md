@@ -30,8 +30,8 @@ Development Agreements:
  - when making project files: explain what they do
  
  
- Currently Supported Projects:
- ----------------------------
+Currently Supported Projects:
+----------------------------
  
- [Projects](./stereoboard/projects/README.md)
+[Projects](./stereoboard/projects/README.md)
  
