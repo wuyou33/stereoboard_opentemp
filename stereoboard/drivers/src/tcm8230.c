@@ -1,7 +1,7 @@
 
 #include "tcm8230.h"
 
-#include "../../../common/stereo_utils.h"
+#include "utils.h"
 #include "dcmi.h"
 #include "stm32f4xx_conf.h"
 #include "usart.h"

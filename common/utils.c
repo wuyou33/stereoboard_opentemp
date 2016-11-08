@@ -4,10 +4,13 @@
  *  Created on: Oct 23, 2012
  *      Author: samuezih
  */
-#include "stereo_utils.h"
+#include "utils.h"
 
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
+
+#include "usart.h"
 
 void Delay(volatile uint32_t count)
 {
@@ -136,32 +139,6 @@ void ltoa(char *buf, unsigned long i, int base)
   strcpy(buf, s);
 }
 
-void itoa(char *buf, unsigned int i, int base)
-{
-  char *s;
-#define LENGTHITOA  10
-  int rem;
-  char rev[LENGTHITOA + 1];
-
-  if (i == 0) {
-    (*s) = '0';
-  } else {
-    rev[LENGTHITOA] = 0;
-    s = &rev[LENGTHITOA];
-    while (i) {
-      rem = i % base;
-      if (rem < 10) {
-        *--s = rem + '0';
-      } else if (base == 16) {
-        *--s = "abcdef"[rem - 10];
-      }
-
-      i /= base;
-    }
-  }
-  strcpy(buf, s);
-}
-
 //int cin(unsigned timeout) {
 //  uint8_t c;
 //  int ret = -1;
@@ -236,10 +213,10 @@ void print_number(int32_t number, uint8_t new_line)
   if (number < 0) {
     number = -number;
     comm_buff[0] = '-';
-    usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
+    UsartTx((uint8_t *)&comm_buff, 1);
   }
 
-  itoa(comm_buff, number, 10);
+  itoa(number, comm_buff, 10);
   if (new_line) {
     comm_buff[BLEN - 2] = '\n';
     comm_buff[BLEN - 1] = '\r';
@@ -248,14 +225,14 @@ void print_number(int32_t number, uint8_t new_line)
     comm_buff[BLEN - 1] = ' ';
   }
 
-  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, BLEN);
+  UsartTx((uint8_t *)&comm_buff, BLEN);
 }
 
 void print_space()
 {
   char comm_buff[ 1 ];
   comm_buff[0] = ' ';
-  usart_tx_ringbuffer_push((uint8_t *)&comm_buff, 1);
+  UsartTx((uint8_t *)&comm_buff, 1);
 }
 
 void print_numbers(uint32_t *numbers, uint8_t size, uint8_t new_line)
@@ -276,16 +253,14 @@ void print_byte(uint8_t b)
   uint8_t code[1];
   code[0] = b;
 
-  while (usart_tx_ringbuffer_push(code, 1) == 0)
+  while (UsartTx(code, 1) == 0)
     ;
 }
 
 void print_string(char *s, int len)
 {
 
-  while (usart_tx_ringbuffer_push(s, len) == 0)
+  while (UsartTx(s, len) == 0)
     ;
-
-
 }
 

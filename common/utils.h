@@ -18,7 +18,6 @@ void wait_ms(uint32_t ms);
 
 /* code from CodeForge.com */
 char *ftoa(float f);
-void itoa(char *buf, unsigned int i, int base);
 void ltoa(char *buf, unsigned long i, int base);
 
 void myhex(uint8_t v, char *buf);

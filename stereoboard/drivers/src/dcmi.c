@@ -4,7 +4,7 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
-#include "stereo_utils.h"
+#include "utils.h"
 #include "camera_type.h"
 
 void camera_init(void)
@@ -74,7 +74,7 @@ void camera_unreset(void)
 void camera_clock_init(void)
 {
   //////////////////////////////////////////
-  // Make a clock signal on PA7
+  // Make a clock signal on PA7, TIM3 CH2
   // 21MHz: ABP1 42MHz 50% Duty Cycle counter to 2
 
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;

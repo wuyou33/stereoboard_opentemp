@@ -2,7 +2,7 @@
 
 #include "usb.h"
 
-#include "../../../common/stereo_utils.h"
+#include "utils.h"
 #include "usbd_cdc_core.h"
 #include "usbd_usr.h"
 #include "usbd_desc.h"

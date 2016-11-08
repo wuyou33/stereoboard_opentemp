@@ -4,13 +4,12 @@
  *      Author: pixhawk
  */
 
+#include "usart.h"
+
 #include "stm32f4xx_conf.h"
 #include "stm32f4xx_usart.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
-//#include "misc.h"
-
-#include "usart.h"
 
 
 #if (defined(USE_USART1) || defined(USE_USART1B) || defined(USE_USART1MUX))
