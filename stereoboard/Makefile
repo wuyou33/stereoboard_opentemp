@@ -40,7 +40,7 @@ LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld
 
-CV_PATH       = ../dronevision/cv
+CV_PATH       = ../ext/dronevision/cv
 STMLIB_PATH    = ../ext/libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
 STDPH_PATH     = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
 CMSIS_PATH     = ${STMLIB_PATH}/Libraries/CMSIS

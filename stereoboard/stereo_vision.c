@@ -3,12 +3,12 @@
 #include "stereo_vision.h"
 #include "led.h"
 #include "sys_time.h"
-#include BOARD_FILE
 
 #include "stereo_math.h"
-#include <arm_math.h>
+#include "image.h"
+#include "arm_math.h"
 #include "main_parameters.h"
-#include "../multigaze/stereoboard_parameters.h"
+//#include "../multigaze/stereoboard_parameters.h"
 #include "stm32f4xx_conf.h"
 
 /**
@@ -1777,51 +1777,6 @@ uint32_t evaluate_disparities_control2(uint8_t *in, uint32_t image_width, uint32
   return control_output;
 
 
-}
-
-
-
-void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_t image_width_bytes)
-{
-  uint32_t i, j;
-  int8_t offset = DISPARITY_OFFSET_LEFT;
-  for (i = 0; i < image_width_bytes; i += 2) {
-    j = i >> 1;
-    if (i >= DISPARITY_BORDER) {
-      offset = DISPARITY_OFFSET_RIGHT;
-    }
-    if (offset >= 0) {
-      line1[j] = (q15_t) in[i];
-      // We add one because images are interlaced
-      line2[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
-    } else if (offset < 0) {
-      line1[j] = (q15_t) in[i - (image_width_bytes * offset)];
-      // We add one because images are interlaced
-      line2[j] = (q15_t) in[i + 1];
-    }
-  }
-}
-
-void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *block_right, uint32_t image_width_bytes,
-                                      uint8_t idx, uint32_t image_width)
-{
-  uint32_t i, j;
-  int8_t offset = DISPARITY_OFFSET_LEFT;
-  for (i = 0; i < image_width_bytes; i += 2) {
-    j = i >> 1;
-    if (i >= DISPARITY_BORDER) {
-      offset = DISPARITY_OFFSET_RIGHT;
-    }
-    if (offset >= 0) {
-      block_left[j + (image_width * idx)] = (q15_t) in[i];
-      // We add one because images are interlaced
-      block_right[j + (image_width * idx)] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
-    } else if (offset < 0) {
-      block_left[j + (image_width * idx)] = (q15_t) in[i - (image_width_bytes * offset)];
-      // We add one because images are interlaced
-      block_right[j + (image_width * idx)] = (q15_t) in[i + 1];
-    }
-  }
 }
 
 void evaluate_central_disparities(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t *disparities,
