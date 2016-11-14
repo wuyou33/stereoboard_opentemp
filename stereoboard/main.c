@@ -157,25 +157,6 @@ uint8_t edgeflowArray[128 * 5];
 uint8_t edgeflowArray[25];
 #endif
 
-void getPartOfImage(uint8_t *originalImage, uint8_t *newImage, uint8_t imagePartX, uint8_t imagePartY,
-                    uint8_t imagePartWidth, uint8_t imagePartHeight, uint8_t image_width_bytes)
-{
-//  int indexX;
-//  int indexY;
-//  int indexNewImage=0;
-//  for(indexY=0; indexY < 30; indexY++){
-//    for(indexX=0; indexX < imagePartWidth; indexX++){
-//      //newImage[indexNewImage++]=originalImage[(imagePartY+indexY)*originalImageWidth*2+(imagePartX*2+indexX)];
-//      originalImage[((indexX+imagePartX)*2) + 1 + ((indexY+30) * image_width_bytes)] = 255;
-//    }
-//
-//  }
-  originalImage[((imagePartX + 1) * 2) + 1 + ((imagePartY + 1) * image_width_bytes)] = 255;
-  originalImage[((imagePartX + 2) * 2) + 1 + ((imagePartY + 1) * image_width_bytes)] = 255;
-  originalImage[((imagePartX + 3) * 2) + 1 + ((imagePartY + 1) * image_width_bytes)] = 255;
-
-}
-
 #ifdef WINDOW
 
 #define WINDOWBUFSIZE 8  // 8 for window and 8 for divergence
@@ -194,13 +175,6 @@ void window_init()
 #endif
 
 
-void array_pop(float *array, int lengthArray)
-{
-  int index;
-  for (index = 1; index < lengthArray; index++) {
-    array[index - 1] = array[index];
-  }
-}
 
 
 /**
@@ -303,8 +277,7 @@ int main(void)
                         / MATRIX_WIDTH_BINS;
   uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
-  // Initialize matrixbuffer
-  uint8_t toSendBuffer[MATRIX_HEIGHT_BINS * MATRIX_WIDTH_BINS];
+
   uint8_t toSendCommand = 0;
 
   uint32_t sys_time_prev = sys_time_get();
@@ -636,10 +609,10 @@ int main(void)
       }
       if (current_stereoboard_algorithm == SEND_MATRIX) {
         // Initialise matrixbuffer and sendbuffer by setting all values back to zero.
-        memset(toSendBuffer, 0, sizeof toSendBuffer);
+        memset(matrix_buffer, 0, sizeof matrix_buffer);
         // Create the distance matrix by summing pixels per bin
         calculateDistanceMatrix(disparity_image.image, blackBorderSize,
-                                pixelsPerLine, widthPerBin, heightPerBin, toSendBuffer, disparity_range);
+                                pixelsPerLine, widthPerBin, heightPerBin, disparity_range);
       }
       if (current_stereoboard_algorithm == SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY
           || current_stereoboard_algorithm == DISPARITY_BASED_VELOCITY) {
@@ -842,7 +815,7 @@ int main(void)
         SendArray(histogramBuffer, pixelsPerLine, 1);
       }
       if (current_stereoboard_algorithm == SEND_MATRIX) {
-        SendArray(toSendBuffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
+        SendArray(matrix_buffer, MATRIX_WIDTH_BINS, MATRIX_HEIGHT_BINS);
       }
       if (current_stereoboard_algorithm == SEND_SINGLE_DISTANCE) {
         uint8_t toSendNow[1];
