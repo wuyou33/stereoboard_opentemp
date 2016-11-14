@@ -2,7 +2,7 @@
 #define BLOB_H_
 
 #include <sys/time.h>
-#include "../common/stereo_utils.h"
+#include "utils.h"
 
 /* The different type of images we currently support */
 enum image_type {

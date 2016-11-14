@@ -18,6 +18,9 @@ using namespace std;
 #include "sys_time.h"
 #endif
 
+
+#include "stereo_math.h"
+
 /* edgeflow_total: The total function for the edgeflow algorithm
  * \param divergenceArray is Array containing information to send to lisa-s
  * \param stereocam_data_int16  is the data the stereocam receives from the lisa s
@@ -1350,24 +1353,6 @@ uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size)
     }
   }
   return amountPeaks;
-}
-
-/* boundint8: bound value outside of bounds of uint8, to prevent overflow
- * \param value to be bounded
- * \return bounded value to uint8_t
- * */
-uint8_t boundint8(int32_t value)
-{
-  uint8_t value_uint8;
-  if (value > 255) {
-    value_uint8 = 255;
-  } else if (value < 0) {
-    value_uint8 = 0;
-  } else {
-    value_uint8 = (uint8_t) value;
-  }
-
-  return value_uint8;
 }
 
 /* ipow: calculates the power of the value

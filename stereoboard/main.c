@@ -46,7 +46,7 @@
 #include "usb.h"
 
 #include "stereo_protocol.h"
-#include "stereo_utils.h"
+#include "utils.h"
 #include "jpeg.h"
 #include "raw_digital_video_stream.h"
 

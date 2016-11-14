@@ -49,8 +49,6 @@ typedef struct {
 #define EVAL_COM_IRQHandler            USART2_IRQHandler
 #endif /* USE_STM322xG_EVAL */
 
-uint16_t VCP_DataTx(uint8_t *Buf, uint32_t Len);
-
 void VCP_put_char(uint8_t buf);
 
 void VCP_send_str(uint8_t *buf);
@@ -58,6 +56,8 @@ void VCP_send_str(uint8_t *buf);
 uint8_t VCP_get_char(uint8_t *buf);
 
 uint8_t VCP_get_string(uint8_t *buf);
+
+uint16_t VCP_DataTx(uint8_t *Buf, uint32_t Len);
 
 #define DEFAULT_CONFIG                  0
 #define OTHER_CONFIG                    1

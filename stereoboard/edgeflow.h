@@ -174,5 +174,5 @@ uint32_t getMedian(int32_t *daArray, int32_t iSize);
 uint32_t getMean(int32_t *daArray, int32_t iSize);
 uint32_t getTotalIntensityImage(uint8_t *in, uint32_t image_height, uint32_t image_width);
 uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size);
-uint8_t boundint8(int32_t value);
+
 #endif /* DIVERGENCE_H_ */

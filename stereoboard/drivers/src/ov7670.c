@@ -1,7 +1,7 @@
 
 #include "ov7670.h"
 
-#include "../../../common/stereo_utils.h"
+#include "utils.h"
 #include "sccb.h"
 
 

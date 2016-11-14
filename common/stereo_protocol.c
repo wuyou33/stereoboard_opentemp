@@ -6,8 +6,8 @@
  */
 
 #include "stereo_protocol.h"
-#include "main_parameters.h"
 
+// TODO move to raw_digital_video_stream.h
 
 /**
  * Increment circular buffer counter by i
@@ -63,10 +63,8 @@ uint8_t stereoprot_isStartOfMsg(uint8_t *stack, uint16_t i,uint16_t buffer_size)
  * Get all available data from stereo com link and decode any complete messages.
  * Returns as soon as a complete message is found. Messages placed in msg_buf
  */
-uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *insert_loc, int16_t *extract_loc, int16_t *msg_start, uint8_t *msg_buf,uint8_t *ser_read_buf,uint8_t *stereocam_datadata_new,uint8_t *stereocam_datalen, uint8_t *stereocam_dataheight)
+uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *insert_loc, uint16_t *extract_loc, uint16_t *msg_start, uint8_t *msg_buf,uint8_t *ser_read_buf,uint8_t *stereocam_datadata_new,uint8_t *stereocam_datalen, uint8_t *stereocam_dataheight)
 {
-
-
 	MsgProperties msgProperties;
   // read all data from the stereo com link, check that don't overtake extract
   if( stereoprot_add(*insert_loc, 1,buffer_size) != *extract_loc) {
@@ -75,45 +73,35 @@ uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *inse
     *insert_loc = stereoprot_add(*insert_loc, 1,buffer_size);
   }
 
-
   // search for complete message in buffer, if found increments read location and returns immediately
 
   //while (stereoprot_diff(*insert_loc, stereoprot_add(*extract_loc,3,buffer_size),buffer_size) > 0) {
   while (stereoprot_diff(*insert_loc, *extract_loc,buffer_size) > 3) {
-
     if (stereoprot_isStartOfMsg(ser_read_buf, *extract_loc,buffer_size)) {
-
-
       *msg_start = *extract_loc;
     } else if (stereoprot_isEndOfMsg(ser_read_buf, *extract_loc,buffer_size)) { // process msg
-
-      if (msgProperties.height * msgProperties.width < STEREO_BUF_SIZE){
-
-      	// Find the properties of the image by iterating over the complete image
-        stereoprot_get_msg_properties(ser_read_buf, &msgProperties, *msg_start,buffer_size);
-        // Copy array to circular buffer and remove all bytes that are indications of start and stop lines
-        uint16_t i = stereoprot_add(*msg_start, 8,buffer_size), j = 0, k = 0, index = 0;
-        for (k = 0; k < msgProperties.height; k++) {
-          for (j = 0; j < msgProperties.width; j++) {
-            msg_buf[index++] = ser_read_buf[i];
-            i = stereoprot_add(i, 1, buffer_size);
-          }
-          i = stereoprot_add(i, 8,buffer_size);    // step over EOL and SOL
-        } // continue search for new line
-        *stereocam_datalen = msgProperties.width * msgProperties.height;
-        *stereocam_dataheight = msgProperties.height;
-        *stereocam_datadata_new = 1;
-      }
+    	// Find the properties of the image by iterating over the complete image
+      stereoprot_get_msg_properties(ser_read_buf, &msgProperties, *msg_start,buffer_size);
+      // Copy array to circular buffer and remove all bytes that are indications of start and stop lines
+      uint16_t i = stereoprot_add(*msg_start, 8,buffer_size), j = 0, k = 0, index = 0;
+      for (k = 0; k < msgProperties.height; k++) {
+        for (j = 0; j < msgProperties.width; j++) {
+          msg_buf[index++] = ser_read_buf[i];
+          i = stereoprot_add(i, 1,buffer_size);
+        }
+        i = stereoprot_add(i, 8,buffer_size);    // step over EOL and SOL
+      } // continue search for new line
+      *stereocam_datalen = msgProperties.width * msgProperties.height;
+      *stereocam_dataheight = msgProperties.height;
+      *stereocam_datadata_new = 1;
       *extract_loc = stereoprot_add(*extract_loc, 4,buffer_size);      // step over EOM string
 
       return 1;
     }
     *extract_loc = stereoprot_add(*extract_loc, 1,buffer_size);
-
   }
   return 0;
 }
-
 
 
 /**

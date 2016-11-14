@@ -1,12 +1,12 @@
-[submodule "libs"]
-	path = libs
-	url = git@github.com:tudelft/STM32F4xx_DSP_StdPeriph_Lib.git
-[submodule "pprzlink"]
-	path = pprzlink
-	url = git@github.com:kirkscheper/pprzlink.git
-[submodule "stereoboard_testing"]
-	path = stereoboard_testing
+[submodule "ext/libs"]
+	path = ext/libs
+	url = https://github.com/tudelft/STM32F4xx_DSP_StdPeriph_Lib.git
+[submodule "ext/pprzlink"]
+	path = ext/pprzlink
+	url = https://github.com/paparazzi/pprzlink.git
+[submodule "ext/stereoboard_testing"]
+	path = ext/stereoboard_testing
 	url = https://github.com/knmcguire/stereoboard_testing.git
-[submodule "dronevision"]
-	path = dronevision
+[submodule "ext/drone_vision"]
+	path = ext/drone_vision
 	url = https://github.com/tudelft/drone_vision.git
