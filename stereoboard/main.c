@@ -47,7 +47,7 @@
 
 #include "stereo_protocol.h"
 #include "utils.h"
-#include "jpeg.h"
+#include "../ext/drone_vision/cv/encoding/jpeg.h"
 #include "raw_digital_video_stream.h"
 
 // include functions headers
