@@ -22,6 +22,7 @@
 #include "stm32f4xx_conf.h"
 #include "sys_time.h"
 #include "stereo_math.h"
+#include "image.h"
 
 // include utility headers
 #include "led.h"
@@ -47,7 +48,7 @@
 
 #include "stereo_protocol.h"
 #include "utils.h"
-#include "../ext/drone_vision/cv/encoding/jpeg.h"
+#include "encoding/jpeg.h"
 #include "raw_digital_video_stream.h"
 
 // include functions headers
@@ -82,14 +83,14 @@ uint32_t integral_image = ((uint32_t *)(0x10000000 + (IMAGE_WIDTH *IMAGE_HEIGHT)
 #endif
 
 uint16_t offset_crop = 0;
-struct image_i disparity_image;
+struct image_t disparity_image;
 /** @addtogroup StereoCam
  * @{
  */
 
 /* Private functions ---------------------------------------------------------*/
 typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_EDGEFLOW, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS,
-              SEND_MEANSHIFT, SEND_VL6180,DRONERACE
+              SEND_MEANSHIFT, SEND_VL6180,DRONERACE, SEND_NONE
              } stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
@@ -147,8 +148,6 @@ stereoboard_algorithm_type getBoardFunction(void)
 //Initializing all structures and elements for the optical flow algorithm (divergence.c)
 struct edgeflow_parameters_t edgeflow_parameters;
 struct edgeflow_results_t edgeflow_results;
-const int8_t FOVX = 104;   // 60deg = 1.04 rad
-const int8_t FOVY = 79;    // 45deg = 0.785 rad
 
 //send array with flow parameters
 #ifdef EDGEFLOW_DEBUG
@@ -176,6 +175,13 @@ void window_init()
 
 
 
+struct image_t current_image_pair = {.w = 2 * IMAGE_WIDTH,
+                                     .h = IMAGE_HEIGHT,
+                                     .type = IMAGE_GRAYSCALE};
+
+uint32_t freq_counter = 0;
+uint32_t frame_dt = 0;
+uint32_t frame_rate = 0;
 
 /**
  * @brief  Main program
@@ -184,6 +190,9 @@ void window_init()
  */
 int main(void)
 {
+#ifdef NEW_MAIN
+  init_project();
+#endif
 
   /*
     At this stage the microcontroller clock setting is already configured,
@@ -250,9 +259,11 @@ int main(void)
   //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
   memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
 
-  disparity_image.image = disparity_image_buffer_8bit;
+  disparity_image.buf = disparity_image_buffer_8bit;
   disparity_image.h = IMAGE_HEIGHT;
   disparity_image.w = IMAGE_WIDTH;
+  disparity_image.type = IMAGE_GRAYSCALE;
+  disparity_image.buf_size = FULL_IMAGE_SIZE / 2;
 
   // Stereo parameters:
   uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8. disp = Npix*cam_separation /(2*dist*tan(FOV/2))
@@ -277,25 +288,16 @@ int main(void)
                         / MATRIX_WIDTH_BINS;
   uint8_t heightPerBin = pixelsPerColumn / MATRIX_HEIGHT_BINS;
 
-
   uint8_t toSendCommand = 0;
 
   uint32_t sys_time_prev = sys_time_get();
-
-#ifdef AVG_FREQ
-  uint32_t freq_counter = 0;
-#endif
-
-  volatile int32_t frameRate = 0;
 
   uint8_t histogramBuffer[pixelsPerLine];
   uint8_t histogramBufferX[pixelsPerLine];
 
 #ifdef WINDOW
-
   // Initialize window
   window_init();
-
 #endif
 
   // Settings for SEND_TURN_COMMANDS
@@ -332,7 +334,6 @@ int main(void)
   if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
     learning_collisions_init();
   }
-
 
   uint16_t features_max_number = 500;
   uint8_t feature_image_coordinates [3 * features_max_number];
@@ -377,8 +378,6 @@ int main(void)
   uint8_t dronerace_message[8]; // the above + frame rate
   float feature_list_f [4 * features_max_number];
 
-
-
   // variable for making a sub-pixel disparity histogram:
   q15_t sub_disp_histogram[disparity_range*RESOLUTION_FACTOR];
 
@@ -387,7 +386,7 @@ int main(void)
   int disparity_velocity_step = 0;
 
   // initialize edgeflow
-  edgeflow_init(&edgeflow_parameters, &edgeflow_results, FOVX, FOVY, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
+  edgeflow_init(&edgeflow_parameters, &edgeflow_results, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
 // led_clear();
   uint8_t quality_measures_index;
   for (quality_measures_index = 0; quality_measures_index < DIVERGENCE_QUALITY_MEASURES_LENGTH;
@@ -419,19 +418,20 @@ int main(void)
         ;
       processed = frame_counter;
 
+#ifdef NEW_MAIN
+      run_project();
+#endif
 
       // compute run frequency
-#ifdef AVG_FREQ
       freq_counter++;
       if (get_timer_interval(sys_time_prev) >= TIMER_TICKS_PER_SEC) { // clock at 2kHz
-        frameRate = freq_counter * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC; // in Hz
+        frame_rate = freq_counter * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC; // in Hz
         freq_counter = 0;
         sys_time_prev = sys_time_get();
       }
-#else
-      frameRate = TIMER_TICKS_PER_SEC / get_timer_interval(sys_time_prev); // in Hz
+      frame_dt = 1000 * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC;
       sys_time_prev = sys_time_get();
-#endif
+
       // Read from other device with the stereo communication protocol.
       while (UsartCh() && stereoprot_add(insert_loc, 1, STEREO_BUF_SIZE) != extract_loc) {
         uint16_t length = STEREO_BUF_SIZE;
@@ -456,16 +456,16 @@ int main(void)
           // Determine disparities:
           min_y = 0;
           max_y = 96;
-          memset(disparity_image.image, 0, FULL_IMAGE_SIZE / 2);
+          memset((uint8_t*)disparity_image.buf, 0, FULL_IMAGE_SIZE / 2);
 
           if (STEREO_ALGORITHM) {
-            stereo_vision_Kirk(current_image_buffer,
-                               disparity_image.image, image_width, image_height,
+            stereo_vision_Kirk((uint8_t*)current_image_pair.buf,
+                               (uint8_t*)disparity_image.buf, image_width, image_height,
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
                                min_y, max_y);
           } else {
-            processed_pixels = stereo_vision_sparse_block_two_sided(current_image_buffer,
-                               disparity_image.image, image_width, image_height,
+            processed_pixels = stereo_vision_sparse_block_two_sided((uint8_t*)current_image_pair.buf,
+                               (uint8_t*)disparity_image.buf, image_width, image_height,
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
                                min_y, max_y, sub_disp_histogram);
           }
@@ -475,8 +475,8 @@ int main(void)
       if (current_stereoboard_algorithm == STEREO_VELOCITY && SUB_SAMPLING) {
         min_y = 0;
         max_y = 96;
-        nr_of_features = stereo_vision_sparse_block_features(current_image_buffer,
-                         disparity_image.image, feature_image_coordinates, features_max_number, image_width, image_height,
+        nr_of_features = stereo_vision_sparse_block_features((uint8_t*)current_image_pair.buf,
+                         (uint8_t*)disparity_image.buf, feature_image_coordinates, features_max_number, image_width, image_height,
                          disparity_min, disparity_range, disparity_step, thr1, thr2,
                          min_y, max_y);
       }
@@ -485,7 +485,7 @@ int main(void)
       }
       if (current_stereoboard_algorithm == SEND_HISTOGRAM || current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
 
-        histogram_x_direction(disparity_image.image, histogramBuffer, histogram_type, blackBorderSize, pixelsPerLine,
+        histogram_x_direction((uint8_t*)disparity_image.buf, histogramBuffer, histogram_type, blackBorderSize, pixelsPerLine,
                               image_height);
 
         if (current_stereoboard_algorithm == SEND_DELFLY_CORRIDOR) {
@@ -497,12 +497,12 @@ int main(void)
     	//First run specific stereo algorithm that filters away background disparity values
     	min_y = 0;
 		max_y = 96;
-		memset(disparity_image.image, 0, FULL_IMAGE_SIZE / 2);
-		processed_pixels = stereo_vision_sparse_block_two_sided_features(current_image_buffer,
-							 disparity_image.image, feature_list_f, features_max_number,
+		memset((uint8_t*)disparity_image.buf, 0, IMAGE_WIDTH * IMAGE_HEIGHT);
+		processed_pixels = stereo_vision_sparse_block_two_sided_features((uint8_t*)current_image_pair.buf,
+							 (uint8_t*)disparity_image.buf, feature_list_f, features_max_number,
 							 image_width, image_height, disparity_min, disparity_range, disparity_step,
 							 thr1, thr2, min_y, max_y, sub_disp_histogram);
-		//SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+		//SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
 
       	int initialize_fit_with_pars = 0;
         int FP = 0;
@@ -534,7 +534,7 @@ int main(void)
         else
         {
           // fixed point implementation:
-          int initialize_fit_with_pars = 0;
+          //int initialize_fit_with_pars = 0;
           gate_detection_fp(&disparity_image, &x_center_fp, &y_center_fp, &radius_fp, &fitness_fp, initialize_fit_with_pars, min_sub_disparity);
           x_center = (float) x_center_fp;
           y_center = (float) y_center_fp;
@@ -549,14 +549,14 @@ int main(void)
         // fitness of the fit - lower is better:
         dronerace_message[3] = (uint8_t) (100 * fitness);
         // what is our update rate?
-        dronerace_message[4] = (uint8_t) frameRate;
+        dronerace_message[4] = (uint8_t) 1000 / frame_dt;
         // these last three message elements indicate where the closest obstacle roughly is:
         dronerace_message[5] = (uint8_t) x0;
         dronerace_message[6] = (uint8_t) y0;
         dronerace_message[7] = (uint8_t) (mean_disparity / RESOLUTION_FACTOR);
 
         // send disparity image:
-        //SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+        //SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
         
         // send message:
         // Note:
@@ -569,7 +569,7 @@ int main(void)
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 
         int disparities_high = 0;
-        disparities_high =  evaluate_disparities_droplet(disparity_image.image, image_width, image_height, 30);
+        disparities_high =  evaluate_disparities_droplet((uint8_t*)disparity_image.buf, image_width, image_height, 30);
         current_phase = run_droplet_algorithm(disparities_high, processed_pixels, sys_time_get());
 
         if (current_phase == 1) {
@@ -588,13 +588,13 @@ int main(void)
 
       // compute run frequency
       if (current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
-        toSendCommand = (uint8_t) frameRate;
+        toSendCommand = (uint8_t) 1000 / frame_dt;
       }
 
       if (current_stereoboard_algorithm == SEND_TURN_COMMANDS) {
         uint8_t border = 0;
         uint8_t disp_threshold = 5 * RESOLUTION_FACTOR;
-        evaluate_central_disparities2(disparity_image.image, image_width, image_height, disparities, n_disp_bins, min_y,
+        evaluate_central_disparities2((uint8_t*)disparity_image.buf, image_width, image_height, disparities, n_disp_bins, min_y,
                                       max_y, disp_threshold, border);
         disparities[0] = (disparities[0] * RESOLUTION) / ((max_y - min_y) * (image_width));
         disparities[1] = (disparities[1] * RESOLUTION) / image_width;
@@ -611,7 +611,7 @@ int main(void)
         // Initialise matrixbuffer and sendbuffer by setting all values back to zero.
         memset(matrix_buffer, 0, sizeof matrix_buffer);
         // Create the distance matrix by summing pixels per bin
-        calculateDistanceMatrix(disparity_image.image, blackBorderSize,
+        calculateDistanceMatrix((uint8_t*)disparity_image.buf, blackBorderSize,
                                 pixelsPerLine, widthPerBin, heightPerBin, disparity_range);
       }
       if (current_stereoboard_algorithm == SEND_SINGLE_DISTANCE || current_stereoboard_algorithm == STEREO_VELOCITY
@@ -619,8 +619,8 @@ int main(void)
         // Determine the maximum disparity using the disparity map
         if (!SUB_SAMPLING) {
           // Determine the maximum disparity using the disparity map
-          histogram_z_direction(disparity_image.image, histogramBuffer, pixelsPerLine, image_height);
-          histogram_x_direction(disparity_image.image, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine,
+          histogram_z_direction((uint8_t*)disparity_image.buf, histogramBuffer, pixelsPerLine, image_height);
+          histogram_x_direction((uint8_t*)disparity_image.buf, histogramBufferX, histogram_type, blackBorderSize, pixelsPerLine,
                                 image_height);
           get_average_left_right(histogramBufferX, &avg_disp_left, &avg_disp_right, pixelsPerLine);
 
@@ -662,7 +662,7 @@ int main(void)
       if (current_stereoboard_algorithm == SEND_EDGEFLOW || current_stereoboard_algorithm == STEREO_VELOCITY) {
 
         // calculate the edge flow
-        edgeflow_total(edgeflowArray, (int16_t *)stereocam_data.data, stereocam_data.len, current_image_buffer,
+        edgeflow_total(edgeflowArray, (int16_t *)stereocam_data.data, stereocam_data.len, (uint8_t*)current_image_pair.buf,
                        &edgeflow_parameters, &edgeflow_results);
 
         stereocam_data.data_new = 0;
@@ -673,7 +673,7 @@ int main(void)
         // XPOS, YPOS, RESPONSE, DISP_SUM, DISP_HOR, DISP_VERT
 
 #ifdef WINDOW
-        windowMsgBuf[2] = (uint8_t)detect_window_sizes(disparity_image.image, image_width, image_height, coordinate,
+        windowMsgBuf[2] = (uint8_t)detect_window_sizes((uint8_t*)disparity_image.buf, image_width, image_height, coordinate,
                           &window_size, integral_image, MODE_DISPARITY, (uint8_t)(disparity_range - disparity_min));
         windowMsgBuf[0] = coordinate[0];
         windowMsgBuf[1] = coordinate[1];
@@ -684,7 +684,7 @@ int main(void)
         windowMsgBuf[5] = (uint8_t)((get_sum_disparities(0, 0, 127, 47, integral_image, 128, 96) - get_sum_disparities(0, 48,
                                      127, 95, integral_image, 128, 96)) / windowMsgBuf[3]) + 127;
         windowMsgBuf[6] = window_size;
-        windowMsgBuf[7] = (uint8_t)frameRate;
+        windowMsgBuf[7] = (uint8_t) 1000 / frame_dt;
 
 #endif
 
@@ -696,7 +696,7 @@ int main(void)
         uint8_t search_window = 10;
         nr_of_features = 0;
 
-        memset(disparity_image.image, 0, FULL_IMAGE_SIZE / 2);
+        memset((uint8_t*)disparity_image.buf, 0, FULL_IMAGE_SIZE / 2);
 
         // if no previous measurement, search in the whole image for nearby person
         if (no_prev_measurment == 0) {
@@ -708,20 +708,20 @@ int main(void)
           max_y = MIN(image_height, pos_y - search_window);
         }
 
-        stereo_vision_sparse_block_fast_version(current_image_buffer,
-                                                disparity_image.image, image_width, image_height,
+        stereo_vision_sparse_block_fast_version((uint8_t*)current_image_pair.buf,
+                                                (uint8_t*)disparity_image.buf, image_width, image_height,
                                                 disparity_min, disparity_range, disparity_step, thr1, thr2,
                                                 min_y, max_y);
 
         // subtract feature locations from disparitymap in specified range
-        //nr_of_features = getFeatureImageLocations(disparity_image.image, feature_image_locations, image_width, image_height, min_y, max_y, feature_count_limit);
-        nr_of_features = getFeatureImageLocations(current_image_buffer, disparity_image.image, feature_image_locations,
+        //nr_of_features = getFeatureImageLocations((uint8_t*)disparity_image.buf, feature_image_locations, image_width, image_height, min_y, max_y, feature_count_limit);
+        nr_of_features = getFeatureImageLocations((uint8_t*)current_image_pair.buf, (uint8_t*)disparity_image.buf, feature_image_locations,
                          target_location, image_width, image_height, min_y, max_y, feature_count_limit);
 
         // visualize features
         if (nr_of_features == feature_count_limit) {
-          //nr_of_features = visualizeBlobImageLocation(current_image_buffer, feature_image_locations, target_location, nr_of_features, image_width, feature_count_limit);
-          //visualizeFeatureImageLocations(current_image_buffer, feature_image_locations, nr_of_features, image_width, feature_count_limit);
+          //nr_of_features = visualizeBlobImageLocation((uint8_t*)current_image_pair.buf, feature_image_locations, target_location, nr_of_features, image_width, feature_count_limit);
+          //visualizeFeatureImageLocations((uint8_t*)current_image_pair.buf, feature_image_locations, nr_of_features, image_width, feature_count_limit);
 
         }
         // rotate and convert image points to real world points
@@ -748,12 +748,11 @@ int main(void)
           if (nr_of_features == 0)  // after 5 seconds obtain disparity map once
 
           {
-
-            memset(disparity_image.image, 0, FULL_IMAGE_SIZE / 2);
+            memset((uint8_t*)disparity_image.buf, 0, FULL_IMAGE_SIZE / 2);
 
             // run stereo vision algorithm
-            nr_of_features = stereo_vision_sparse_block_features(current_image_buffer,
-                             disparity_image.image, feature_image_coordinates, features_max_number, image_width, image_height,
+            nr_of_features = stereo_vision_sparse_block_features((uint8_t*)current_image_pair.buf,
+                             (uint8_t*)disparity_image.buf, feature_image_coordinates, features_max_number, image_width, image_height,
                              disparity_min, disparity_range, disparity_step, thr1, thr2,
                              min_y, max_y);
 
@@ -763,16 +762,16 @@ int main(void)
               //features_TOTAL_number = 50;
               //feature_window = 2; // one sided window size (total size is *2 + 1)
 
-              odometry_select_features(current_image_buffer, feature_image_coordinates,
+              odometry_select_features((uint8_t*)current_image_pair.buf, feature_image_coordinates,
                                        nr_of_features, features_TOTAL_number, image_width, image_height);
 
-              odometry_extract_features(current_image_buffer, feature_window_data, feature_image_coordinates,
+              odometry_extract_features((uint8_t*)current_image_pair.buf, feature_window_data, feature_image_coordinates,
                                         features_TOTAL_number, features_ROT_number, image_width, image_height, feature_window_size_2);
             }
             //led_toggle();
 
           } else { // after obtaining disparity map and good features, run odometry
-            odometry_translate_and_match_features(current_image_buffer, feature_window_data, feature_image_coordinates,
+            odometry_translate_and_match_features((uint8_t*)current_image_pair.buf, feature_window_data, feature_image_coordinates,
                                                   features_ROT_number, feature_window_size_2, rotation_coefficients, number_of_rotations, image_width);
             //led_toggle();
           }
@@ -781,12 +780,10 @@ int main(void)
 #endif
 
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
-
         sys_time_prev = sys_time_get();
-        learning_collisions_run(current_image_buffer);
-        frameRate = TIMER_TICKS_PER_SEC / get_timer_interval(sys_time_prev); // in Hz
+        learning_collisions_run((uint8_t*)current_image_pair.buf);
+        frame_dt = 1000 * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC;
       }
-
 
       // Now send the data that we want to send
       if (current_stereoboard_algorithm == SEND_IMAGE) {
@@ -795,21 +792,21 @@ int main(void)
         uint8_t copyOfThing[IMAGE_WIDTH * IMAGE_HEIGHT * 2];
         int someIndexImage = 0;
         for (; someIndexImage < IMAGE_WIDTH * IMAGE_HEIGHT * 2; someIndexImage++) {
-          copyOfThing[someIndexImage] = current_image_buffer[someIndexImage];
+          copyOfThing[someIndexImage] = (uint8_t*)current_image_pair.buf[someIndexImage];
         }
         setLineNumbersImage(&copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
 
         SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
 #else
-        SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+        SendImage((uint8_t*)current_image_pair.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
       }
 
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
 #ifdef SET_LINE_NUMBERS
-        setLineNumbers(&disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+        setLineNumbers(&(uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
 #endif
-        SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT);
+        SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
       if (current_stereoboard_algorithm == SEND_HISTOGRAM) {
         SendArray(histogramBuffer, pixelsPerLine, 1);
@@ -836,7 +833,7 @@ int main(void)
 
       if (current_stereoboard_algorithm == STEREO_VELOCITY) {
         edgeflowArray[4] = maxDispFound;
-        int disparities_high =  evaluate_disparities_droplet(disparity_image.image, image_width, image_height, 80);
+        int disparities_high =  evaluate_disparities_droplet((uint8_t*)disparity_image.buf, image_width, image_height, 80);
         if (disparities_high > 200) {
           edgeflowArray[5] = 200;
         } else {
@@ -866,15 +863,15 @@ int main(void)
         SendCommand(toSendCommand);
       }
       if (current_stereoboard_algorithm == SEND_FOLLOW_YOU) {
-//        SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
-        //SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
+//        SendImage((uint8_t*)current_image_pair.buf, IMAGE_WIDTH, IMAGE_HEIGHT); // show image with target-cross
+        //SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
         SendArray(target_location, 3, 1); // send 3D location of target
       }
       if (current_stereoboard_algorithm == SEND_ROTATIONS) {
-        //SendArray(disparity_image.image, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
+        //SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT); // show disparity map
       }
       if (current_stereoboard_algorithm == SEND_LEARNING_COLLISIONS) {
-        //SendImage(current_image_buffer, IMAGE_WIDTH, IMAGE_HEIGHT);
+        //SendImage((uint8_t*)current_image_pair.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
       }
 
     }

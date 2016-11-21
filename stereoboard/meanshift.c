@@ -87,8 +87,10 @@ void updateSearchWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 	searchWindow.h = h;
 }
 
-void run_meanshift(struct image_i *disparity_image)
+void run_meanshift(struct image_t *disparity_image)
 {
+  uint8_t *buf = (uint8_t *)disparity_image->buf;
+
 	//uint16_t* trackPosX, uint16_t* trackPosY, uint16_t* searchWindowWidth, uint16_t* searchWindowHeight
 	float distanceToObject = meanshiftUpdate(disparity_image, &searchWindow);
 
@@ -118,7 +120,7 @@ void run_meanshift(struct image_i *disparity_image)
 	uint16_t xpos, ypos;
 	for (xpos = startPosX; xpos < endPosX; xpos++) {
 	  for (ypos = startPosY; ypos < endPosY; ypos++) {
-	    disparity_image->image[ypos * IMAGE_WIDTH + xpos] = 128;
+	    buf[ypos * IMAGE_WIDTH + xpos] = 128;
 	  }
 	}
 
@@ -131,8 +133,9 @@ void run_meanshift(struct image_i *disparity_image)
 #endif
 }
 
-float meanshiftUpdate(struct image_i *disparity_image, struct rectangle_i *searchrectangle)
+float meanshiftUpdate(struct image_t *disparity_image, struct rectangle_i *searchrectangle)
 {
+  uint8_t *buf = (uint8_t *)disparity_image->buf;
   uint16_t pixelsCounted = 0 ;
   uint16_t sumPixelsInSquare = 0;
   uint16_t iterations = 10;
@@ -185,10 +188,10 @@ float meanshiftUpdate(struct image_i *disparity_image, struct rectangle_i *searc
         xpos = startPosX + searchWindowX;
         ypos = startPosY + searchWindowY;
         probability = 0.;
-        if (disparity_image->image[ypos * disparity_image->w + xpos] > 0) {
-          probability = disparity_image->image[ypos * disparity_image->w + xpos] / (6.0 * 20.);
+        if (buf[ypos * disparity_image->w + xpos] > 0) {
+          probability = buf[ypos * disparity_image->w + xpos] / (6.0 * 20.);
           pixelsCounted++;
-          sumPixelsInSquare += disparity_image->image[ypos * disparity_image->w + xpos];
+          sumPixelsInSquare += buf[ypos * disparity_image->w + xpos];
         }
         M00 += probability;
         M10 += searchWindowX * probability;

@@ -334,8 +334,8 @@ uint16_t stereo_vision_sparse_block_two_sided_features(uint8_t *in, q7_t *out, f
   volatile int feature_index = 0;
   int data_size = 4; // data consists of [X Y Z disparity_map_index]
   volatile float scaling_factor;
-  uint32_t image_width_2 = image_width/2;
-  uint32_t image_height_2 = image_height/2;
+  //uint32_t image_width_2 = image_width/2;
+  //uint32_t image_height_2 = image_height/2;
   float baseline = 60; // real number [mm]
   float focal_length = 120; // real number, approximate estimate, might differ per camera [px], not millimeters
 

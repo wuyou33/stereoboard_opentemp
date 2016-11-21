@@ -15,7 +15,7 @@
 #define UsartCh Usart1Ch
 
 #define USART1_BAUD 1000000
-#define TCM8230_EXTRA_SATURATION 1
+#define TCM8230_EXTRA_SATURATION 2
 
 
 #endif /* MULTIGAZE_COMMON_H_ */

@@ -26,6 +26,7 @@
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
+#define LED_TOGGLE
 
 // #define CAPTURE_MODE_SNAPSHOT    // will transfer entire image in one burst
 // #deinfe DCMI_DOUBLE_BUFFER       // two image buffers used, while one is used the other is filled.

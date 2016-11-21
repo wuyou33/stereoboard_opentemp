@@ -9,7 +9,7 @@
 /**
  *    DCMI8   = PC10    = Manual
  *    DCMI9   = PC12    = PxMux
- *    DCMI10  =   PB5   = LnMux
+ *    DCMI10  = PB5     = LnMux
  */
 
 
@@ -38,7 +38,7 @@ void camera_cpld_stereo_init(void)
   CAMERA_CPLD_STEREO();
 }
 
-// Set Stereo Mode
+/** Left color image only */
 void camera_cpld_stereo_left(void)
 {
 #ifndef DCMI_TEN_BITS
@@ -48,6 +48,7 @@ void camera_cpld_stereo_left(void)
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
 
+/** Right color image only */
 void camera_cpld_stereo_right(void)
 {
 #ifndef DCMI_TEN_BITS
@@ -57,6 +58,7 @@ void camera_cpld_stereo_right(void)
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
 
+/** Left image pixel intensity the right image pixel intensity */
 void camera_cpld_stereo_pixmux(void)
 {
 #ifndef DCMI_TEN_BITS
@@ -66,6 +68,7 @@ void camera_cpld_stereo_pixmux(void)
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
 
+/** Left image intensity line the right image intensity line */
 void camera_cpld_stereo_linemux(void)
 {
 #ifndef DCMI_TEN_BITS
@@ -75,6 +78,7 @@ void camera_cpld_stereo_linemux(void)
   GPIO_SetBits(GPIOB, GPIO_Pin_5);
 }
 
+/** Left image intensity frame the right image intensity frame */
 void camera_cpld_stereo_framemux(void)
 {
 #ifndef DCMI_TEN_BITS
@@ -84,8 +88,8 @@ void camera_cpld_stereo_framemux(void)
   GPIO_SetBits(GPIOB, GPIO_Pin_5);
 }
 
-
-void camera_cpld_stereo_even_pixmux_odd_color(void)
+/** Lines alternate between color images from left camera and pixmux of images */
+void camera_cpld_stereo_pixmux_color(void)
 {
 #ifndef DCMI_TEN_BITS
   GPIO_SetBits(GPIOC, GPIO_Pin_10);
@@ -93,5 +97,3 @@ void camera_cpld_stereo_even_pixmux_odd_color(void)
 #endif
   GPIO_ResetBits(GPIOB, GPIO_Pin_5);
 }
-
-

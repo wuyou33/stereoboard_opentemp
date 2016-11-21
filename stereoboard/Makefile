@@ -1,6 +1,7 @@
 TARGET        = StereoBoard
 BOARD        ?= default
 PROJECT      ?= example
+HEADER       ?= $(PROJECT)
 
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
@@ -14,7 +15,6 @@ RANLIB        = $(CROSS)ranlib
 AR            = $(CROSS)ar
 GDB           = $(CROSS)gdb
 
-
 COMMONFLAGS = -mcpu=cortex-m4 -mthumb
 
 CFLAGS        = -g -O3 -mlittle-endian -DHSE_VALUE=12000000 -fvar-tracking
@@ -26,12 +26,12 @@ ifeq ($(findstring .h,$(BOARD)), .h)
 else
 	BOARD_PATH   = boards/board_$(BOARD).h
 endif
-ifeq ($(findstring .h,$(PROJECT)), .h)
-	PROJECT_PATH = $(PROJECT)
+ifeq ($(findstring .h,$(HEADER)), .h)
+	HEADER_PATH = $(HEADER)
 else
-	PROJECT_PATH = projects/$(PROJECT).h
+	HEADER_PATH = projects/$(HEADER).h
 endif
-CFLAGS        += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPROJECT_FILE=\"./$(PROJECT_PATH)\"
+CFLAGS        += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPROJECT_FILE=\"./$(HEADER_PATH)\"
 
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 CFLAGS        += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress -Wstrict-prototypes #-Wextra
@@ -40,7 +40,7 @@ LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld
 
-CV_PATH       = ../ext/drone_vision/cv
+CV_PATH        = ../ext/drone_vision/cv
 STMLIB_PATH    = ../ext/libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
 STDPH_PATH     = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
 CMSIS_PATH     = ${STMLIB_PATH}/Libraries/CMSIS
@@ -65,7 +65,7 @@ CFLAGS+=-I${STDPH_PATH}/inc
 CFLAGS+=-DSTM32F40_41xxx -DUSE_STDPERIPH_DRIVER=1
 CFLAGS+=-I../common
 
-CFLAGS+=-I${CV_PATH}/encoding
+CFLAGS+=-I${CV_PATH}
 
 # Standard Peripheral Library
 STDP_LIB = libSTM32F4xx_StdPeriph_Driver.a
@@ -84,13 +84,13 @@ check_user_inputs:
 ifeq (,$(wildcard $(BOARD_PATH)))
 	$(error Board header $(BOARD_PATH) doesn't exist)
 endif
-ifeq (,$(wildcard $(PROJECT_PATH)))
-	$(error Project header $(PROJECT_PATH) doesn't exist)
+ifeq (,$(wildcard $(HEADER_PATH)))
+	$(error Project header $(HEADER_PATH) doesn't exist)
 endif
 
 print:
 	$(info Including boards/board_$(BOARD).h)
-	$(info Including projects/$(PROJECT).h)
+	$(info Including projects/$(HEADER).h)
 	$(info )
 
 $(BIN_IMAGE): $(EXECUTABLE)
@@ -99,7 +99,11 @@ $(BIN_IMAGE): $(EXECUTABLE)
 MAIN_SRCS  = $(wildcard drivers/src/*.c)
 MAIN_SRCS += $(wildcard ../common/*.c)
 MAIN_SRCS += $(wildcard *.c)
-MAIN_SRCS += $(CV_PATH)/encoding/jpeg.c
+MAIN_SRCS += $(CV_PATH)/image.c $(CV_PATH)/encoding/jpeg.c
+
+ifneq (,$(wildcard projects/$(PROJECT).c))
+  MAIN_SRCS += projects/$(PROJECT).c
+endif
 
 MAIN_SRCS := $(filter-out droplet.c, $(MAIN_SRCS))
 

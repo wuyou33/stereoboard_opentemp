@@ -77,16 +77,16 @@ static uint8_t bounduint8(int32_t value)
 
 static int8_t boundint8(int32_t value)
 {
-  int8_t value_uint8;
+  int8_t value_int8;
   if (value > 127) {
-    value_uint8 = 127;
+    value_int8 = 127;
   } else if (value < -128) {
-    value_uint8 = -128;
+    value_int8 = -128;
   } else {
-    value_uint8 = (uint8_t) value;
+    value_int8 = (int8_t) value;
   }
 
-  return value_uint8;
+  return value_int8;
 }
 
 #endif

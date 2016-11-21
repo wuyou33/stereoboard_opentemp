@@ -16,7 +16,9 @@
 static inline void camera_control_bus_init(void) { SCCB_Init(); }
 static inline void camera_chip_config(void) { camera_ov7670_config(); }
 
-
+//TODO define correct values
+#define FOVX 1.001819   // 57.4deg = 1.001819 rad
+#define FOVY 0.776672   // 44.5deg = 0.776672 rad
 
 #elif defined( USE_OV2640 )
 #include "ov2640.h"
@@ -26,7 +28,9 @@ static inline void camera_chip_config(void) { camera_ov7670_config(); }
 static inline void camera_control_bus_init(void) { SCCB_Init(); }
 static inline void camera_chip_config(void) { camera_ov2640_config(); }
 
-
+//TODO define correct values
+#define FOVX 1.001819   // 57.4deg = 1.001819 rad
+#define FOVY 0.776672   // 44.5deg = 0.776672 rad
 
 #elif defined( USE_OV9712 )
 #include "ov9712.h"
@@ -36,7 +40,9 @@ static inline void camera_chip_config(void) { camera_ov2640_config(); }
 static inline void camera_control_bus_init(void) { SCCB_Init(); }
 static inline void camera_chip_config(void) { camera_ov9712_config(); }
 
-
+//TODO define correct values
+#define FOVX 1.001819   // 57.4deg = 1.001819 rad
+#define FOVY 0.776672   // 44.5deg = 0.776672 rad
 
 #else
 #define USE_TCM8230
@@ -47,6 +53,8 @@ static inline void camera_chip_config(void) { camera_ov9712_config(); }
 static inline void camera_control_bus_init(void) { camera_tcm8230_i2c_init(); }
 static inline void camera_chip_config(void) { camera_tcm8230_config(); }
 
+#define FOVX 1.001819   // 57.4deg = 1.001819 rad
+#define FOVY 0.776672   // 44.5deg = 0.776672 rad
 #endif
 
 #endif /* CAMERA_TYPE_H_ */

@@ -16,6 +16,6 @@ void camera_cpld_stereo_left(void);
 void camera_cpld_stereo_right(void);
 void camera_cpld_stereo_pixmux(void);
 void camera_cpld_stereo_linemux(void);
-
+void camera_cpld_stereo_pixmux_color(void);
 
 #endif /* CPLD_H_ */

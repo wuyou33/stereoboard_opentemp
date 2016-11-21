@@ -18,7 +18,7 @@ using namespace std;
 #include "sys_time.h"
 #endif
 
-
+#include "camera_type.h"
 #include "stereo_math.h"
 
 /* edgeflow_total: The total function for the edgeflow algorithm
@@ -84,13 +84,12 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
  * \param use_monocam is a boolean that indicates if a monocam or stereocam is used
  * */
 void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters,
-                   struct edgeflow_results_t *edgeflow_results, int8_t fovx, int8_t fovy,
+                   struct edgeflow_results_t *edgeflow_results,
                    int16_t image_width, int16_t image_height, int8_t use_monocam)
 {
 
-// Initialize parameters
-  edgeflow_parameters->FOVX = fovx;
-  edgeflow_parameters->FOVY = fovy;
+  edgeflow_parameters->fovx = (int32_t)(FOVX * edgeflow_parameters->RES);
+  edgeflow_parameters->fovy = (int32_t)(FOVY * edgeflow_parameters->RES);
   edgeflow_parameters->image_height = image_height;
   edgeflow_parameters->image_width = image_width;
 
@@ -286,8 +285,8 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
 
   // Assign pointers to parameters
   int32_t monocam = edgeflow_parameters->use_monocam;
-  int8_t FOVX = edgeflow_parameters->FOVX;
-  int8_t FOVY = edgeflow_parameters->FOVY;
+  int32_t fov_x = edgeflow_parameters->fovx;
+  int32_t fov_y = edgeflow_parameters->fovy;
   int32_t RES = edgeflow_parameters->RES;
   uint32_t R = edgeflow_parameters->R;
   uint32_t Q = edgeflow_parameters->Q;
@@ -301,7 +300,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   // d = RES*0.06*128 / (disp*RES*1.042)
   // d = RES*0.06*PIX / (disp*FOVX)
   if (*avg_disp > 0) {
-    *avg_dist = RES * edgeflow_parameters->stereo_camera_seperation * image_width / (*avg_disp * FOVX);
+    *avg_dist = RES * edgeflow_parameters->stereo_camera_seperation * image_width / (*avg_disp * edgeflow_parameters->fovx);
   } else {
     *avg_dist = 100; // 2 * RES * 6 * IMAGE_WIDTH / 104;
   }
@@ -352,7 +351,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
           * image_width
           / abs(
             edgeflow_results->displacement.stereo[x]
-            * ((int32_t) FOVX * RES)); //RES * RES * RES / (RES * RES * RES)
+            * ((int32_t) fov_x * RES)); //RES * RES * RES / (RES * RES * RES)
       faulty_distance[x] = 0;
 
     } else {
@@ -393,19 +392,19 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
                   &sideways_vel, faulty_distance, 128, border, RES);*/
 
   *vel_z_pixelwise = forward_vel / (RES) ;
-  *vel_x_pixelwise = (sideways_vel + forward_vel * image_width / 2) * ((int32_t) FOVX)
+  *vel_x_pixelwise = (sideways_vel + forward_vel * image_width / 2) * fov_x
                      / (RES * RES * image_width) ; // RES * RES * RES / RES * RES
 
 #if EDGEFLOW_USE_HEIGHT_AUTOPILOT
   int32_t alt_state_lisa = edgeflow_parameters->alt_state_lisa;
-  *vel_x_global = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * FOVX
+  *vel_x_global = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * fovx
                   / (RES * RES * image_width);
-  *vel_y_global = edge_flow->flow_y * (alt_state_lisa) * (*hz_y) * FOVY
+  *vel_y_global = edge_flow->flow_y * (alt_state_lisa) * (*hz_y) * fovy
                   / (RES * RES * image_height);
 #else
-  *vel_x_global = edge_flow->flow_x * (*avg_dist) * (*hz_x) * FOVX
+  *vel_x_global = edge_flow->flow_x * (*avg_dist) * (*hz_x) * fov_x
                   / (RES * RES * image_width);
-  *vel_y_global = edge_flow->flow_y * (*avg_dist) * (*hz_y) * FOVY
+  *vel_y_global = edge_flow->flow_y * (*avg_dist) * (*hz_y) * fov_y
                   / (RES * RES * image_height);
   *vel_z_global = edge_flow->div_x * (*avg_dist) * (*hz_y) / RES;
 #endif
@@ -564,9 +563,9 @@ void calculate_edge_flow(uint8_t in[],
     int16_t pitch_prev = edge_hist[previous_frame_y].pitch;
 
     der_shift_x = (roll_prev - edge_hist[*current_frame_nr].roll)
-                  * image_width / (edgeflow_parameters->FOVX);
+                  * image_width / (edgeflow_parameters->fovx);
     der_shift_y = (pitch_prev - edge_hist[*current_frame_nr].pitch)
-                  * image_height / (edgeflow_parameters->FOVY);
+                  * image_height / (edgeflow_parameters->fovy);
   }
   // Calculate displacement
   uint32_t min_error_hor = calculate_displacement(edge_histogram_x,
