@@ -139,7 +139,7 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[24], struct edgeflow_parameter
 // Calculation functions
 void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_parameters,
                          struct edgeflow_results_t *edgeflow_results);
-void image_difference(uint8_t *in, uint8_t *in_prev, uint8_t *out, uint16_t image_width, uint16_t image_height);
+
 void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t image_width, uint16_t image_height,
                               char direction, char side, uint16_t edge_threshold);
 uint32_t calculate_displacement(int32_t *edge_histogram,
