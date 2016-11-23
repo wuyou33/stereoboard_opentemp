@@ -173,10 +173,9 @@ void window_init()
 
 #endif
 
-
-
 struct image_t current_image_pair = {.w = 2 * IMAGE_WIDTH,
                                      .h = IMAGE_HEIGHT,
+                                     .buf_size = 2 * IMAGE_WIDTH * IMAGE_HEIGHT,
                                      .type = IMAGE_GRAYSCALE};
 
 uint32_t freq_counter = 0;
@@ -190,6 +189,7 @@ uint32_t frame_rate = 0;
  */
 int main(void)
 {
+  current_image_pair.buf = current_image_buffer;
 #ifdef NEW_MAIN
   init_project();
 #endif
@@ -798,7 +798,7 @@ int main(void)
 
         SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
 #else
-        SendImage((uint8_t*)current_image_pair.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
+        SendArray((uint8_t*)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
 #endif
       }
 

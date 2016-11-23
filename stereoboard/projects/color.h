@@ -23,8 +23,10 @@
 void init_project(void);
 void run_project(void);
 
+#define DEFAULT_BOARD_FUNCTION SEND_NONE
+
 // uncomment line below to filter image before sending it to ground station
-#define FILTER
+//#define FILTER
 
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_left
 
