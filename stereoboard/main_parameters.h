@@ -19,19 +19,20 @@
 #ifndef PROJECT_FILE
 #define PROJECT_FILE "projects/example.h"
 #endif
-//#pragma message("PROJECT_FILE=" PROJECT_FILE)
 #include PROJECT_FILE
 
 #ifndef BOARD_FILE
 #define BOARD_FILE "boards/board_default.h"
 #endif
-//#pragma message("BOARD_FILE=" BOARD_FILE)
 #include BOARD_FILE
 
 #ifndef DEFAULT_BOARD_FUNCTION
-#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION SEND_NONE
 #endif
 
+#ifndef RESOLUTION_FACTOR
+#define RESOLUTION_FACTOR 6
+#endif
 
 // compute full image size
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)

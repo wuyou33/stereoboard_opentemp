@@ -136,27 +136,26 @@ def draw_sonar_visualisation(matrix,height):
 
 
 def fill_image_array(startSync, raw, width, height):
+  try:
+    line=0
+
+    # Initialise image
+    img = np.zeros((height,width), dtype="uint8")
+
+    # Fill the image arrays
     try:
-	    line=0
-
-	    # Initialise image
-	    img = np.zeros((height,width))
-
-	    # Fill the image arrays
-	    for i in range(startSync + 4, startSync+(width+8)*height):
-		if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
-		    if (raw[i + 3] == 128): # Start Of Line
-			try:
-
-				startOfBuf = i + 4
-				endOfBuf = (i + 4 + width)
-				img[line, :] = raw[startOfBuf:endOfBuf]
-				line += 1;
-			except Exception:
-				print 'ended before end'
-	    return img
-    except Exception as ecsfsf: 
-	PrintException()
+      for i in range(startSync + 4, startSync + (width+8) * height):
+        if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
+          if (raw[i + 3] == 128): # Start Of Line
+            startOfBuf = i + 4
+            endOfBuf = (i + 4 + width)
+            img[line, :] = raw[startOfBuf:endOfBuf]
+            line += 1;
+    except Exception:
+      print 'ended before end'
+    return img
+  except Exception as ecsfsf: 
+    PrintException()
 
 def readDivergenceFromSerial(ser, currentBuffer):
 
@@ -208,17 +207,18 @@ def readPartOfImage(ser, currentBuffer):
         #print 'read: ', int(byte)
     startPosition=None
     lastResult=(-1,-1)
-    endOfImagesFound=0
-    startOfImagesFound=0
+    endOfImagesFound = 0
+    startOfImagesFound = 0
     try:
         for i in range(0,len(currentBuffer)-5):
             if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
                 if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
                     lastResult=(startPosition,i+4)
-                    endOfImagesFound+=1
+                    endOfImagesFound += 1
+                    break
                 if currentBuffer[i + 3] == 175:# Start of image
                     startPosition = i
-                    startOfImagesFound+=1
+                    startOfImagesFound += 1
     except Exception as e:
         PrintException()
     return currentBuffer, lastResult, endOfImagesFound
@@ -233,7 +233,7 @@ def determine_image_and_line_length(raw):
     for i in range(0, len(raw)):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171 and startPosition != None):# End of Image
-                return startPosition, (i - startPosition),lineLength, lineCount
+                return startPosition, (i - startPosition), lineLength, lineCount
             if raw[i + 3] == 175:# Start of image
                 startPosition = i
                 startLine = None

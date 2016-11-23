@@ -38,7 +38,7 @@
 #define BT656_SAV   0x80
 #define BT656_EAV   0xDA
 
-void SendImage(uint8_t *b, uint16_t width, uint16_t height)
+static inline void SendImage(uint8_t *b, uint16_t width, uint16_t height)
 {
   // New frame code: Vertical blanking = ON
   uint8_t code[4];
@@ -50,13 +50,11 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
     ;
 
 #ifdef CROPPING
-
   if (offset_crop == 0) {
     code[3] = 0xAC;
     while (UsartTx(code, 4) == 0)
       ;
   }
-
 #endif
 
 #ifdef SHOW_HMC
@@ -75,7 +73,7 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
       ;
 
     // Line data
-    while (UsartTx(b + j * width * BYTES_PER_PIXEL, width * BYTES_PER_PIXEL + 1) == 0)
+    while (UsartTx(b + j * width * BYTES_PER_PIXEL, width * BYTES_PER_PIXEL) == 0)
       ;
 
     // EAV: End of Line
@@ -90,7 +88,7 @@ void SendImage(uint8_t *b, uint16_t width, uint16_t height)
     ;
 }
 
-void SendDisparityMap(uint8_t *b)
+static inline  void SendDisparityMap(uint8_t *b)
 {
   uint8_t code[4];
   code[0] = 0xff;
@@ -118,7 +116,7 @@ void SendDisparityMap(uint8_t *b)
     ;
 }
 
-void SendArray(uint8_t *b, int array_width, int array_height)
+static inline void SendArray(uint8_t *b, int array_width, int array_height)
 {
   uint8_t code[4];
   code[0] = 0xff;

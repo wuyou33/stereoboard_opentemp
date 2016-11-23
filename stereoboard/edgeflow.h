@@ -59,8 +59,8 @@ struct covariance_t {
 };
 
 struct edgeflow_parameters_t {
-  int8_t FOVX;                // Camera Parameters: Field of view of x axis
-  int8_t FOVY;                // Camera Parameters: Field of view of y axis
+  int16_t fovx;                // Camera Parameters: Field of view of x axis
+  int16_t fovy;                // Camera Parameters: Field of view of y axis
   int16_t image_width;            // Camera Parameters: Image width in pixels
   int16_t image_height;           // Camera Parameters: Image height in pixels
   int16_t stereo_camera_seperation;     // Camera Parameters: How far the cameras are apart on a stereocamera
@@ -126,8 +126,9 @@ struct edgeflow_results_t {
 
 
 // Global Functions divergence
-void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results,
-                   const int8_t FOVX, const int8_t FOVY, int16_t image_width, int16_t image_height, int8_t use_monocam);
+void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters,
+                   struct edgeflow_results_t *edgeflow_results,
+                   int16_t image_width, int16_t image_height, int8_t use_monocam);
 void edgeflow_total(uint8_t divergenceArray[], int16_t *stereocam_data_int16t, uint8_t stereocam_len,
                     uint8_t current_image_buffer[],
                     struct edgeflow_parameters_t *edgeflow_parameters, struct edgeflow_results_t *edgeflow_results);
@@ -139,7 +140,6 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[24], struct edgeflow_parameter
 // Calculation functions
 void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_parameters,
                          struct edgeflow_results_t *edgeflow_results);
-
 void calculate_edge_histogram(uint8_t *in, int32_t *edge_histogram, uint16_t image_width, uint16_t image_height,
                               char direction, char side, uint16_t edge_threshold);
 uint32_t calculate_displacement(int32_t *edge_histogram,

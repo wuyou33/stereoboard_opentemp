@@ -8,6 +8,13 @@
 
 /**
   * @brief  Configures the tcm8230 camera
+  * CDS : Correlated Double Sampling
+  * AGC : Automatic Gain Control
+  * ADC : Analog to Digital Converter
+  * TG : Timing pulse Generator
+  * SG : Sync pulse Generator
+  * AWB : Auto White Balance
+  * ALC : Auto Luminance Control
   */
 
 void camera_tcm8230_i2c_init(void)
@@ -76,7 +83,7 @@ void camera_tcm8230_i2c_init(void)
 #define   TCM_IMG           0x03
 #define   TCM_IMG_SIZE(X)   (((X)*4)+2)
 
-#define   TCM_SWC           0x1E
+#define   TCM_SWC           0x1E  // code Synchronization
 #define   TCM_SWC_VAL       0x78
 
 #define   TCM_EXP           0x04
@@ -97,12 +104,15 @@ void camera_tcm8230_i2c_init(void)
 
 #define TCM_ALC             0x05 // auto luminance control
 #define TCM_ALC_AUTO        0
-#define TCM_ALC_MANUAL      128
+#define TCM_ALC_MANUAL      0x80
 
-#define TCM_ALCL            0x20 // auto luminance control level
+#define TCM_ALCL            0x09 // auto luminance control level
 
 #define TCM_ALCMODE         0x08
-#define TCM_ALCMODE_CENTER_ONLY
+#define TCM_ALCMODE_CENTER_WEIGHT 0b00001000
+#define TCM_ALCMODE_AVERAGE       0b00011000
+#define TCM_ALCMODE_CENTER_ONLY   0b00101000
+#define TCM_ALCMODE_BACKLIGHT     0b00111000
 
 #define TCM_VHUE            0x13
 #define TCM_UHUE            0x14
@@ -147,26 +157,28 @@ void camera_tcm8230_config(void)
   tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
   tcm8230_WriteReg(TCM_EXP, EXP_DEFAULT | EXP_SHORT);
 
-#if (TCM8230_EXTRA_SATURATION == 1)
-  tcm8230_WriteReg(TCM_AWB,
-                   TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
-  tcm8230_WriteReg(TCM_SATU, 127); // 127 max, 0 min (black/white), default 39
+  // If color is used, auto white balance should be deactivated
+#if USE_COLOR
+  tcm8230_WriteReg(TCM_AWB, TCM_AWB_MANUAL);
+  tcm8230_WriteReg(TCM_MRG, 58);  // reduce red gain slightly, default 64
+  tcm8230_WriteReg(TCM_MBG, 82);  // increase blue gain slightly, default 64
+
+  tcm8230_WriteReg(TCM_ALCMODE, TCM_ALCMODE_AVERAGE);
 #endif
 
-#if (TCM8230_EXTRA_SATURATION == 2) // Medium saturation setting
-  tcm8230_WriteReg(TCM_AWB,
-                   TCM_AWB_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
-  tcm8230_WriteReg(TCM_SATU, 75); // 128 max, 0 min (black/white), default 39
+  // Set the image saturation. default 39, 127 max, 0 min (black/white)
+#if (TCM8230_EXTRA_SATURATION == 1) // Medium saturation setting
+  tcm8230_WriteReg(TCM_SATU, 80);
+#elif (TCM8230_EXTRA_SATURATION == 2) // High saturation setting
+  tcm8230_WriteReg(TCM_SATU, 127);
 #endif
 
   // Extra options:
   //tcm8230_WriteReg(TCM_ALC, TCM_ALC_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
-  // tcm8230_WriteReg(TCM_ALCL, 50);
+  //tcm8230_WriteReg(TCM_ALCL, 50);   // default 64
+
   // tcm8230_WriteReg(TCM_VHUE, 255);
   // tcm8230_WriteReg(TCM_UHUE, 255);
-
-
-
 }
 
 void camera_tcm8230_read(void)

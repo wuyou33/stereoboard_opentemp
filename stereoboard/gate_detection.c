@@ -59,7 +59,7 @@ int GRAPHICS = 0;
  * @author Guido
  */
 
-void gate_detection(struct image_i* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, float* x0, float* y0, float* size0, int min_sub_disparity)
+void gate_detection(struct image_t* disparity_image, float* x_center, float* y_center, float* radius, float* fitness, float* x0, float* y0, float* size0, int min_sub_disparity)
 {
   // 1) convert the disparity map to a vector of points:
 	convert_disparitymap_to_points(disparity_image, min_sub_disparity);
@@ -274,8 +274,9 @@ float get_sum(float* nums, int n_elements)
 	return sum;
 }
 
-void convert_disparitymap_to_points(struct image_i* disparity_image, int min_sub_disparity)
+void convert_disparitymap_to_points(struct image_t* disparity_image, int min_sub_disparity)
 {
+  uint8_t *buf = (uint8_t*)disparity_image->buf;
   int y, x, sp;
 	uint8_t disp;
 	uint16_t p = 0;
@@ -292,7 +293,7 @@ void convert_disparitymap_to_points(struct image_i* disparity_image, int min_sub
 		  for (x = X0[sp]; x < (*disparity_image).w; x+=GRID_STEP)
 		  {
         // get the disparity from the image:
-			  disp = (*disparity_image).image[y*(*disparity_image).w + x];
+			  disp = buf[y*(*disparity_image).w + x];
 
 			  if (disp > min_sub_disparity)
 			  {
@@ -314,7 +315,7 @@ void convert_disparitymap_to_points(struct image_i* disparity_image, int min_sub
         else
         {
           // make the pixel black, so that we can see it on the ground station:
-          disparity_image->image[y * disparity_image->w + x] = 0;
+          buf[y * disparity_image->w + x] = 0;
         }
 		  }
 	  }
@@ -629,8 +630,9 @@ float distance_to_horizontal_segment(struct point_f Q1, struct point_f Q2, struc
 }
 
 
-void draw_circle(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
+void draw_circle(struct image_t* Im, float x_center, float y_center, float radius, uint8_t* color)
 {
+  uint8_t *buf = (uint8_t*)Im->buf;
   float t_step = 0.05; // should depend on radius, but hey...
 	int x, y;
   float t;
@@ -640,27 +642,29 @@ void draw_circle(struct image_i* Im, float x_center, float y_center, float radiu
 		y = (int)y_center + (int)(sinf(t)*radius);
 		if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
-      Im->image[y*Im->w+x] = color[0];
+      buf[y*Im->w+x] = color[0];
 		}
 	}
   return;
 }
 
-void draw_stick(struct image_i* Im, float x_center, float y_center, float radius, uint8_t* color)
+void draw_stick(struct image_t* Im, float x_center, float y_center, float radius, uint8_t* color)
 {
+  uint8_t *buf = (uint8_t*)Im->buf;
   int x, y;
   x = (int) x_center;
   for(y = (int)(y_center + radius); y <  (int)(y_center + 2*radius); y++)
   {
     if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
-      Im->image[y*Im->w+x] = color[0];
+      buf[y*Im->w+x] = color[0];
 		} 
   }
 }
 
-void draw_line_segment(struct image_i* Im, struct point_f Q1, struct point_f Q2, uint8_t* color)
+void draw_line_segment(struct image_t* Im, struct point_f Q1, struct point_f Q2, uint8_t* color)
 {
+  uint8_t *buf = (uint8_t*)Im->buf;
   float t_step = 0.05; // should depend on distance, but hey...
 	int x, y;
   float t;
@@ -670,7 +674,7 @@ void draw_line_segment(struct image_i* Im, struct point_f Q1, struct point_f Q2,
 		y = (int)(t * Q1.y + (1.0f - t) * Q2.y);
 		if (x >= 0 && x < Im->w && y >= 0 && y < Im->h)
 		{
-      Im->image[y*Im->w+x] = color[0];
+      buf[y*Im->w+x] = color[0];
 		}
 	}
   return;
