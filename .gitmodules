@@ -7,3 +7,6 @@
 [submodule "stereoboard_testing"]
 	path = stereoboard_testing
 	url = https://github.com/knmcguire/stereoboard_testing.git
+[submodule "dronevision"]
+	path = dronevision
+	url = https://github.com/tudelft/drone_vision.git
