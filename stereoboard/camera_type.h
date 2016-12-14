@@ -40,7 +40,7 @@ static inline void camera_chip_config(void) { camera_ov9712_config(); }
 
 #else
 #define USE_TCM8230
-#pragma message "Using TCM8230"
+//#pragma message "Using TCM8230"
 #include "tcm8230.h"
 #define DCMI_CLOCK_POLARITY DCMI_PCKPolarity_Falling
 #define CAMERA_CHIP_UNRESET_TIMING 0x01FFFF
