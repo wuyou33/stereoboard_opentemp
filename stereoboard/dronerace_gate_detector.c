@@ -4,7 +4,11 @@
  *  Created on: Sep 1, 2016
  *      Author: rmeertens
  */
+
 #include "dronerace_gate_detector.h"
+#include "led.h"
+#include <stdlib.h> // qsort
+
 struct ValueAndPos {
 	float value;
 	int position;
@@ -109,7 +113,7 @@ int get_command_detection_gate(uint8_t *current_image_buffer){
 	int col_i;
 
 	// Color segmentation on the even lines of the image
-	int treshold_red_u=0;
+	//int treshold_red_u=0;
 	int treshold_red_v=210;
 	uint8_t *act=activationArray;
 	for(line_i=0;line_i<height;line_i++){
@@ -198,7 +202,7 @@ int get_command_detection_gate(uint8_t *current_image_buffer){
 		// sort the peaks based on the height of the peak.
 		qsort(values, amountPeaks, sizeof(struct ValueAndPos),
 				compare_value_and_pos);
-		float mean_vals = (values[0].value + values[1].value) / 2;
+	//	float mean_vals = (values[0].value + values[1].value) / 2;
 	//
 	//    	  		// Check if this is indeed a window
 	//    	  		// Correcsponds to the cross in Guido's MATLAB code.
