@@ -17,7 +17,7 @@ GDB           = $(CROSS)gdb
 
 COMMONFLAGS = -mcpu=cortex-m4 -mthumb
 
-CFLAGS        = -g -O3 -mlittle-endian -DHSE_VALUE=12000000 -fvar-tracking
+CFLAGS        = -g -O3 -mlittle-endian -DHSE_VALUE=12000000 -fvar-tracking -std=c99
 CFLAGS       += $(COMMONFLAGS) -DARM_MATH_CM4 -fsingle-precision-constant
 CFLAGS       += -ffreestanding -nostdlib
 
@@ -36,7 +36,7 @@ CFLAGS        += -DBOARD_FILE=\"./$(BOARD_PATH)\" -DPROJECT_FILE=\"./$(HEADER_PA
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 CFLAGS        += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-function-declaration -Wimplicit-int -Wenum-compare -Waddress -Wstrict-prototypes #-Wextra
 
-LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc
+LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc -lrdimon
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld
 

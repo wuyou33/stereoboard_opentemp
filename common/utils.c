@@ -9,6 +9,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "usart.h"
 
@@ -216,7 +217,7 @@ void print_number(int32_t number, uint8_t new_line)
     UsartTx((uint8_t *)&comm_buff, 1);
   }
 
-  itoa(number, comm_buff, 10);
+  sprintf(comm_buff, "%d", number);
   if (new_line) {
     comm_buff[BLEN - 2] = '\n';
     comm_buff[BLEN - 1] = '\r';
