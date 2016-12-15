@@ -1,7 +1,7 @@
 /*
  * project parameters
  *
- *  This file contains the board configuration defaults for this project
+ * @tested 00925e27211207f693d16aae8f891e61ecf6c2d3
  *
  */
 
