@@ -1,7 +1,11 @@
-/*
- * project parameters
+/**
+ * Project parameters
  *
- *  This file contains the board configuration defaults for this project
+ * @details
+ *
+ * - Send pixmuxed stereo-image pair
+ * - use pythontools stereocam_calibrate.py to view and adjust
+ * - save the calibration values into a BOARD file
  *
  */
 

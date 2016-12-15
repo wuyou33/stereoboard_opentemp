@@ -1,8 +1,9 @@
-/*
+/**
  * project parameters
  *
- *  This file contains the board configuration defaults for this project
+ * @details
  *
+ *  - Sends disparity value
  */
 
 #ifndef PROJECT_HEADER_H_

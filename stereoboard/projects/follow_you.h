@@ -1,8 +1,11 @@
-/*
+/**
  * project parameters
  *
- *  This file contains the board configuration defaults for this project
+ * @details
  *
+ * - sends commands to follow person
+ * - Streams 9600 messages
+ * - use paparazzi stereocam.xml module to decode
  */
 
 #ifndef PROJECT_HEADER_H_

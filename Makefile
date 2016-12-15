@@ -28,5 +28,9 @@ libs: libs.update
 clean:
 	$(Q)$(MAKE) -C pprzlink clean
 	
-.PHONY: all update_submodules pprzlink.update pprzlink.build
+
+docs:
+	cd ./stereoboard/projects/ && ./docs.py > README.md
+
+.PHONY: all update_submodules pprzlink.update pprzlink.build docs
 

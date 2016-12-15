@@ -1,8 +1,10 @@
-/*
+/**
  * project parameters
  *
- *  This file contains the board configuration defaults for this project
+ * @details
  *
+ * - Streams 9600 reduced size disparity image as a 11x11 matrix
+ * - use paparazzi stereocam.xml module to decode
  */
 
 #ifndef PROJECT_HEADER_H_

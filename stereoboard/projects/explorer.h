@@ -1,8 +1,9 @@
-/*
+/**
  * project parameters
  *
- *  This file contains the board configuration defaults for this project
+ *  @details
  *
+ *  - Droplet: sends 9600 bps 'a' 'b' 'c' 'd' stages of droplet avoidance manoeuvre
  */
 
 #ifndef PROJECT_HEADER_H_
