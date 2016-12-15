@@ -37,7 +37,7 @@ q15_t weights_fp[MAX_POINTS_FP];
 q15_t total_sum_weights;
 int min_points_fp = 5;
 int WEIGHTED_FP = 1; 
-int STICK_FP = 0;
+#define STICK_FP  0
 
 #define CIRCLE_FP 0
 #define SQUARE_FP 1
