@@ -59,7 +59,7 @@ void measure_distance_run(uint8_t *image)
   // one could also increase the wait time in TMG3993_Init.
   TMG3993_Read_Proximity();
   TMG3993_Read_Proximity();
-  int16_t collision = Angle_Measurement();
+  //int16_t collision = Angle_Measurement();
 
   if (nr_in_clust > 10) {
     distance = getDistanceKNN(histogram, 3);
