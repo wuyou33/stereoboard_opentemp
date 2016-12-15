@@ -115,7 +115,7 @@
 *UNDOCUMENTED*
 
 ##make PROJECT=udp
-[https://github.com/tudelft/stereoboard/commit/00925e27211207f693d16aae8f891e61ecf6c2d3](Latest Tested Code)
+[Latest Tested Code](https://github.com/tudelft/stereoboard/commit/00925e27211207f693d16aae8f891e61ecf6c2d3)
 *UNDOCUMENTED*
 
 ##make PROJECT=roland

@@ -12,7 +12,7 @@ for f in files:
         print("##make PROJECT=" + f.replace("./","").replace(".h",""))
         for line in fp:
             if "@tested" in line:
-                print("[https://github.com/tudelft/stereoboard/commit/"+line.strip().lstrip("*").strip().replace("@tested","").strip()+"](Latest Tested Code)")
+                print("[Latest Tested Code](https://github.com/tudelft/stereoboard/commit/"+line.strip().lstrip("*").strip().replace("@tested","").strip()+")")
             if "@details" in line:
                 start = 1
             if "*/" in line:
