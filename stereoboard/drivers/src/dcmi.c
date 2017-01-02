@@ -382,7 +382,7 @@ void dma2_stream1_isr(void)
         current_image_buffer = dcmi_image_buffer_8bit_1;
       }
 #elif DCMI_MODE == DCMI_MODE_1
-      memcpy(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_1, sizeof(dcmi_image_buffer_8bit_1));
+      calibrate_image(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_1);
 #endif
       frame_counter++;
     }
@@ -405,9 +405,9 @@ uint8_t* camera_wait_for_frame(void)
   frame_processed = frame_counter;
 #if DCMI_MODE == DCMI_MODE_2
   if (DMA_GetCurrentMemoryTarget(DMA2_Stream1) == DMA_Memory_0) {
-    memcpy(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_2, sizeof(dcmi_image_buffer_8bit_2));
+    calibrate_image(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_2);
   } else {
-    memcpy(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_1, sizeof(dcmi_image_buffer_8bit_1));
+    calibrate_image(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_1);
   }
   current_image_buffer = dcmi_user_image_buffer_8bit;
   frame_counter++;
