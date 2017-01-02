@@ -13,13 +13,16 @@
 #include <string.h>
 #include <iostream>
 #include <stdio.h>
+#define FOVX 1.001819   // 57.4deg = 1.001819 rad
+#define FOVY 0.776672   // 44.5deg = 0.776672 rad
 using namespace std;
 #else
+#include "camera_type.h"
 #include "sys_time.h"
 #endif
 
-#include "camera_type.h"
 #include "stereo_math.h"
+
 
 /* edgeflow_total: The total function for the edgeflow algorithm
  * \param divergenceArray is Array containing information to send to lisa-s
@@ -42,10 +45,15 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
 #endif
 
   if (stereocam_len > 0) {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch =
-      stereocam_data_int16[0];
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].tilt =
+      stereocam_data_int16[0]; //in RES * [rad]
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll =
-      stereocam_data_int16[1];
+      stereocam_data_int16[1]; //in RES * [rad]
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pan =
+      stereocam_data_int16[2]; //in RES * [rad]
+
+    edgeflow_parameters->derotation = (int8_t) stereocam_data_int16[3];
+    /*
     edgeflow_parameters->derotation = stereocam_data_int16[2];
     edgeflow_parameters->adapt_horizon = stereocam_data_int16[3];
     edgeflow_parameters->window_size = stereocam_data_int16[4];
@@ -54,15 +62,17 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
     edgeflow_parameters->stereo_shift = stereocam_data_int16[7];
 
     edgeflow_parameters->autopilot_mode = stereocam_data_int16[8];
+    */
 
   } else {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch =
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].tilt =
       0;
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll =
       0;
-    edgeflow_parameters->alt_state_lisa = 0;
-    edgeflow_results->dphi = 0;
-    edgeflow_results->dtheta = 0;
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pan =
+      0;
+    edgeflow_parameters->derotation = 0;
+
   }
 
   calculate_edge_flow(current_image_buffer, edgeflow_parameters,
@@ -221,7 +231,8 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[],
   edgeflow_array[6] = (edgeflow_results->edge_flow.flow_y >> 8) & 0xff;
   edgeflow_array[7] = (edgeflow_results->edge_flow.flow_y) & 0xff;
 
-  edgeflow_array[8] = boundint8(edgeflow_results->avg_dist / 10);
+  //edgeflow_array[8] = boundint8(edgeflow_results->avg_dist / 10);
+  edgeflow_array[8] = boundint8((uint8_t)(edgeflow_results->distance_closest_obstacle / 10));
   edgeflow_array[9] = boundint8(edgeflow_results->hz_x);
 
   edgeflow_array[10] = (edgeflow_results->vel_x_global >> 8) & 0xff;
@@ -316,8 +327,8 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   //store the time of the frame
   // Calculate velocity TODO:: Find a way to use extract function correctly for this, since the results is different with than without
 #if COMPILE_ON_LINUX
-  *hz_x = 16 * previous_frame_offset[0];
-  *hz_y = 16 * previous_frame_offset[1];
+  *hz_x = 16 / previous_frame_offset[0];
+  *hz_y = 16 / previous_frame_offset[1];
 #else
   *hz_x = TIMER_TICKS_PER_SEC
           / (edge_hist[*current_frame_nr].frame_time
@@ -342,7 +353,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   for (x = 0; x < image_width - 1; x++) {
 
     if (x > border && x < image_width - border
-        && edgeflow_results->displacement.stereo[x] > 0
+        && edgeflow_results->displacement.stereo[x] > 1
         && edgeflow_results->displacement.stereo[x]
         < (edgeflow_parameters->disparity_range))
 
@@ -368,6 +379,9 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
 
   }
 
+  // Detect the closest obstacle in EdgeStereo
+  edgeflow_results->distance_closest_obstacle = edgestereo_obstacle_detection(
+        edgeflow_results->stereo_distance_per_column, edgeflow_results->obstacle_detect, 128, border);
 
 // calculate avoidance manouvers
   avoid_velocity_from_stereo(edgeflow_results->stereo_distance_per_column,
@@ -382,24 +396,24 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   int32_t sideways_vel;
 
   // TODO: Choose which line fit to use.
-/*   uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
-                                          &sideways_vel, 128, border, 1);*/
+  /*   uint32_t line_error_fit_hor = line_fit(edgeflow_results->velocity_per_column, &forward_vel,
+                                            &sideways_vel, 128, border, 1);*/
 
   weighted_line_fit(edgeflow_results->velocity_per_column, faulty_distance, &forward_vel,
                     &sideways_vel, image_width, border, 1);
 
-/*  line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
-                  &sideways_vel, faulty_distance, 128, border, RES);*/
+  /*  line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
+                    &sideways_vel, faulty_distance, 128, border, RES);*/
 
-  *vel_z_pixelwise = forward_vel / (RES) ;
+  *vel_z_pixelwise = forward_vel  ;
   *vel_x_pixelwise = (sideways_vel + forward_vel * image_width / 2) * fov_x
-                     / (RES * RES * image_width) ; // RES * RES * RES / RES * RES
+                     / (RES  * image_width) ; // RES * RES * RES / RES * RES
 
 #if EDGEFLOW_USE_HEIGHT_AUTOPILOT
   int32_t alt_state_lisa = edgeflow_parameters->alt_state_lisa;
-  *vel_x_global = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * fovx
+  *vel_x_global = edge_flow->flow_x * (alt_state_lisa) * (*hz_x) * fov_x
                   / (RES * RES * image_width);
-  *vel_y_global = edge_flow->flow_y * (alt_state_lisa) * (*hz_y) * fovy
+  *vel_y_global = edge_flow->flow_y * (alt_state_lisa) * (*hz_y) * fov_y
                   / (RES * RES * image_height);
 #else
   *vel_x_global = edge_flow->flow_x * (*avg_dist) * (*hz_x) * fov_x
@@ -493,8 +507,8 @@ void calculate_edge_flow(uint8_t in[],
     flow_mag_x = abs(edge_flow->flow_x);
     flow_mag_y = abs(edge_flow->flow_y);
 
-    uint32_t min_flow = 3* RES;
-    uint32_t max_flow = (disp_range - 2)*RES;
+    uint32_t min_flow = 3 * RES;
+    uint32_t max_flow = (disp_range - 2) * RES;
     uint8_t previous_frame_offset_x = previous_frame_offset[0];
     uint8_t previous_frame_offset_y = previous_frame_offset[1];
 
@@ -558,13 +572,15 @@ void calculate_edge_flow(uint8_t in[],
 
   int16_t der_shift_x = 0;
   int16_t der_shift_y = 0;
-  if (edgeflow_parameters->derotation) {
-    int16_t roll_prev = edge_hist[previous_frame_x].roll;
-    int16_t pitch_prev = edge_hist[previous_frame_y].pitch;
 
-    der_shift_x = (roll_prev - edge_hist[*current_frame_nr].roll)
+  //TODO: test with paparazzi implementation if rotation is done correctly
+  if (edgeflow_parameters->derotation) {
+    int16_t pan_prev = edge_hist[previous_frame_x].pan;
+    int16_t tilt_prev = edge_hist[previous_frame_y].tilt;
+
+    der_shift_x = (pan_prev - edge_hist[*current_frame_nr].pan)
                   * image_width / (edgeflow_parameters->fovx);
-    der_shift_y = (pitch_prev - edge_hist[*current_frame_nr].pitch)
+    der_shift_y = (tilt_prev - edge_hist[*current_frame_nr].tilt)
                   * image_height / (edgeflow_parameters->fovy);
   }
   // Calculate displacement
@@ -913,6 +929,171 @@ void avoid_velocity_from_stereo(int32_t *stereo_distance_per_column, int32_t *ve
   *vel_z_stereo_avoid_pixelwise = vel_z_temp / (total_size  / 3);  //middle part
 
 }
+/* edgestereo_obstacle_detection: Detect the closest isolated obstacle, used for obstacle avoidance
+ * \param stereo_distance_per_column Stereo distance (from stereo displacement and camera parameters)
+ * \param stereo_distance_filtered Stereo distance filtered by binary filter operation
+ * \param size is the  size of stereo_distance_per_column
+ * \param border is the search window + search distance used in blockmatching
+ * \return distance to the closest isolated obstacle
+ *
+ * */
+int32_t edgestereo_obstacle_detection(int32_t *stereo_distance_per_column, uint8_t *stereo_distance_filtered,
+                                      int32_t size, int32_t border)
+{
+
+  int32_t x, c;
+  int32_t max_distance_obstacle = 500; // in [cm]
+  uint8_t obstc_thres = 5;
+
+
+
+
+  // Measure where obstacles are within detection range and turn it into a booleean
+  for (x = border; x < size - border; x++) {
+
+    if (stereo_distance_per_column[x] < max_distance_obstacle && stereo_distance_per_column[x] != 0) {
+      stereo_distance_filtered[x] = 1;
+    } else {
+      stereo_distance_filtered[x] = 0;
+    }
+
+  }
+  // Erosion of binary array
+  uint8_t min_value;
+  uint8_t morph_value = 5;
+  uint8_t stereo_distance_filtered_temp[IMAGE_WIDTH] = {0};
+  for (x = border; x < size - border; x++) {
+
+    min_value = 1;
+    for (c = -morph_value; c <= morph_value; c++) {
+      if (min_value > stereo_distance_filtered[x + c]) {
+        min_value = stereo_distance_filtered[x + c];
+      }
+    }
+    stereo_distance_filtered_temp[x] =  min_value;
+  }
+
+  memcpy(stereo_distance_filtered, stereo_distance_filtered_temp, sizeof(stereo_distance_filtered_temp));
+
+  //Dilation
+  uint8_t max_value;
+  for (x = border; x < size - border - 1; x++) {
+
+    max_value = 0;
+    for (c = -morph_value; c <= morph_value; c++) {
+      if (max_value < stereo_distance_filtered[x + c]) {
+        max_value = stereo_distance_filtered[x + c];
+      }
+    }
+    stereo_distance_filtered_temp[x] =  max_value;
+
+  }
+  memcpy(stereo_distance_filtered, stereo_distance_filtered_temp, sizeof(stereo_distance_filtered_temp));
+
+  // Seperate obstacles with a large distance difference
+  for (x = border; x < size - border; x++) {
+
+    if (abs(stereo_distance_per_column[x] - stereo_distance_per_column[x + 1]) > 55) {
+      stereo_distance_filtered[x] = 0;
+    }
+  }
+
+
+  //calculate the distance of the closest obstacle
+  int32_t counter = 0;
+  int32_t distance_sum = 0;
+  int32_t average_distance = 0;
+  int32_t closest_average_distance = 1500;
+
+
+  for (x = border; x < size - border; x++) {
+//if obstacle is detected, start counting how many you see in a row, sum op the distances
+    if (stereo_distance_filtered[x] == 1) {
+      counter ++;
+      distance_sum += stereo_distance_per_column[x];
+
+    } else {
+      if (counter > obstc_thres) {
+        average_distance = distance_sum / counter;
+
+        if (closest_average_distance > average_distance) {
+          closest_average_distance = average_distance;
+        }
+
+      }
+      counter = 0;
+      distance_sum = 0;
+    }
+  }
+
+  return closest_average_distance;
+
+
+}
+
+/* evaluate_edgeflow_stereo: Calculate the droplet mode based on edgeStereo, based on the balance of the obstacles on the screen
+ * \param stereo_distance_per_column Stereo distance (from stereo displacement and camera parameters)
+ * \param size is the  size of stereo_distance_per_column
+ * \param border is the search window + search distance used in blockmatching
+ * \return droplet mode
+ *
+ *TODO: Re-evaluate this function, to remove the droplet states and to make it more generic
+ * */
+uint8_t evaluate_edgeflow_stereo(int32_t *stereo_distance_per_column, int32_t size, int32_t border)
+{
+
+  int32_t x;
+  uint8_t nr_distance_2m_left = 0;
+  uint8_t nr_distance_2m_right = 0;
+  uint8_t nr_distance_1m_left = 0;
+  uint8_t nr_distance_1m_right = 0;
+
+  uint8_t obst_thres = 5;
+
+  for (x = border; x < size - border; x++) {
+
+    if (stereo_distance_per_column[x] != 0) {
+      if (stereo_distance_per_column[x] <= 200 && stereo_distance_per_column[x] > 100) {
+        if (x < size / 2) {
+          nr_distance_2m_left++;
+        }
+        if (x >= size / 2) {
+          nr_distance_2m_right++;
+        }
+      }
+      if (stereo_distance_per_column[x] <= 100) {
+        if (x < size / 2) {
+          nr_distance_1m_left++;
+        }
+        if (x >= size / 2) {
+          nr_distance_1m_right++;
+        }
+      }
+    }
+  }
+
+  if ((nr_distance_1m_left + nr_distance_1m_right) > obst_thres) {
+    if (nr_distance_1m_left <= nr_distance_1m_right) {
+      return 21; // STOP! and turn right until save area
+    }
+    if (nr_distance_1m_left > nr_distance_1m_right) {
+      return 22; // STOP! and turn left until save area
+    }
+  } else {
+    if ((nr_distance_2m_left + nr_distance_2m_right) > obst_thres) {
+      if (nr_distance_2m_left <= nr_distance_2m_right) {
+        return 11;  // keep flying with same speed but turn slightly right
+      }
+      if (nr_distance_2m_left > nr_distance_2m_right) {
+        return 12;  // keep flying with same speed but turn slightly left
+      }
+    } else {
+      return 4;  // keep flying straight with same speed
+    }
+  }
+  return 0;
+}
+
 
 /* line_fit: fits a line using least squares to the histogram disparity map
  * \param displacement is an array that contains the pixel displacements of the compared edgehistograms

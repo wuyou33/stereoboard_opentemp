@@ -32,9 +32,9 @@ struct edge_hist_t {
   int32_t y[IMAGE_HEIGHT];      // Edge_hist: edgehistogram in y-direction (image coordinates)
   int32_t stereo[IMAGE_WIDTH];      // Edge_hist: edgehistogram in y-direction (image coordinates)
   int32_t frame_time;       // Edge_hist: Frame time corresponding to the image from which the edge histogram is made
-  int16_t roll;           // Edge_hist: roll position at the time
-  int16_t pitch;          // Edge_hist: pitch position at the time
-  int16_t yaw;            // Edge_hist: yaw position at the time
+  int16_t pan;           // Edge_hist: pan: rotation around the y-axis of the camera (along image height)[rad]
+  int16_t tilt;          // Edge_hist: tilt: rotation around the x-axis of the camera (along image width) [rad]
+  int16_t roll;            // Edge_hist: roll: rotation around the z-axis of the camera (perpendicular on frame plane) [rad]
 };
 
 struct edge_flow_t {
@@ -57,6 +57,8 @@ struct covariance_t {
   int32_t C_div_y;          // Kalman: covariance matrix of divergence in y-direction (image coordinates)
   int32_t C_height;         // Kalman: covariance matrix of global
 };
+
+//TODO: reduce structures edgeflow_parameters and edgeflow_results
 
 struct edgeflow_parameters_t {
   int16_t fovx;                // Camera Parameters: Field of view of x axis
@@ -82,6 +84,8 @@ struct edgeflow_parameters_t {
   int8_t autopilot_mode;          // Paparazzi: Receive autopilot mode from paparazzi
 
 };
+
+//TODO: reduce structure size
 
 struct edgeflow_results_t {
   struct edge_hist_t edge_hist[MAX_HORIZON];      // Edgeflow: Stores an array of edgehistograms for a maximum horizon
@@ -121,6 +125,9 @@ struct edgeflow_results_t {
   int16_t dphi;                     // Edgeflow: Difference in angles roll from one frame to another
   int16_t dtheta;                   // Edgeflow: Difference in angles pitch from one frame to another
   int16_t dpsi;                     // Edgeflow: Difference in angles yaw from one frame to another
+  uint8_t obst_mode;				 //Droplet: Behavior based on EdgeStereo
+  int32_t distance_closest_obstacle;   //	Avoidance: Distance of closes obstacle
+  uint8_t obstacle_detect[IMAGE_WIDTH];   // Avoidance: Isolated obstacles with distances
 };
 
 
@@ -166,6 +173,10 @@ int32_t moving_fading_average(int32_t previous_est, int32_t current_meas, int32_
 
 void visualize_divergence(uint8_t *in, int32_t *displacement, int32_t slope, int32_t yInt, uint32_t image_width,
                           uint32_t image_height);
+uint8_t evaluate_edgeflow_stereo(int32_t *stereo_distance_per_column, int32_t size, int32_t border);
+int32_t edgestereo_obstacle_detection(int32_t *stereo_distance_per_column, uint8_t *obstacle_detect, int32_t size,
+                                      int32_t border);
+
 
 //Help functions
 uint32_t getMinimum2(uint32_t *a, uint32_t n, uint32_t *min_error);
