@@ -1,8 +1,11 @@
 
 #include "tcm8230.h"
 
+#include "main_parameters.h"
+#include "camera_type.h"
 #include "utils.h"
 #include "dcmi.h"
+#include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 #include "usart.h"
 
@@ -16,6 +19,24 @@
   * AWB : Auto White Balance
   * ALC : Auto Luminance Control
   */
+
+// Camera Settings (z means zoom)
+#define IMG_SIZE_VGA      (0<<2)
+#define IMG_SIZE_QVGA     (1<<2)
+#define IMG_SIZE_QVGAz    (2<<2)
+#define IMG_SIZE_QQVGA    (3<<2)
+#define IMG_SIZE_QQVGAz   (4<<2)
+#define IMG_SIZE_CIF      (5<<2)
+#define IMG_SIZE_QCIF     (6<<2)
+#define IMG_SIZE_QCIFz    (7<<2)
+#define IMG_SIZE_subQCIF  (8<<2)
+#define IMG_SIZE_subQCIFz (9<<2)
+
+#define IMG_FORMAT_YUV422 (0<<1)
+#define IMG_FORMAT_RGB565 (1<<1)
+
+#define IMG_COLOR_COLOR   (0<<0)
+#define IMG_COLOR_BW      (1<<0)
 
 void camera_tcm8230_i2c_init(void)
 {
@@ -69,62 +90,86 @@ void camera_tcm8230_i2c_init(void)
  *
  **************************************************************/
 
-#define TCM8230_ADDR        0b00111100
+#define TCM8230_ADDR          0b00111100
 
-#define TCM8230_ADDR_WRITE      (TCM8230_ADDR<<1)
+#define TCM8230_ADDR_WRITE    (TCM8230_ADDR<<1)
 #define TCM8230_ADDR_READ     ((TCM8230_ADDR<<1)+1)
 
+#define TCM_WHO_AM_I          0x00    // reads 0x70
+#define TCM_FPS_ADDR          0x02
+#define TCM_FPS_SLOW          (1<<7) // 15Hz
+#define TCM_FPS_FAST          (0<<7) // 30Hz
+#define TCM_ACF               (1<<6) // anti flicker control, 0=50Hz, 1=60Hz
+#define TCM_CLK_POL           (1<<1) // clock polarity
+#define TCM_ACF_DET           (0<<0) // auto flicker frequency detection, 0=auto, 1=off
 
-#define   TCM_WHO_AM_I      0x00    // reads 0x70
-#define   TCM_FPS           0x02
-#define   TCM_FPS_SLOW      0x82 // 15Hz
-#define   TCM_FPS_FAST      0x02 // 30Hz
+#define TCM_IMG_ADDR          0x03
+#define TCM_IMG_SIZE(X)       (((X)*4)+2)
 
-#define   TCM_IMG           0x03
-#define   TCM_IMG_SIZE(X)   (((X)*4)+2)
-
-#define   TCM_SWC           0x1E  // code Synchronization
-#define   TCM_SWC_VAL       0x78
-
-#define   TCM_EXP           0x04
-#define   EXP_DEFAULT       0x0f
-#define   EXP_SHORT         0x00
-#define   EXP_LONG          0x10
-
-// White Balance
-
-#define TCM_AWB             0x0A // auto white balance ON/OFF
-#define TCM_AWB_AUTO        0x00  //ON
-#define TCM_AWB_MANUAL      128  //OFF
-
-#define TCM_MRG             0x0B // manual white balance gain [0-255]
-#define TCM_MBG             0x0C // manual white balance gain [0-255]
+#define TCM_EXP_ADDR          0x04
+#define TCM_EXP_SHORT         0x0f
+#define TCM_EXP_LONG          0x1f
 
 // Auto luminance
+#define TCM_ALC_ADDR          0x05 // auto luminance control
+#define TCM_ALC_AUTO          (0<<7)
+#define TCM_ALC_MANUAL        (1<<7)
 
-#define TCM_ALC             0x05 // auto luminance control
-#define TCM_ALC_AUTO        0
-#define TCM_ALC_MANUAL      0x80
+#define TCM_ALC_ESRSPD_ADDR   0x06  // electronic shutter speed
+#define TCM_ALC_ESRSPD        0x30D  // default 0x020D, max 0x1fff
 
-#define TCM_ALCL            0x09 // auto luminance control level
+// sensor analog gain
+#define TCM_AG_ADDR           0x07
+#define TCM_AG                0xC0  // Default 0xc0, max 0xff. 0=+0dB, 60=+6dB, 30=+12dB, 18=+18dB, 0C=+24dB
+// sensor digital gain
+#define TCM_DG                0x3B  // Default 80, bits 0-5 => 0=1, 3F=1.984375
 
-#define TCM_ALCMODE         0x08
-#define TCM_ALCMODE_CENTER_WEIGHT 0b00001000
-#define TCM_ALCMODE_AVERAGE       0b00011000
-#define TCM_ALCMODE_CENTER_ONLY   0b00101000
-#define TCM_ALCMODE_BACKLIGHT     0b00111000
+#define TCM_ALCL_ADDR         0x09  // auto luminance control lower level 10=black level, 88=100% white level, ff=peak white level
+#define TCM_ALCL              0x60  // Default 40
 
-#define TCM_VHUE            0x13
-#define TCM_UHUE            0x14
+#define TCM_ALC_MODECH_ADDR   0x08  // Auto luminance mode and convergence rate
+#define TCM_ALC_CH            0b1000  // Convergence range of ALC 0=0level range, f=255 level range, default 8
+#define TCM_ALC_MODE_CENTER_WEIGHT (0<<4)
+#define TCM_ALC_MODE_AVERAGE       (1<<4)
+#define TCM_ALC_MODE_CENTER_ONLY   (2<<4)
+#define TCM_ALC_MODE_BACKLIGHT     (3<<4)
 
-#define TCM_SATU            0x18 // saturation (7 bits)
+// White Balance
+#define TCM_AWB_ADDR          0x0A  // auto white balance ON/OFF
+#define TCM_AWB_AUTO          0x00  //ON
+#define TCM_AWB_MANUAL        0x80  //OFF
 
+#define TCM_MRG_ADDR          0x0B  // manual white balance gain red
+#define TCM_MRG               0x3A  // Reduce red gain slightly. Default 0x40, max 0xff. 0=x0, 40=x1, ff=x3.984375
+#define TCM_MBG_ADDR          0x0C  // manual white balance gain blue
+#define TCM_MBG               0x40  // Default 0x40, max 0xff. 0=x0, 40=x1, ff=x3.984375
 
-uint8_t tcm8230_WriteReg(uint8_t Addr, uint8_t Data);
-uint8_t tcm8230_ReadReg(uint8_t Addr, uint8_t *reply);
+#define TCM_GAMMA_ADDR        0x0D  // Gamma correction, gamma = 0.55
+#define TCM_GAMMA             0x01  // On or Off. Default Off
 
-void camera_tcm8230_config(void)
-{
+#define TCM_CONTRAST_ADDR     0x11  // Default 9A. 0=x0, 80=x1, ff=1.9921875
+#define TCM_BRIGHTNESS_ADDR   0x12  // Default 0C. 0=0, 7f=127, ff=-1,80=-128
+#ifndef TCM_BRIGHTNESS
+#define TCM_BRIGHTNESS        0x3C  // Default 0C, max 0xff
+#endif
+
+#define TCM_VHUE_ADDR         0x13  // Default 0A. Bit6 is polarity, other 5 bits 0=0, 3F=1.9921875
+#define TCM_UHUE_ADDR         0x14  // Default 0A. Bit6 is polarity, other 5 bits 0=0, 3F=1.9921875
+
+#define TCM_VGAIN_ADDR        0x15  // Default 38. 0=0, 20=1, 3F=1.96875
+#define TCM_UGAIN_ADDR        0x16  // Default 38. 0=0, 20=1, 3F=1.96875
+
+#define TCM_SATU_ADDR         0x18 // Saturation, Default 27, 0=0, 20=1, 3f=1.96875
+
+#define TCM_SWC_ADDR          0x1E  // code synchronization
+#define TCM_SWC               0x48  // set sync mode to ITU656, default 0x68
+
+// Line speed for flickerless control
+#define TCM_ES100S_ADDR       0x1C  // Setting the number of horizontal lines corresponding to 1/100 sec
+#define TCM_ES100S            135   // set line speed based on 21MHz clock, CLK/(780*2*50)
+#define TCM_ES120S_ADDR       0x1D  // Setting the number of horizontal lines corresponding to 1/120 sec
+#define TCM_ES120S            112   // set line speed based on 21MHz clock, CLK/(780*2*60)
+
 #ifdef USE_RGB565
 #warning USING_RGB565
 #define IMG_FORMAT IMG_FORMAT_RGB565
@@ -135,50 +180,65 @@ void camera_tcm8230_config(void)
   // Supported Image sized
 #if (IMAGE_WIDTH==128) && (IMAGE_HEIGHT==96)
 #define IMAGE_SIZE IMG_SIZE_subQCIF
+#elif (IMAGE_WIDTH==160) && (IMAGE_HEIGHT==120)
+#define IMAGE_SIZE IMG_SIZE_QQVGA
 #elif (IMAGE_WIDTH==176) && (IMAGE_HEIGHT==144)
 #define IMAGE_SIZE IMG_SIZE_QCIF
+#elif (IMAGE_WIDTH==320) && (IMAGE_HEIGHT==240)
+#define IMAGE_SIZE IMG_SIZE_QVGA
 #elif (IMAGE_WIDTH==640) && (IMAGE_HEIGHT==180)
 #define IMAGE_SIZE IMG_SIZE_VGA
 #else
 #ifdef USE_TCM8230
 #error "TCM8230 camera chip does not support this resolution"
-#else
 #define IMAGE_SIZE 0
 #endif
 #endif
 
+
+uint8_t tcm8230_WriteReg(uint8_t Addr, uint8_t Data);
+uint8_t tcm8230_ReadReg(uint8_t Addr, uint8_t *reply);
+
+void camera_tcm8230_config(void)
+{
+  // set up camera presets
+  tcm8230_WriteReg(TCM_IMG_ADDR, IMG_COLOR_COLOR | IMG_FORMAT | IMAGE_SIZE);
+  tcm8230_WriteReg(TCM_SWC_ADDR, TCM_SWC);
+  tcm8230_WriteReg(TCM_BRIGHTNESS_ADDR, TCM_BRIGHTNESS);  // increase target brightness
+  tcm8230_WriteReg(TCM_ALC_MODECH_ADDR, TCM_ALC_MODE_CENTER_WEIGHT | TCM_ALC_CH);
+
+  // set line speed for flickerless control
+  tcm8230_WriteReg(TCM_ES100S_ADDR, TCM_ES100S);
+  tcm8230_WriteReg(TCM_ES120S_ADDR, TCM_ES120S);
+
 #ifdef SLOW_TCM8230
-  tcm8230_WriteReg(TCM_FPS, TCM_FPS_SLOW);
+  tcm8230_WriteReg(TCM_FPS_ADDR, TCM_FPS_SLOW | TCM_ACF | TCM_CLK_POL | TCM_ACF_DET);
+  tcm8230_WriteReg(TCM_EXP_ADDR, TCM_EXP_LONG);
 #else
-  tcm8230_WriteReg(TCM_FPS, TCM_FPS_FAST);
+  tcm8230_WriteReg(TCM_FPS_ADDR, TCM_FPS_FAST | TCM_ACF | TCM_CLK_POL | TCM_ACF_DET);
 #endif
 
-  tcm8230_WriteReg(TCM_IMG, IMG_COLOR_COLOR | IMG_FORMAT | IMAGE_SIZE);
-  tcm8230_WriteReg(TCM_SWC, TCM_SWC_VAL);
-  tcm8230_WriteReg(TCM_EXP, EXP_DEFAULT | EXP_SHORT);
-
-  // If color is used, auto white balance should be deactivated
 #if USE_COLOR
-  tcm8230_WriteReg(TCM_AWB, TCM_AWB_MANUAL);
-  tcm8230_WriteReg(TCM_MRG, 58);  // reduce red gain slightly, default 64
-  tcm8230_WriteReg(TCM_MBG, 82);  // increase blue gain slightly, default 64
+  // If color is used, auto white balance should be deactivated
+  tcm8230_WriteReg(TCM_AWB_ADDR, TCM_AWB_MANUAL);
+  tcm8230_WriteReg(TCM_MRG_ADDR, TCM_MRG);
+  tcm8230_WriteReg(TCM_MBG_ADDR, TCM_MBG);
 
-  tcm8230_WriteReg(TCM_ALCMODE, TCM_ALCMODE_AVERAGE);
+  // Set Manual lumination
+  tcm8230_WriteReg(TCM_ALC_ADDR, TCM_ALC_MANUAL | ((TCM_ALC_ESRSPD >> 8)&0b00011111)); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
+  tcm8230_WriteReg(TCM_ALC_ESRSPD_ADDR, TCM_ALC_ESRSPD & 0x00ff);
 #endif
 
   // Set the image saturation. default 39, 127 max, 0 min (black/white)
 #if (TCM8230_EXTRA_SATURATION == 1) // Medium saturation setting
-  tcm8230_WriteReg(TCM_SATU, 80);
+  tcm8230_WriteReg(TCM_SATU_ADDR, 80);
 #elif (TCM8230_EXTRA_SATURATION == 2) // High saturation setting
-  tcm8230_WriteReg(TCM_SATU, 127);
+  tcm8230_WriteReg(TCM_SATU_ADDR, 127);
 #endif
 
   // Extra options:
-  //tcm8230_WriteReg(TCM_ALC, TCM_ALC_MANUAL); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
-  //tcm8230_WriteReg(TCM_ALCL, 50);   // default 64
-
-  // tcm8230_WriteReg(TCM_VHUE, 255);
-  // tcm8230_WriteReg(TCM_UHUE, 255);
+  // tcm8230_WriteReg(TCM_VHUE_ADDR, 255);
+  // tcm8230_WriteReg(TCM_UHUE_ADDR, 255);
 }
 
 void camera_tcm8230_read(void)

@@ -67,30 +67,22 @@
 #include "gate_detection_fp.h"
 /********************************************************************/
 
-#define TOTAL_IMAGE_LENGTH IMAGE_WIDTH*IMAGE_HEIGHT;
-// we have a total of 64 KB of space starting at 0x10000000
-
-//uint32_t *integral_image = ((uint32_t *) 0x10000000); // 0x10000000 - 0x1000 FFFF = CCM data RAM  (64kB)
-//uint8_t* jpeg_image_buffer_8bit = ((uint8_t*) 0x1000D000); // 0x10000000 - 0x1000 FFFF = CCM data RAM
-uint8_t *disparity_image_buffer_8bit = ((uint8_t *) 0x10000000);
+//uint8_t __ccmram jpeg_image_buffer_8bit[FULL_IMAGE_SIZE];  // todo how big should this actually be?
+uint8_t __ccmram disparity_image_buffer[FULL_IMAGE_SIZE / 2];
 
 // integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
 #if defined(WINDOW)
-#if 5*(IMAGE_WIDTH * IMAGE_HEIGHT) > 65536
-#error "intergral_image can't fit in CCM data RAM"
-#endif
-uint32_t integral_image = ((uint32_t *)(0x10000000 + (IMAGE_WIDTH *IMAGE_HEIGHT)));
+uint32_t __ccmram integral_image[FULL_IMAGE_SIZE / 2];
 #endif
 
 uint16_t offset_crop = 0;
-struct image_t disparity_image;
 /** @addtogroup StereoCam
  * @{
  */
 
 /* Private functions ---------------------------------------------------------*/
 typedef enum {SEND_TURN_COMMANDS, SEND_COMMANDS, SEND_IMAGE, SEND_DISPARITY_MAP, SEND_FRAMERATE_STEREO, SEND_MATRIX, SEND_EDGEFLOW, SEND_IMAGE_AND_PROXIMITY, SEND_PROXIMITY_AND_ANGLE, SEND_WINDOW, SEND_HISTOGRAM, SEND_DELFLY_CORRIDOR, SEND_FOLLOW_YOU, SEND_SINGLE_DISTANCE, DISPARITY_BASED_VELOCITY, STEREO_VELOCITY, SEND_ROTATIONS, SEND_LEARNING_COLLISIONS,
-              SEND_MEANSHIFT, SEND_VL6180,DRONERACE, SEND_NONE
+              SEND_MEANSHIFT, SEND_VL6180, DRONERACE, SEND_NONE
              } stereoboard_algorithm_type;
 
 //////////////////////////////////////////////////////
@@ -173,11 +165,21 @@ void window_init()
 
 #endif
 
-struct image_t current_image_pair = {.w = 2 * IMAGE_WIDTH,
-                                     .h = IMAGE_HEIGHT,
-                                     .buf_size = 2 * IMAGE_WIDTH * IMAGE_HEIGHT,
-                                     .type = IMAGE_GRAYSCALE};
 
+struct image_t current_image_pair = {.w = IMAGE_WIDTH,
+  .h = IMAGE_HEIGHT,
+  .buf_size = BYTES_PER_PIXEL * IMAGE_WIDTH * IMAGE_HEIGHT,
+  .type = IMAGE_GRAYSCALE
+};  // todo this should probably be dependent on the cpld config
+
+struct image_t disparity_image = {
+    .w = IMAGE_WIDTH,
+    .h = IMAGE_HEIGHT,
+    .buf_size = FULL_IMAGE_SIZE / 2,
+    .type = IMAGE_GRAYSCALE
+};
+
+// Timing counters
 uint32_t freq_counter = 0;
 uint32_t frame_dt = 0;
 uint32_t frame_rate = 0;
@@ -189,7 +191,10 @@ uint32_t frame_rate = 0;
  */
 int main(void)
 {
-  current_image_pair.buf = current_image_buffer;
+  frame_processed = frame_counter;
+
+  disparity_image.buf = disparity_image_buffer;
+
 #ifdef NEW_MAIN
   init_project();
 #endif
@@ -217,16 +222,6 @@ int main(void)
   camera_init();
   sys_time_init();
 
-#if USE_COLOR
-  int ind;
-  // slight waste of memory, if color is not used:
-  uint8_t filtered_image[FULL_IMAGE_SIZE / 2];
-  for (ind = 0; ind < FULL_IMAGE_SIZE / 2; ind++) {
-    filtered_image[ind] = 0;
-  }
-#endif
-
-
 #ifndef SUB_SAMPLING
 #define SUB_SAMPLING 1
 #endif
@@ -244,7 +239,6 @@ int main(void)
    ***********/
 
   stereoboard_algorithm_type current_stereoboard_algorithm = getBoardFunction();
-  volatile int processed = 0;
 
 #if current_stereoboard_algorithm == SEND_PROXIMITY_AND_ANGLE || current_stereoboard_algorithm == SEND_IMAGE_AND_PROX   // initialize proximity sensor
   TMG3993_Init();
@@ -256,14 +250,7 @@ int main(void)
 #endif
 
   // Disparity image buffer, initialised with zeros
-  //uint8_t disparity_image_buffer_8bit[FULL_IMAGE_SIZE / 2];
-  memset(disparity_image_buffer_8bit, 0, FULL_IMAGE_SIZE / 2);
-
-  disparity_image.buf = disparity_image_buffer_8bit;
-  disparity_image.h = IMAGE_HEIGHT;
-  disparity_image.w = IMAGE_WIDTH;
-  disparity_image.type = IMAGE_GRAYSCALE;
-  disparity_image.buf_size = FULL_IMAGE_SIZE / 2;
+  memset(disparity_image_buffer, 0, FULL_IMAGE_SIZE / 2);
 
   // Stereo parameters:
   uint32_t disparity_range = 20; // at a distance of 1m, disparity is 7-8. disp = Npix*cam_separation /(2*dist*tan(FOV/2))
@@ -291,6 +278,7 @@ int main(void)
   uint8_t toSendCommand = 0;
 
   uint32_t sys_time_prev = sys_time_get();
+  uint32_t sys_time_prev_long = sys_time_get();
 
   uint8_t histogramBuffer[pixelsPerLine];
   uint8_t histogramBufferX[pixelsPerLine];
@@ -379,7 +367,7 @@ int main(void)
   float feature_list_f [4 * features_max_number];
 
   // variable for making a sub-pixel disparity histogram:
-  q15_t sub_disp_histogram[disparity_range*RESOLUTION_FACTOR];
+  q15_t sub_disp_histogram[disparity_range * RESOLUTION_FACTOR];
 
   // Disparity based velocity estimation variables
   uint8_t maxDispFound = 0;
@@ -401,9 +389,6 @@ int main(void)
       SendCommandNumber((uint8_t) dist);
       led_toggle();
     } else {
-#ifndef NO_WAIT_FOR_FRAME
-      camera_snapshot();
-#endif
 
 #if defined(LARGE_IMAGE) || defined(CROPPING)
       offset_crop += 60;
@@ -414,9 +399,7 @@ int main(void)
 #endif
 
       // wait for new frame
-      while (frame_counter == processed)
-        ;
-      processed = frame_counter;
+      current_image_pair.buf = camera_wait_for_frame();
 
 #ifdef NEW_MAIN
       run_project();
@@ -424,10 +407,10 @@ int main(void)
 
       // compute run frequency
       freq_counter++;
-      if (get_timer_interval(sys_time_prev) >= TIMER_TICKS_PER_SEC) { // clock at 2kHz
-        frame_rate = freq_counter * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC; // in Hz
+      if (get_timer_interval(sys_time_prev_long) >= TIMER_TICKS_PER_SEC) { // clock at 2kHz
+        frame_rate = freq_counter * get_timer_interval(sys_time_prev_long) / TIMER_TICKS_PER_SEC; // in Hz
         freq_counter = 0;
-        sys_time_prev = sys_time_get();
+        sys_time_prev_long = sys_time_get();
       }
       frame_dt = 1000 * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC;
       sys_time_prev = sys_time_get();
@@ -464,10 +447,10 @@ int main(void)
                                disparity_min, disparity_range, disparity_step, thr1, thr2,
                                min_y, max_y);
           } else {
-            processed_pixels = stereo_vision_sparse_block_two_sided((uint8_t*)current_image_pair.buf,
-                               (uint8_t*)disparity_image.buf, image_width, image_height,
-                               disparity_min, disparity_range, disparity_step, thr1, thr2,
-                               min_y, max_y, sub_disp_histogram);
+            processed_pixels = stereo_vision_sparse_block_two_sided((uint8_t *)current_image_pair.buf,
+                                     (uint8_t*)disparity_image.buf, image_width, image_height,
+                                     disparity_min, disparity_range, disparity_step, thr1, thr2,
+                                     min_y, max_y, sub_disp_histogram);
           }
         }
       }
@@ -506,18 +489,16 @@ int main(void)
 
       	int initialize_fit_with_pars = 0;
         int FP = 0;
-        int min_sub_disparity = disparity_range * RESOLUTION_FACTOR-1;
+        int min_sub_disparity = disparity_range * RESOLUTION_FACTOR - 1;
         int sum_points = 0;
         uint32_t mean_disparity = 0;
-        while( (min_sub_disparity > 0) && (sum_points < MAX_POINTS) )
-        {
+        while ((min_sub_disparity > 0) && (sum_points < MAX_POINTS)) {
           min_sub_disparity--; // TODO: don't we skip the first value like this?
           sum_points += sub_disp_histogram[min_sub_disparity];
-          mean_disparity += sub_disp_histogram[min_sub_disparity] * min_sub_disparity; 
+          mean_disparity += sub_disp_histogram[min_sub_disparity] * min_sub_disparity;
         }
         mean_disparity /= sum_points;
-        if(sum_points > MAX_POINTS && sub_disp_histogram[min_sub_disparity] < MAX_POINTS / 2) 
-        {
+        if (sum_points > MAX_POINTS && sub_disp_histogram[min_sub_disparity] < MAX_POINTS / 2) {
           // we should take one sub-disparity higher, as else we supersede the maximum number of points:
           // however, if the number of points in the last bin is substantial, we rely on the cut-off in the
           // convert disparity map function.
@@ -547,7 +528,7 @@ int main(void)
         dronerace_message[1] = (uint8_t) y_center; // what if these are outside of the image?
         dronerace_message[2] = (uint8_t) radius;
         // fitness of the fit - lower is better:
-        dronerace_message[3] = (uint8_t) (100 * fitness);
+        dronerace_message[3] = (uint8_t)(100 * fitness);
         // what is our update rate?
         dronerace_message[4] = (uint8_t) 1000 / frame_dt;
         // these last three message elements indicate where the closest obstacle roughly is:
@@ -557,13 +538,13 @@ int main(void)
 
         // send disparity image:
         //SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
-        
+
         // send message:
         // Note:
         // In the project file, the baud rate should be changed
         // For max speed, the drawing functions in gate_detection should be switched off (GRAPHICS, GRAPHICS_FP)
         SendArray(dronerace_message, 5, 1);
-        
+
       }
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
@@ -798,7 +779,7 @@ int main(void)
 
         SendImage(copyOfThing, IMAGE_WIDTH, IMAGE_HEIGHT);
 #else
-        SendArray((uint8_t*)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
+        SendImage((uint8_t *)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
 #endif
       }
 

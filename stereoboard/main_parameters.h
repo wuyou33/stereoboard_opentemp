@@ -9,6 +9,8 @@
 #ifndef MAIN_PARAMETERS_H_
 #define MAIN_PARAMETERS_H_
 
+#include "std.h"
+
 /* Defines possible values in the project file */
 #define HISTOGRAM_OBSTACLE_AVOIDANCE_DRONE 1
 #define HISTOGRAM_FOLLOW_ME_DRONE 2
@@ -32,12 +34,6 @@
 
 #ifndef RESOLUTION_FACTOR
 #define RESOLUTION_FACTOR 6
-#endif
-
-// compute full image size
-#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
-#if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
 #endif
 
 //////////////////////////////////////////////////////
@@ -96,10 +92,6 @@
 #define SMALL_IMAGE
 #endif
 
-#if defined(DCMI_DOUBLE_BUFFER) && defined(LARGE_IMAGE)
-#error "Cannot define LARGE_IMAGE and DCMI_DOUBLE_BUFFER"
-#endif
-
 #if !(defined(IMAGE_WIDTH) || defined(IMAGE_HEIGHT))
 #if defined(SMALL_IMAGE) && defined(LARGE_IMAGE)
 #error "Cannot define SMALL_IMAGE and LARGE_IMAGE"
@@ -112,14 +104,6 @@
 #define IMAGE_WIDTH 640
 #define IMAGE_HEIGHT 60
 #endif
-#endif
-
-#if defined CAPTURE_MODE_SNAPSHOT && defined(DCMI_DOUBLE_BUFFER)
-#error "Cannot define DCMI_DOUBLE_BUFFER with CAPTURE_MODE_SNAPSHOT"
-#endif
-
-#if !(defined(DCMI_DOUBLE_BUFFER)) && !(defined(CAPTURE_MODE_SNAPSHOT))
-//#warning "Both DCMI_DOUBLE_BUFFER and CAPTURE_MODE_SNAPSHOT not defined.This may result in changes to the current_image_buffer while using it."
 #endif
 
 //////////////////////////////////////////////////////
@@ -143,9 +127,6 @@
 #endif
 
 #define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
-#if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
-#endif
 
 //////////////////////////////////////////////////////
 // Image Encoding

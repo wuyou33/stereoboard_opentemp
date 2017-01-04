@@ -26,8 +26,6 @@
 #define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define SMALL_IMAGE
-//#define CAPTURE_MODE_SNAPSHOT 1
-#define DCMI_DOUBLE_BUFFER
 #define SLOW_TCM8230
 
 //////////////////////////////////////////////////////

@@ -28,9 +28,6 @@
 #define SMALL_IMAGE
 #define LED_TOGGLE
 
-// #define CAPTURE_MODE_SNAPSHOT    // will transfer entire image in one burst
-// #deinfe DCMI_DOUBLE_BUFFER       // two image buffers used, while one is used the other is filled.
-
 //////////////////////////////////////////////////////
 // Define image format
 #if (DCMI_TEN_BITS == 1)

@@ -16,8 +16,6 @@
  *****************/
 #define DEFAULT_BOARD_FUNCTION SEND_FOLLOW_YOU
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-//#define CAPTURE_MODE_SNAPSHOT
-#define DCMI_DOUBLE_BUFFER
 
 //////////////////////////////////////////////////////
 // Settings

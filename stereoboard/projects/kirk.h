@@ -19,9 +19,6 @@
 #define STEREO_ALGORITHM 1 // 1 = Dense   0 = Sparse
 #define DEFAULT_BOARD_FUNCTION SEND_WINDOW
 
-#define DCMI_DOUBLE_BUFFER
-//#define CAPTURE_MODE_SNAPSHOT
-
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart
 // Stereoboard bottom = Usart1

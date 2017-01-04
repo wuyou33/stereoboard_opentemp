@@ -1,40 +1,77 @@
+/* dcmi.c - Handles the Digital Camera Interface (DCMI) and Dynamic Memory Access (DMA) to receive
+ * camera data.
+ *
+ */
 
 #include "dcmi.h"
+
+#include <string.h>
 
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
+#include "main_parameters.h"
 #include "utils.h"
 #include "camera_type.h"
+#include "stereo_image.h"
+
+volatile uint32_t frame_counter = 0;  //  frame number of last received frame
+volatile uint32_t frame_processed = 0; // frame number of last frame processed by main
+
+#ifndef DCMI_MODE
+#define DCMI_MODE DCMI_MODE_1
+#endif
+
+uint8_t dcmi_image_buffer_8bit_1[FULL_IMAGE_SIZE];  // DMA image buffer
+
+#if (DCMI_MODE == DCMI_MODE_1) || (DCMI_MODE == DCMI_MODE_2)
+uint8_t __ccmram dcmi_user_image_buffer_8bit[FULL_IMAGE_SIZE];
+uint8_t *current_image_buffer = dcmi_user_image_buffer_8bit;
+#else
+uint8_t *current_image_buffer = dcmi_image_buffer_8bit_1;
+#endif
+
+#if (DCMI_MODE == DCMI_MODE_2) || (DCMI_MODE == DCMI_MODE_3)
+#define DCMI_DOUBLE_BUFFER
+// Define second DMA image buffer used when dual buffer enabled
+uint8_t dcmi_image_buffer_8bit_2[FULL_IMAGE_SIZE];
+#endif
+
+#if DCMI_MODE == DCMI_MODE_4
+// single buffer mode, enable snapshot to disable dma
+#define CAPTURE_MODE_SNAPSHOT
+#endif
 
 void camera_init(void)
 {
+  // Initialize all camera GPIO and I2C pins
+  camera_dcmi_bus_init();
+  camera_control_bus_init();
+
   // Reset the camera's
   camera_reset_init();
   camera_reset();
   // Make a 21MHz clock signal to the camera's
   camera_clock_init();
-  // Stop resetting the camera (pin high)
 
-  camera_unreset();
-  // Initialize all camera GPIO and I2C pins
-  camera_dcmi_bus_init();
-  camera_control_bus_init();
+  // Wait for at least 100 clock cycles
+  Delay(CAMERA_CHIP_UNRESET_TIMING);
+
   // Start listening to DCMI frames
-  camera_dcmi_init();
+  camera_dcmi_dma_init();
   // Start DCMI interrupts (interrupts on frame ready)
   camera_dcmi_it_init();
-  camera_dcmi_dma_enable();
-
   // Start DMA image transfer interrupts (interrupts on buffer full)
   camera_dma_it_init();
-  Delay(0x07FFFF);
 
+  // Stop resetting the camera (pin high)
   camera_unreset();
-  // Wait for at least 2000 clock cycles after reset
-  Delay(CAMERA_CHIP_UNRESET_TIMING);
+
   // Communicate with camera, setup image type and start streaming
   camera_chip_config();
+
+  // start dcmi and dma transfers
+  camera_dcmi_dma_enable();
 }
 
 void camera_reset_init(void)
@@ -52,7 +89,6 @@ void camera_reset_init(void)
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(GPIOD, &GPIO_InitStructure);
-
 }
 
 // Set Camera Reset pin LOW = Reset mode
@@ -64,11 +100,10 @@ void camera_reset(void)
 // Set Camera Reset pin High
 void camera_unreset(void)
 {
-  // Wait for at least 100 clock cycles
-  Delay(0x07FFFF);
-
   GPIO_SetBits(GPIOD, GPIO_Pin_2);
 
+  // Wait for at least 2000 clock cycles
+  Delay(CAMERA_CHIP_UNRESET_TIMING);
 }
 
 void camera_clock_init(void)
@@ -76,7 +111,6 @@ void camera_clock_init(void)
   //////////////////////////////////////////
   // Make a clock signal on PA7, TIM3 CH2
   // 21MHz: ABP1 42MHz 50% Duty Cycle counter to 2
-
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
   TIM_OCInitTypeDef  TIM_OCInitStructure;
 
@@ -114,7 +148,6 @@ void camera_clock_init(void)
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
   TIM_TimeBaseInit(TIM3,  &TIM_TimeBaseStructure);
-
 
   TIM_OCStructInit(&TIM_OCInitStructure);
   TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
@@ -181,20 +214,7 @@ void camera_dcmi_bus_init(void)
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 }
 
-#define DCMI_DR_ADDRESS       0x50050028
-
-uint8_t dcmi_image_buffer_8bit_1[FULL_IMAGE_SIZE];
-#ifdef DCMI_DOUBLE_BUFFER
-uint8_t dcmi_image_buffer_8bit_2[FULL_IMAGE_SIZE];
-#endif
-
-
-void camera_snapshot(void)
-{
-  DCMI_CaptureCmd(ENABLE);
-}
-
-void camera_dcmi_init(void)
+void camera_dcmi_dma_init(void)
 {
   // TODO: implement frame counter
   // reset_frame_counter();
@@ -224,6 +244,9 @@ void camera_dcmi_init(void)
   DCMI_InitStructure.DCMI_ExtendedDataMode = DCMI_ExtendedDataMode_8b;
 #endif
 
+  // DCMI configuration
+  DCMI_Init(&DCMI_InitStructure);
+
   // Configures the DMA2 to transfer Data from DCMI
   // Enable DMA2 clock
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
@@ -232,7 +255,7 @@ void camera_dcmi_init(void)
   DMA_DeInit(DMA2_Stream1);
 
   DMA_InitStructure.DMA_Channel = DMA_Channel_1;
-  DMA_InitStructure.DMA_PeripheralBaseAddr = DCMI_DR_ADDRESS;
+  DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&DCMI->DR);
   DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) dcmi_image_buffer_8bit_1;
   DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
   DMA_InitStructure.DMA_BufferSize = FULL_IMAGE_SIZE / 4; // buffer size in data unit (word)
@@ -248,17 +271,12 @@ void camera_dcmi_init(void)
   DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 
 #ifdef DCMI_DOUBLE_BUFFER
-  // 128 x 96, double buffer mode possible: for larger images comment out:
   DMA_DoubleBufferModeConfig(DMA2_Stream1, (uint32_t) dcmi_image_buffer_8bit_2, DMA_Memory_0);
   DMA_DoubleBufferModeCmd(DMA2_Stream1, ENABLE);
 #endif
 
-  // DCMI configuration
-  DCMI_Init(&DCMI_InitStructure);
-
   // DMA2 IRQ channel Configuration
   DMA_Init(DMA2_Stream1, &DMA_InitStructure);
-
 }
 
 void camera_crop(uint16_t offset)
@@ -267,26 +285,41 @@ void camera_crop(uint16_t offset)
   DCMI_CROPInitStructure.DCMI_VerticalLineCount = IMAGE_HEIGHT - 1;
   DCMI_CROPInitStructure.DCMI_HorizontalOffsetCount = 0;
   DCMI_CROPInitStructure.DCMI_VerticalStartLine = offset;
-  DCMI_CROPInitStructure.DCMI_CaptureCount = IMAGE_WIDTH * 2 - 1;   // In Pixel-clock (not bytes)
+  DCMI_CROPInitStructure.DCMI_CaptureCount = IMAGE_WIDTH * BYTES_PER_PIXEL - 1;   // In Pixel-clock (not bytes)
   DCMI_CROPConfig(&DCMI_CROPInitStructure);
   DCMI_CROPCmd(ENABLE);
 }
 
 void camera_dcmi_dma_enable(void)
 {
+  /* Clear all DMA interrupt bits */
+  DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_FEIF1 | DMA_IT_DMEIF1 | DMA_IT_TEIF1 | DMA_IT_HTIF1 | DMA_IT_TCIF1);
+
   /* Enable DMA2 stream 1 and DCMI interface then start image capture */
   DMA_Cmd(DMA2_Stream1, ENABLE);
+  while(DMA_GetCmdStatus(DMA2_Stream1) != ENABLE) ;
+
+  /* Clear all DCMI interrupt bits */
+  DCMI_ClearITPendingBit(DCMI_IT_FRAME | DCMI_IT_OVF | DCMI_IT_ERR | DCMI_IT_VSYNC | DCMI_IT_LINE);
   DCMI_Cmd(ENABLE);
   DCMI_CaptureCmd(ENABLE);
-  // dma_it_init();
 }
 
 void camera_dcmi_dma_disable(void)
 {
   /* Disable DMA2 stream 1 and DCMI interface then stop image capture */
-  DMA_Cmd(DMA2_Stream1, DISABLE);
-  DCMI_Cmd(DISABLE);
   DCMI_CaptureCmd(DISABLE);
+
+  /* DMA must be disabled before peripheral is disabled */
+  DMA_Cmd(DMA2_Stream1, DISABLE);
+  while(DMA_GetCmdStatus(DMA2_Stream1) != DISABLE) ;
+  /* Clear all DMA interrupt bits, DMA_IT_TCIF1 triggered on successful disable */
+  DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_FEIF1 | DMA_IT_DMEIF1 | DMA_IT_TEIF1 | DMA_IT_HTIF1 | DMA_IT_TCIF1);
+
+  DCMI_Cmd(DISABLE);
+
+  /* Clear all DCMI interrupt bits */
+  DCMI_ClearITPendingBit(DCMI_IT_FRAME | DCMI_IT_OVF | DCMI_IT_ERR | DCMI_IT_VSYNC | DCMI_IT_LINE);
 }
 
 void camera_dcmi_it_init(void)
@@ -301,17 +334,14 @@ void camera_dcmi_it_init(void)
   NVIC_Init(&NVIC_InitStructure);
 
   DCMI_ITConfig(DCMI_IT_VSYNC, ENABLE);
+  //DCMI_ITConfig(DCMI_IT_FRAME, ENABLE);
 }
 
-volatile int frame_counter = 0;
-
+// TODO get camera crop for large images working again
 void dcmi_isr(void)
 {
   if (DCMI_GetITStatus(DCMI_IT_VSYNC) != RESET) {
     DCMI_ClearITPendingBit(DCMI_IT_VSYNC);
-
-    //frame_counter++;  /////////////////
-
     /*if ( frame_counter % 30 == 0 )
       camera_crop( 60);
 
@@ -339,38 +369,52 @@ void camera_dma_it_init(void)
   DMA_ITConfig(DMA2_Stream1, DMA_IT_TC, ENABLE); // transfer complete interrupt
 }
 
-uint8_t *current_image_buffer = dcmi_image_buffer_8bit_1;
-
 void dma2_stream1_isr(void)
 {
   // Transfer Complete
   if (DMA_GetITStatus(DMA2_Stream1, DMA_IT_TCIF1) != RESET) {
-    DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1);
-
-    frame_counter++;
-#ifdef NO_WAIT_FOR_FRAME
-    camera_snapshot();
+    if (frame_processed == frame_counter){
+    // Get the currently used buffer
+#if DCMI_MODE == DCMI_MODE_3
+      if (DMA_GetCurrentMemoryTarget(DMA2_Stream1) == DMA_Memory_0) {
+        current_image_buffer = dcmi_image_buffer_8bit_2;
+      } else {
+        current_image_buffer = dcmi_image_buffer_8bit_1;
+      }
+#elif DCMI_MODE == DCMI_MODE_1
+      memcpy(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_1, sizeof(dcmi_image_buffer_8bit_1));
 #endif
+      frame_counter++;
+    }
+    DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1);
   }
 
   /* We do not use the half transfer interrupt!!
-
   // Half Transfer
   if (DMA_GetITStatus(DMA2_Stream1, DMA_IT_HTIF1) != RESET) {
     DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_HTIF1);
   }
   */
+}
 
-  // Get the currently used buffer
-#ifdef DCMI_DOUBLE_BUFFER
-  // 128 x 96: comment out for larger images:
+/* camera_wait_for_frame - Request and wait for new frame from camera
+ *
+ */
+uint8_t* camera_wait_for_frame(void)
+{
+  frame_processed = frame_counter;
+#if DCMI_MODE == DCMI_MODE_2
   if (DMA_GetCurrentMemoryTarget(DMA2_Stream1) == DMA_Memory_0) {
-    current_image_buffer = dcmi_image_buffer_8bit_2;
+    memcpy(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_2, sizeof(dcmi_image_buffer_8bit_2));
   } else {
-    current_image_buffer = dcmi_image_buffer_8bit_1;
+    memcpy(dcmi_user_image_buffer_8bit, dcmi_image_buffer_8bit_1, sizeof(dcmi_image_buffer_8bit_1));
   }
-#else
-  current_image_buffer = dcmi_image_buffer_8bit_1;
+  current_image_buffer = dcmi_user_image_buffer_8bit;
+  frame_counter++;
+#elif DCMI_MODE == DCMI_MODE_4
+  DCMI_CaptureCmd(ENABLE);
 #endif
 
+  while (frame_counter == frame_processed);
+  return current_image_buffer;
 }
