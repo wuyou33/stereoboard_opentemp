@@ -144,13 +144,14 @@ def fill_image_array(startSync, raw, width, height):
 
     # Fill the image arrays
     try:
-      for i in range(startSync + 4, startSync + (width+8) * height):
+      for i in range(startSync + 4, startSync + 4 + (width+8) * height):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
           if (raw[i + 3] == 128): # Start Of Line
-            startOfBuf = i + 4
-            endOfBuf = (i + 4 + width)
-            img[line, :] = raw[startOfBuf:endOfBuf]
-            line += 1;
+            startOfLine = i + 4
+            endOfLine = (i + 4 + width)
+            img[line,:] = raw[startOfLine:endOfLine]
+            line += 1
+            i += width + 4
     except Exception:
       print 'ended before end'
     return img
@@ -172,7 +173,7 @@ def readDivergenceFromSerial(ser, currentBuffer):
     lastResult=(-1,-1)
 
     try:
-        for i in range(0,len(currentBuffer)-5):
+        for i in range(0,len(currentBuffer)-3):
 	   # print currentBuffer[i]
             if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
                 # if (currentBuffer[i + 3] == 171):# End of Image
@@ -210,7 +211,7 @@ def readPartOfImage(ser, currentBuffer):
     endOfImagesFound = 0
     startOfImagesFound = 0
     try:
-        for i in range(0,len(currentBuffer)-5):
+        for i in range(0,len(currentBuffer)-3):
             if (currentBuffer[i] == 255) and (currentBuffer[i + 1] == 0) and (currentBuffer[i + 2] == 0):
                 if (currentBuffer[i + 3] == 171 and startPosition != None):# End of Image
                     lastResult=(startPosition,i+4)
@@ -230,7 +231,7 @@ def determine_image_and_line_length(raw):
     startLine=0
     lineCount=0
     startCounting=False
-    for i in range(0, len(raw)):
+    for i in range(0, len(raw)-3):
         if (raw[i] == 255) and (raw[i + 1] == 0) and (raw[i + 2] == 0):
             if (raw[i + 3] == 171 and startPosition != None):# End of Image
                 return startPosition, (i - startPosition), lineLength, lineCount
@@ -256,15 +257,15 @@ def fill_image_arrays(raw, startposition, size_of_one_image, width, heigth, disp
         rightImage=np.zeros((heigth,width))
 
 
-        for i in range(startposition,size_of_one_image+startposition):
+        for i in range(startposition,size_of_one_image+startposition-3):
 	    try:
 		    if (raw[i] == 255) and (raw[i+1] == 0) and (raw[i+2] == 0):
 		        if (raw[i+3] == 128):# Start Of Line
 		            startOfBuf = i+4
-		            endOfBuf = (i+4+128+128)
+		            endOfBuf = (i + 4 + width)
 		            lineBuffer = raw[startOfBuf:endOfBuf]
-		            rightLine = lineBuffer[::2]
-		            leftLine = lineBuffer[1:][::2]
+		            rightLine = lineBuffer[1::2]
+		            leftLine = lineBuffer[::2]
 
 		            halfWay = disparity_border
 
@@ -318,18 +319,15 @@ def saveImages(img,leftImage,rightImage,frameNumber,folderName):
 
 def createRedBlueImage(img, lineCount, lineLength):
     try:
-        img2 = np.zeros((lineCount,lineLength,3))
+        img2 = np.zeros((lineCount,lineLength,3),dtype=('uint8'))
 
         for x in range(1, len(img)):
           for y in range(1, len(img[0])):
-            if img[x,y] < 1.:
-              img2[x,y,0] = 1 - img[x,y]
+            if img[x,y] < 255:
+              img2[x,y,0] = 255 - img[x,y]
               img2[x,y,2] = img[x,y]
-            elif img[x,y] < 3.:
-              img2[x,y,1] = 0.5
-              img2[x,y,0] = 0.5
             else:
-              img2[x,y,1] = 1
+              img2[x,y,1] = 255
           
         img2[img==0,:]=[0,0,0]
         return img2

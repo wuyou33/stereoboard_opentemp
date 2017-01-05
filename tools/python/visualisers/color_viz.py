@@ -13,10 +13,11 @@ sys.path.append('/usr/local/lib/python2.7/site-packages')
 class Viewer:
     mouse = dict()
     currentBuffer=[]
-    scale = 6
-    imgRGB = np.zeros((96*scale,128*scale,3), dtype="uint8")
-    imgYUV = np.zeros((96,128,3), dtype="uint8")
+    scale = 5
+    imgRGB = []
+    imgYUV = []
     print_other = 0
+    image = 1
 
     def __init__(self, other):
         # Create a named window and add a mouse callback
@@ -36,6 +37,8 @@ class Viewer:
                 startPosition = location[0]
                 endPosition = location[1]
                 
+                #print endPosition - startPosition
+                
                 if endOfImagesFound > 0:
                   sync1, length, lineLength, lineCount = stereoboard_tools.determine_image_and_line_length(self.currentBuffer[startPosition:endPosition])
 
@@ -43,6 +46,7 @@ class Viewer:
                   
                   self.currentBuffer = self.currentBuffer[endPosition::]
                   if (endPosition - startPosition >= 128):
+                      self.imgYUV = np.zeros((lineCount, lineLength / 2, 3), dtype = "uint8")
                       self.imgYUV[:,   :,0] = data[:,1::2]
                       self.imgYUV[:,0::2,1] = data[:, ::4]
                       self.imgYUV[:,1::2,1] = data[:, ::4]
@@ -53,6 +57,13 @@ class Viewer:
                       self.imgRGB = cv2.cvtColor(self.imgYUV, cv2.COLOR_YUV2RGB)
                       # if (not '3.0.0'==cv2.__version__) and (not '3.0.0-dev'==cv2.__version__):
                       self.imgRGB = cv2.resize(self.imgRGB,(0,0),fx=self.scale,fy=self.scale ,interpolation=cv2.INTER_CUBIC)
+                      
+                      if saveImages:
+                        cv2.imwrite('images/color{0}.png'.format(self.image),self.imgRGB)
+                        self.image = self.image + 1
+                      
+                      # Run the computer vision function
+                      self.cv()
                   elif self.print_other:
                     print(data)
                     
@@ -60,16 +71,14 @@ class Viewer:
                 stereoboard_tools.PrintException()
                 print 'error! ' , excep
             
-            # Run the computer vision function
-            self.cv()
-
             # Process key input
             self.on_key(cv2.waitKey(1) & 0xFF)
 
     def cv(self):
         # Show the image in a window
-        cv2.resizeWindow('image', len(self.imgRGB[0,:,0]), len(self.imgRGB[:,0,0]))
-        cv2.imshow('image', self.imgRGB)
+        if type(self.imgRGB) == np.ndarray:
+          cv2.resizeWindow('image', len(self.imgRGB[0,:,0]), len(self.imgRGB[:,0,0]))
+          cv2.imshow('image', self.imgRGB)
 
     def on_key(self, key):
         if key == ord('q'):
@@ -87,7 +96,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", type=str, default='/dev/ttyUSB0', help="The port name of the camera (/dev/ttyUSB0)")
-    parser.add_argument("-b", "--baud", type=int, default=1000000, help="The baud rate of the camera (1000000)")
+    parser.add_argument("-b", "--baud", type=int, default=921600, help="The baud rate of the camera (921600)")
     parser.add_argument("-s", "--save", type=int, default=0, help="Whether or not to save incoming images (0 or 1)")
     parser.add_argument("-o", "--other", type=int, default=0, help="Print other messages from camera (0 or 1)")
 

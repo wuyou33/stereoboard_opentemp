@@ -7,7 +7,6 @@ q
 
 # Python
 *.pyc
-/tools/python/visualisers/images
 
 
 .settings
