@@ -173,25 +173,29 @@ void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *blo
 
 #endif
 
-#if defined(FULL_CALIBRATION) && (CAMERA_CPLD_STEREO == camera_cpld_stereo_pixmux)
-// TODO we can speed up the use of the image if we convert the pixmux image to linemux or framemux
-// during the calibration
 void calibrate_image(uint8_t *out, uint8_t *in)
 {
+// TODO we can speed up the use of the image if we convert the pixmux image to linemux or framemux
+// during the calibration
+
+#ifdef FULL_CALIBRATION
   int32_t i, j;
 
-  static uint32_t padding = BYTES_PER_PIXEL*(IMAGE_WIDTH-cal_width);
-  for (j = 0, i = -padding; j < cal_size; j++, i+=2) {
+  static int32_t padding_x = BYTES_PER_PIXEL*(IMAGE_WIDTH-cal_width);
+  static int32_t img_start = BYTES_PER_PIXEL*((((IMAGE_HEIGHT-cal_height)/2) * IMAGE_WIDTH)
+      - (IMAGE_WIDTH-cal_width)/2);
+#if CAMERA_CPLD_STEREO == camera_cpld_stereo_pixmux
+  for (j = 0, i = img_start; j < cal_size; j++, i+=2) {
     if (!(j % cal_width)){
-      i += padding; // pad image to the left
+      i += padding_x; // pad image to the left
     }
     out[i] = in[calL[j]];
     out[i+1] = in[calR[j]];
   }
-}
 #else
-void calibrate_image(uint8_t *out, uint8_t *in)
-{
   memcpy(out, in, FULL_IMAGE_SIZE);
-}
 #endif
+#else
+  memcpy(out, in, FULL_IMAGE_SIZE);
+#endif
+}

@@ -47,6 +47,7 @@ class Viewer:
         cv2.createTrackbar('y_offset', 'interlaced images', self.max_offset, 2*self.max_offset+1, self.update_y_offset)
         
         cv2.namedWindow('image diff',cv2.WINDOW_NORMAL)
+        cv2.namedWindow('input',cv2.WINDOW_NORMAL)
         
     def run(self):
         self.running = True
@@ -69,10 +70,13 @@ class Viewer:
                   
                   self.currentBuffer = self.currentBuffer[endPosition::]
                   if (endPosition - startPosition >= 128):
+                    cv2.imshow('input', data)
                     leftImg = np.concatenate((data[:,2::2], data[:,0:1]), axis=1)
                     rightImg = data[:,1::2]
                     
                     self.h,self.w = leftImg.shape
+                    self.h = float(self.h)
+                    self.w = float(self.w)
                     
                     if type(self.rotationL) == np.ndarray:
                       leftImg = cv2.warpAffine(leftImg, self.rotationL,(leftImg.shape[1],leftImg.shape[0]))
@@ -162,18 +166,25 @@ class Viewer:
       y_offsetR = roiR[1] - height_reduction
       
       # generate zero centered indicies
-      index_xL = range(roiL[0]-(self.w-1)/2,roiL[2]-(self.w-1)/2)
-      index_yL = range(roiL[1]-(self.h-1)/2,roiL[3]-(self.h-1)/2)
-      index_xR = range(roiR[0]-(self.w-1)/2,roiR[2]-(self.w-1)/2)
-      index_yR = range(roiR[1]-(self.h-1)/2,roiR[3]-(self.h-1)/2)
+      index_xL = np.arange(roiL[0]-(self.w-1)/2.,roiL[2]-(self.w-1)/2.,1.)
+      index_yL = np.arange(roiL[1]-(self.h-1)/2.,roiL[3]-(self.h-1)/2.,1.)
+      index_xR = np.arange(roiR[0]-(self.w-1)/2.,roiR[2]-(self.w-1)/2.,1.)
+      index_yR = np.arange(roiR[1]-(self.h-1)/2.,roiR[3]-(self.h-1)/2.,1.)
+      
+      print width, height
+      print np.size(index_xL), np.size(index_yL)
+      print index_xL[0], index_xL[-1]
+      print index_yL[0], index_yL[-1]
+      print index_xR[0], index_xR[-1]
+      print index_yR[0], index_yR[-1]
       
       f = open('calibrations/calibration{0}'.format(strftime("%Y%m%d%H:%M:%S", gmtime())), 'w')
-      f.write('static const uint16_t roi_left[4] = {{{0}, {1}, {2}, {3}}};\n'.format(roiL[0], roiL[1], roiL[2], roiL[3]))
-      f.write('static const uint16_t roi_right[4] = {{{0}, {1}, {2}, {3}}};\n'.format(roiR[0], roiR[1], roiR[2], roiR[3]))
-      f.write('static const uint16_t cal_width = {0};\n'.format(width))
-      f.write('static const uint16_t cal_height = {0};\n'.format(height))
-      f.write('static const uint32_t cal_size = {0};\n'.format(width*height))
-      f.write('static const uint32_t calL[{0}] = {{\n'.format(width*height))
+      f.write('static const uint16_t roi_left[4] = {{{0}, {1}, {2}, {3}}};\n'.format(int(roiL[0]), int(roiL[1]), int(roiL[2]), int(roiL[3])))
+      f.write('static const uint16_t roi_right[4] = {{{0}, {1}, {2}, {3}}};\n'.format(int(roiR[0]), int(roiR[1]), int(roiR[2]), int(roiR[3])))
+      f.write('static const uint16_t cal_width = {0};\n'.format(int(width)))
+      f.write('static const uint16_t cal_height = {0};\n'.format(int(height)))
+      f.write('static const uint32_t cal_size = {0};\n'.format(int(width*height)))
+      f.write('static const uint32_t calL[{0}] = {{\n'.format(int(width*height)))
       # The left and right rotations are purposfully reversed below
       for y in index_yL:
         for x in index_xL:
@@ -183,7 +194,7 @@ class Viewer:
         f.write('\n')
       f.write('};\n')
         
-      f.write('static const uint32_t calR[{0}] = {{\n'.format(width*height))
+      f.write('static const uint32_t calR[{0}] = {{\n'.format(int(width*height)))
       for y in index_yR:
         for x in index_xR:
           index = round(rotationRt[1,0]*x + rotationRt[1,1]*y + (self.h-1)/2.) * self.w + rotationRt[0,0]*x + rotationRt[0,1]*y + (self.w-1)/2.
