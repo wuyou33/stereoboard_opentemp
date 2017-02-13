@@ -45,11 +45,11 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
 #endif
 
   if (stereocam_len > 0) {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].tilt =
-      stereocam_data_int16[0]; //in RES * [rad]
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll =
+      stereocam_data_int16[0]; //in RES * [rad]
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch =
       stereocam_data_int16[1]; //in RES * [rad]
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pan =
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].yaw =
       stereocam_data_int16[2]; //in RES * [rad]
 
     edgeflow_parameters->derotation = (int8_t) stereocam_data_int16[3];
@@ -65,11 +65,11 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
     */
 
   } else {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].tilt =
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].yaw =
       0;
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll =
       0;
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pan =
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch =
       0;
     edgeflow_parameters->derotation = 0;
 
@@ -97,6 +97,7 @@ void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters,
                    struct edgeflow_results_t *edgeflow_results,
                    int16_t image_width, int16_t image_height, int8_t use_monocam)
 {
+  edgeflow_parameters->RES = 100;
 
   edgeflow_parameters->fovx = (int32_t)(FOVX * edgeflow_parameters->RES);
   edgeflow_parameters->fovy = (int32_t)(FOVY * edgeflow_parameters->RES);
@@ -104,7 +105,6 @@ void edgeflow_init(struct edgeflow_parameters_t *edgeflow_parameters,
   edgeflow_parameters->image_width = image_width;
 
   edgeflow_parameters->max_horizon = MAX_HORIZON;
-  edgeflow_parameters->RES = 100;
 #if COMPILE_ON_LINUX
   edgeflow_parameters->stereo_shift =  0;
 #else
@@ -405,7 +405,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
   /*  line_fit_RANSAC(edgeflow_results->velocity_per_column, &forward_vel,
                     &sideways_vel, faulty_distance, 128, border, RES);*/
 
-  *vel_z_pixelwise = forward_vel  ;
+  *vel_z_pixelwise = -forward_vel  ;
   *vel_x_pixelwise = (sideways_vel + forward_vel * image_width / 2) * fov_x
                      / (RES  * image_width) ; // RES * RES * RES / RES * RES
 
@@ -420,7 +420,7 @@ int32_t edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_parameters,
                   / (RES * RES * image_width);
   *vel_y_global = edge_flow->flow_y * (*avg_dist) * (*hz_y) * fov_y
                   / (RES * RES * image_height);
-  *vel_z_global = edge_flow->div_x * (*avg_dist) * (*hz_y) / RES;
+  *vel_z_global = -edge_flow->div_x * (*avg_dist) * (*hz_y) / RES;
 #endif
 
   //TODO: implement smoothing on lisas
@@ -575,12 +575,12 @@ void calculate_edge_flow(uint8_t in[],
 
   //TODO: test with paparazzi implementation if rotation is done correctly
   if (edgeflow_parameters->derotation) {
-    int16_t pan_prev = edge_hist[previous_frame_x].pan;
-    int16_t tilt_prev = edge_hist[previous_frame_y].tilt;
+    int16_t pitch_prev = edge_hist[previous_frame_x].pitch;
+    int16_t roll_prev = edge_hist[previous_frame_y].roll;
 
-    der_shift_x = (pan_prev - edge_hist[*current_frame_nr].pan)
+    der_shift_x = (pitch_prev - edge_hist[*current_frame_nr].pitch)
                   * image_width / (edgeflow_parameters->fovx);
-    der_shift_y = (tilt_prev - edge_hist[*current_frame_nr].tilt)
+    der_shift_y = (roll_prev - edge_hist[*current_frame_nr].roll)
                   * image_height / (edgeflow_parameters->fovy);
   }
   // Calculate displacement

@@ -89,8 +89,11 @@
 ##make PROJECT=example
 *UNDOCUMENTED*
 
-##make PROJECT=kimberly
-*UNDOCUMENTED*
+##make PROJECT=edgeFS
+This project compiles the code for EdgeFlow and EdgeStereo:
+A fast optical flow and stereo vision algorithm
+made specically for the implemitation on the stereoboard
+Current run time is 0.0175 sec
 
 ##make PROJECT=calibrate
 
@@ -104,9 +107,6 @@
 
 
 - Sends disparity value
-
-##make PROJECT=kimberly_debug
-*UNDOCUMENTED*
 
 ##make PROJECT=image_pixelmux
 *UNDOCUMENTED*
