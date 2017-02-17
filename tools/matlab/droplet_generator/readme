@@ -1,0 +1,1 @@
+simply run 'runDropletGenerator. The string with reference disparity values is stored in the variable 'string_disp'. By viewing it in the 'Variables' window of Matlab, it is possible to copy the complete string on one go.
