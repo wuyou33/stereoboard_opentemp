@@ -66,9 +66,9 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
                     struct edgeflow_results_t *edgeflow_results)
 {
   if (data_len > 0) {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].tilt = stereocam_data_int16[0]; //in RES * [rad]
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = stereocam_data_int16[1]; //in RES * [rad]
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pan = stereocam_data_int16[2];  //in RES * [rad]
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = stereocam_data_int16[0]; //in RES * [rad]
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = stereocam_data_int16[1]; //in RES * [rad]
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].yaw = stereocam_data_int16[2];  //in RES * [rad]
 
     edgeflow_params->derotation = (int8_t) stereocam_data_int16[3];
     /*
@@ -83,9 +83,9 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
     */
 
   } else {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].tilt = 0;
     edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = 0;
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pan =  0;
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = 0;
+    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].yaw =  0;
     edgeflow_params->derotation = 0;
   }
 
@@ -521,11 +521,11 @@ void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *edgeflow_par
 
   //TODO: test with paparazzi implementation if rotation is done correctly
   if (edgeflow_params->derotation) {
-    int16_t pan_prev = edge_hist[edgeflow_results->prev_frame_x].pan;
-    int16_t tilt_prev = edge_hist[edgeflow_results->prev_frame_y].tilt;
+    int16_t roll_prev = edge_hist[edgeflow_results->prev_frame_y].roll;
+    int16_t pitch_prev = edge_hist[edgeflow_results->prev_frame_x].pitch;
 
-    der_shift_x = (pan_prev - edge_hist[edgeflow_results->current_frame_nr].pan) * img_w / (edgeflow_params->fovx);
-    der_shift_y = (tilt_prev - edge_hist[edgeflow_results->current_frame_nr].tilt) * img_h / (edgeflow_params->fovy);
+    der_shift_y = (roll_prev - edge_hist[edgeflow_results->current_frame_nr].roll) * img_h / (edgeflow_params->fovy);
+    der_shift_x = (pitch_prev - edge_hist[edgeflow_results->current_frame_nr].pitch) * img_w / (edgeflow_params->fovx);
   }
   // Calculate displacement
   uint32_t error_hor = calculate_displacement(edge_hist_x, prev_edge_hist_x, displacement->x, img_w, window_size,

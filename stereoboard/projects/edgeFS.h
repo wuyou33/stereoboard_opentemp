@@ -1,11 +1,7 @@
-/**
- * Project parameters
+/*
+ * project parameters
  *
- * @details
- *
- * - Send pixmuxed stereo-image pair
- * - use pythontools stereocam_calibrate.py to view and adjust
- * - save the calibration values into a BOARD file
+ *  This file contains the board configuration defaults for this project
  *
  */
 
@@ -15,16 +11,15 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_IMAGE
+#define DEFAULT_BOARD_FUNCTION SEND_EDGEFLOW
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 
 //////////////////////////////////////////////////////
 // Settings
-
-#define DCMI_MODE DCMI_MODE_4
-
-#define TCM8230_EXTRA_SATURATION 1
-
 #define LED_TOGGLE
+
+#define DCMI_MODE DCMI_MODE_3
+
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart
 // Stereoboard bottom = Usart1
@@ -33,6 +28,6 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 921600
+#define USART4_BAUD 115200
 
 #endif /* PROJECT_HEADER_H_ */

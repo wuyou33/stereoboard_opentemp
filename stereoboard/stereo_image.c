@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "main_parameters.h"
+#include "image.h"
 
 void setLineNumbers(uint8_t **givenImage, uint16_t array_width, uint16_t array_height)
 {
@@ -37,6 +38,7 @@ void setLineNumbersImage(uint8_t *b, uint16_t width, uint16_t height)
   }
 }
 
+// TODO: rotate left image one pixel due to pixmux
 void getLeftFromStereo(struct image_t *left_img, struct image_t *stereo)
 {
   left_img->w = stereo->w / 2; left_img->h = stereo->h; left_img->type = IMAGE_GRAYSCALE;
@@ -70,7 +72,7 @@ void split_color_from_pixmux_stereo(struct image_t *img, struct image_t *color, 
   uint8_t *color_buf = (uint8_t *)color->buf;
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
   for (uint16_t i = 0; i < img->w; i++) {
-    for (uint16_t j = 0; j < img->h; j+=2) {
+    for (uint16_t j = 0; j < img->h; j += 2) {
       color_buf[i + (color->w * j / 2)] = img_buf[i + (img->w * j)];
       stereo_buf[i + (stereo->w * j / 2)] = img_buf[i + (img->w * (j + 1))];
     }
@@ -78,9 +80,17 @@ void split_color_from_pixmux_stereo(struct image_t *img, struct image_t *color, 
 }
 
 #if (CAMERA_CPLD_STEREO == camera_cpld_stereo_pixmux)
+// TODO: rotate left image one pixel due to pixmux
+// TODO: Apply DISPARITY_OFFSET_HORIZONTAL correction here
 void separate_image_line_offset(uint8_t *in, q15_t *left, q15_t *right, uint32_t image_width_bytes)
 {
   uint32_t i, j;
+#ifdef FULL_CALIBRATION
+  for (i = 0, j = 0; i < image_width_bytes; i += 2, j++) {
+    left[j] = (q15_t) in[i + 2]; // skip first pixel
+    right[j] = (q15_t) in[i + 1];
+  }
+#else
   int8_t offset = DISPARITY_OFFSET_LEFT;
   for (i = 0; i < image_width_bytes; i += 2) {
     j = i >> 1;
@@ -88,17 +98,19 @@ void separate_image_line_offset(uint8_t *in, q15_t *left, q15_t *right, uint32_t
       offset = DISPARITY_OFFSET_RIGHT;
     }
     if (offset >= 0) {
-      left[j] = (q15_t) in[i];
+      left[j] = (q15_t) in[i + 2]; // skip first pixel
       // We add one because images are interlaced
       right[j] = (q15_t) in[i + 1 + (image_width_bytes * offset)];
     } else if (offset < 0) {
-      left[j] = (q15_t) in[i - (image_width_bytes * offset)];
+      left[j] = (q15_t) in[i - (image_width_bytes * offset) + 2];
       // We add one because images are interlaced
       right[j] = (q15_t) in[i + 1];
     }
   }
+#endif
 }
 
+// TODO: rotate left image one pixel due to pixmux
 void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *block_right, uint32_t image_width_bytes,
                                       uint8_t idx, uint32_t image_width)
 {
@@ -160,3 +172,30 @@ void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *blo
 }
 
 #endif
+
+void calibrate_image(uint8_t *out, uint8_t *in)
+{
+// TODO we can speed up the use of the image if we convert the pixmux image to linemux or framemux
+// during the calibration
+
+#ifdef FULL_CALIBRATION
+  int32_t i, j;
+
+  static int32_t padding_x = BYTES_PER_PIXEL*(IMAGE_WIDTH-cal_width);
+  static int32_t img_start = BYTES_PER_PIXEL*((((IMAGE_HEIGHT-cal_height)/2) * IMAGE_WIDTH)
+      - (IMAGE_WIDTH-cal_width)/2);
+#if CAMERA_CPLD_STEREO == camera_cpld_stereo_pixmux
+  for (j = 0, i = img_start; j < cal_size; j++, i+=2) {
+    if (!(j % cal_width)){
+      i += padding_x; // pad image to the left
+    }
+    out[i] = in[calL[j]];
+    out[i+1] = in[calR[j]];
+  }
+#else
+  memcpy(out, in, FULL_IMAGE_SIZE);
+#endif
+#else
+  memcpy(out, in, FULL_IMAGE_SIZE);
+#endif
+}

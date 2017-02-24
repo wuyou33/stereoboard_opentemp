@@ -17,4 +17,5 @@ void separate_image_line_offset(uint8_t *in, q15_t *line1, q15_t *line2, uint32_
 void separate_image_line_offset_block(uint8_t *in, q15_t *block_left, q15_t *block_right, uint32_t image_width_bytes,
                                       uint8_t idx, uint32_t image_width);
 
+void calibrate_image(uint8_t *out, uint8_t *in);
 #endif //_STEREO_IMAGE_HEADER_

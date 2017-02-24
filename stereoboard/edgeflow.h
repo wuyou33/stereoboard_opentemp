@@ -22,13 +22,21 @@
 #endif
 #define DIV_QUALITY_LENGTH 10
 
+ /*    Coordinate system stereocam (looking into the lens)
+ *    x      z
+ * <-----(( (*) ))              ((     )) = camera lens
+ *           |                     (*)    = arrow pointed outwards
+ *           | y                              (towards your direction)
+ *           V
+ */
+
 struct edge_hist_t {
   int32_t x[IMAGE_WIDTH];   // Edge_hist: edgehistogram in x-direction (image coordinates)
   int32_t y[IMAGE_HEIGHT];  // Edge_hist: edgehistogram in y-direction (image coordinates)
   int32_t frame_time;       // Edge_hist: Frame time corresponding to the image from which the edge histogram is made
-  int16_t pan;              // Edge_hist: pan: rotation around the y-axis of the camera (along image height)[rad]
-  int16_t tilt;             // Edge_hist: tilt: rotation around the x-axis of the camera (along image width) [rad]
-  int16_t roll;             // Edge_hist: roll: rotation around the z-axis of the camera (perpendicular on frame plane) [rad]
+  int16_t roll;             // Edge_hist: roll: rotation around the x-axis of the camera (along image width) [rad]
+  int16_t pitch;            // Edge_hist: pitch: rotation around the y-axis of the camera (along image height)[rad]
+  int16_t yaw;              // Edge_hist: yaw: rotation around the z-axis of the camera (perpendicular on frame plane) [rad]
 };
 
 struct edge_flow_t {
