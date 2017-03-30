@@ -456,8 +456,7 @@ void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *edgeflow_par
     disp_range = DISPARITY_RANGE;
   }
 
-  // move the indices for the edge hist structure
-  edgeflow_results->current_frame_nr = (edgeflow_results->current_frame_nr + 1) % MAX_HORIZON;
+
 
   // Define arrays and pointers for edge histogram and displacements
   int32_t *edge_hist_x = edge_hist[edgeflow_results->current_frame_nr].x;
@@ -579,6 +578,9 @@ void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *edgeflow_par
    edgeflow_results->snapshot_counter = edgeflow_params->snapshot_lenght + 1;
    edgeflow_results->snapshot_is_taken = 0;
    }*/
+
+  // move the indices for the edge hist structure
+   edgeflow_results->current_frame_nr = (edgeflow_results->current_frame_nr + 1) % MAX_HORIZON;
 
   // update previous frame offset for next computation
   if (MAX_HORIZON > 2 && (edgeflow_params->adapt_horizon == 1)) { //&& edgeflow_params->snapshot == 0) {
