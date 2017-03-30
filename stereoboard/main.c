@@ -166,10 +166,11 @@ void window_init()
 #endif
 
 
-struct image_t current_image_pair = {.w = IMAGE_WIDTH,
-  .h = IMAGE_HEIGHT,
-  .buf_size = BYTES_PER_PIXEL * IMAGE_WIDTH * IMAGE_HEIGHT,
-  .type = IMAGE_GRAYSCALE
+struct image_t current_image_pair = {
+    .w = IMAGE_WIDTH,
+    .h = IMAGE_HEIGHT,
+    .buf_size = FULL_IMAGE_SIZE,
+    .type = IMAGE_GRAYSCALE
 };  // todo this should probably be dependent on the cpld config
 
 struct image_t disparity_image = {
@@ -377,9 +378,9 @@ int main(void)
   edgeflow_init(&edgeflow_parameters, &edgeflow_results, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
 // led_clear();
   uint8_t quality_measures_index;
-  for (quality_measures_index = 0; quality_measures_index < DIVERGENCE_QUALITY_MEASURES_LENGTH;
+  for (quality_measures_index = 0; quality_measures_index < DIV_QUALITY_LENGTH;
        quality_measures_index++) {
-    edgeflow_results.quality_measures_edgeflow[quality_measures_index++] = 0;
+    edgeflow_results.quality_meas[quality_measures_index++] = 0;
   }
 
   // main loop
@@ -400,6 +401,7 @@ int main(void)
 
       // wait for new frame
       current_image_pair.buf = camera_wait_for_frame();
+      edgeflow_results.edge_hist[edgeflow_results.current_frame_nr].frame_time = sys_time_get();
 
 #ifdef NEW_MAIN
       run_project();
