@@ -1108,7 +1108,7 @@ uint32_t line_fit(int32_t *points, int32_t *slope, int32_t *intercept,
   int32_t xend = size_int - border_int - 1;
   sumX = xend * (xend + 1) / 2 - border_int * (border_int + 1) / 2
          + border_int;
-  sumX2 = xend * (xend + 1) * (2 * xend + 1) / 6;
+  sumX2 = xend * (xend + 1) * (2 * xend + 1) / 6 - border_int * (border_int + 1) * (2 * border_int + 1) / 6 + border_int*border_int;
   count = size_int - 2 * border_int;
 
   for (x = border_int; x < size_int - border_int; x++) {
@@ -1293,7 +1293,7 @@ void line_fit_RANSAC(int8_t *displacement, int32_t *divergence, int32_t *flow,
       predicted_flow = a[it] * entry + b[it];
       error = abs((RES * (int32_t)displacement[entry] - predicted_flow));
 
-      if ((int32_t) error < inlier_threshold * RES &&  faulty_distance[entry] == 0 && faulty_distance[entry] == 0) {
+      if ((int32_t) error < inlier_threshold * RES && faulty_distance[entry] == 0) {
         num_inliers++;
         total_error += (error / (RES));
       }
