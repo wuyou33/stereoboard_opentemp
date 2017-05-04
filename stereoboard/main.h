@@ -12,5 +12,7 @@
 extern uint32_t frame_dt;     // Time between previous camera frame and current frame in ms
 extern uint32_t frame_rate;   // Frequency of main loop time averaged over one second
 
-extern uint8_t disparity_image_buffer[];
+extern struct image_t disparity_image;
+extern struct image_t current_image_pair;
+
 #endif // _MAIN_H

@@ -1,7 +1,7 @@
 /*
  * project parameters
  *
- *  This file contains the board configuration defaults for this project
+ *  Description here
  *
  */
 
@@ -11,11 +11,15 @@
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION SEND_DISPARITY_MAP
+ #define NEW_MAIN
+
+void init_project(void);
+void run_project(void);
+
+#define DEFAULT_BOARD_FUNCTION SEND_NONE
 
 // Settings
 #define LED_TOGGLE
-#define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart
@@ -28,3 +32,4 @@
 #define USART4_BAUD 912600
 
 #endif /* PROJECT_HEADER_H_ */
+
