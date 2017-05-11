@@ -6,24 +6,27 @@ import serial
 import stereoboard_tools
 import Tkinter as tk
 import numpy as np
-import matplotlib.pyplot as plt
-import csv
 import time
+import argparse
 
-if len(sys.argv) > 1:
-  print(sys.argv[1])
-  ser = serial.Serial(sys.argv[1],921600,timeout=None)
-else:
-  ser = serial.Serial('/dev/ttyUSB0',921600,timeout=None)
-  
 frameNumber = 0
 saveImages= False
-treshold=0.3
-max_time = 500;
 
+raw_img = []
 currentBuffer=[]
 now = time.clock()
 cv2.namedWindow('stereoimg',cv2.WINDOW_NORMAL)
+
+parser = argparse.ArgumentParser(description='This will display the disparity image from the stereo camera. Press q to quit and s to save a frame.')
+parser.add_argument("-p", "--port", type=str, default='/dev/ttyUSB0', help="The port name of the camera (/dev/ttyUSB0)")
+parser.add_argument("-b", "--baud", type=int, default=921600, help="The baud rate of the camera (921600)")
+#parser.add_argument("-o", "--other", action='store_true', help="Print other messages from camera")
+parser.add_argument("-s", action='store_true', help="Save all incoming images")
+
+args = parser.parse_args()
+    
+ser = serial.Serial(args.port,args.baud,timeout=None)
+saveImages = args.s
 
 # main loop:
 while True:
@@ -49,11 +52,11 @@ while True:
               print img
               count = 0
             elif img.size >= 12288:
+              raw_img = img
               if saveImages:
-                  import scipy
-                  fileNameBoth = 'image'+str(frameNumber)+'.png'
-                  scipy.misc.imsave(fileNameBoth, img)
-              totalData=[frameNumber,time.time()]
+                cv2.imwrite('images/disp{0}.png'.format(frameNumber), raw_img)
+                frameNumber += 1
+                
               img *= 2
               
               #print 1 / (time.clock() - now)
@@ -68,13 +71,11 @@ while True:
               cv2.imshow('stereoimg',img)
 
             key=cv2.waitKey(1)
-            if 'q' == chr(key & 255):
-                break	
-            if saveImages:
-                import scipy
-                fileNameBoth = 'imageBoth'+str(frameNumber)+'.png'
-                scipy.misc.imsave(fileNameBoth, img)
-                frameNumber+=1
+            if key == ord('q'):
+              break
+            elif key == ord('s') and ~saveImages:
+              cv2.imwrite('images/disp{0}.png'.format(frameNumber), raw_img)
+              frameNumber += 1
 
     except Exception as excep:
         stereoboard_tools.PrintException()

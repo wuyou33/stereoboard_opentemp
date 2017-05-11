@@ -179,6 +179,10 @@ class Viewer:
       print index_yR[0], index_yR[-1]
       
       f = open('calibrations/calibration{0}'.format(strftime("%Y%m%d%H:%M:%S", gmtime())), 'w')
+      f.write('#ifndef __BOARDXXX__\n')
+      f.write('#define __BOARDXXX__\n\n')
+      f.write('#define FULL_CALIBRATION\n\n')
+      f.write('#include "stdint.h"\n\n')
       f.write('static const uint16_t roi_left[4] = {{{0}, {1}, {2}, {3}}};\n'.format(int(roiL[0]), int(roiL[1]), int(roiL[2]), int(roiL[3])))
       f.write('static const uint16_t roi_right[4] = {{{0}, {1}, {2}, {3}}};\n'.format(int(roiR[0]), int(roiR[1]), int(roiR[2]), int(roiR[3])))
       f.write('static const uint16_t cal_width = {0};\n'.format(int(width)))
@@ -202,6 +206,7 @@ class Viewer:
           f.write(',')
         f.write('\n')
       f.write('};\n')
+      f.write('\n#endif\n\n')
       
 if __name__ == '__main__':
     import sys

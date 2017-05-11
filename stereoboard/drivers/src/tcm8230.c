@@ -20,6 +20,14 @@
   * ALC : Auto Luminance Control
   */
 
+/** Settings
+ *
+ * TCM8230_DISABLE_AWB Disables Auto White Balance
+ * TCM8230_DISABLE_AL Disables Auto Luminance
+ * TCM_ALC_ESRSPD Electronic Shutter Speed. default: 0x020D, max 0x1fff
+ * TCM_BRIGHTNESS Brightness setting Default 0C, max 0xff
+ */
+
 // Camera Settings (z means zoom)
 #define IMG_SIZE_VGA      (0<<2)
 #define IMG_SIZE_QVGA     (1<<2)
@@ -80,7 +88,10 @@ void camera_tcm8230_i2c_init(void)
   I2C_Init(I2C2, &I2C_InitStruct);
 }
 
-
+#if USE_COLOR
+#define TCM8230_DISABLE_AWB
+#define TCM8230_DISABLE_AL
+#endif
 
 /***************************************************************
  *
@@ -116,7 +127,9 @@ void camera_tcm8230_i2c_init(void)
 #define TCM_ALC_MANUAL        (1<<7)
 
 #define TCM_ALC_ESRSPD_ADDR   0x06  // electronic shutter speed
-#define TCM_ALC_ESRSPD        0x30D  // default 0x020D, max 0x1fff
+#ifndef TCM_ALC_ESRSPD
+#define TCM_ALC_ESRSPD        0x20D  // default 0x020D, max 0x1fff
+#endif
 
 // sensor analog gain
 #define TCM_AG_ADDR           0x07
@@ -150,7 +163,7 @@ void camera_tcm8230_i2c_init(void)
 #define TCM_CONTRAST_ADDR     0x11  // Default 9A. 0=x0, 80=x1, ff=1.9921875
 #define TCM_BRIGHTNESS_ADDR   0x12  // Default 0C. 0=0, 7f=127, ff=-1,80=-128
 #ifndef TCM_BRIGHTNESS
-#define TCM_BRIGHTNESS        0x3C  // Default 0C, max 0xff
+#define TCM_BRIGHTNESS        0x1C  // Default 0C, max 0xff
 #endif
 
 #define TCM_VHUE_ADDR         0x13  // Default 0A. Bit6 is polarity, other 5 bits 0=0, 3F=1.9921875
@@ -205,7 +218,7 @@ void camera_tcm8230_config(void)
   tcm8230_WriteReg(TCM_IMG_ADDR, IMG_COLOR_COLOR | IMG_FORMAT | IMAGE_SIZE);
   tcm8230_WriteReg(TCM_SWC_ADDR, TCM_SWC);
   tcm8230_WriteReg(TCM_BRIGHTNESS_ADDR, TCM_BRIGHTNESS);  // increase target brightness
-  tcm8230_WriteReg(TCM_ALC_MODECH_ADDR, TCM_ALC_MODE_CENTER_WEIGHT | TCM_ALC_CH);
+  tcm8230_WriteReg(TCM_ALC_MODECH_ADDR, TCM_ALC_MODE_AVERAGE | TCM_ALC_CH);
 
   // set line speed for flickerless control
   tcm8230_WriteReg(TCM_ES100S_ADDR, TCM_ES100S);
@@ -218,12 +231,14 @@ void camera_tcm8230_config(void)
   tcm8230_WriteReg(TCM_FPS_ADDR, TCM_FPS_FAST | TCM_ACF | TCM_CLK_POL | TCM_ACF_DET);
 #endif
 
-#if USE_COLOR
+#ifdef TCM8230_DISABLE_AWB
   // If color is used, auto white balance should be deactivated
   tcm8230_WriteReg(TCM_AWB_ADDR, TCM_AWB_MANUAL);
   tcm8230_WriteReg(TCM_MRG_ADDR, TCM_MRG);
   tcm8230_WriteReg(TCM_MBG_ADDR, TCM_MBG);
+#endif
 
+#ifdef TCM8230_DISABLE_AL
   // Set Manual lumination
   tcm8230_WriteReg(TCM_ALC_ADDR, TCM_ALC_MANUAL | ((TCM_ALC_ESRSPD >> 8)&0b00011111)); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
   tcm8230_WriteReg(TCM_ALC_ESRSPD_ADDR, TCM_ALC_ESRSPD & 0x00ff);

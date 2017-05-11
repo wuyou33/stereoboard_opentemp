@@ -14,7 +14,7 @@
 #include "raw_digital_video_stream.h"
 #include "stereo_vision.h"
 
-#define DISPARITY_RANGE 16
+#define DISPARITY_RANGE 20
 
 // settings
 uint16_t disparity_min = 0;
