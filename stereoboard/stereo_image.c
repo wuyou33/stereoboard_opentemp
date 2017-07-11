@@ -41,25 +41,21 @@ void setLineNumbersImage(uint8_t *b, uint16_t width, uint16_t height)
 // TODO: rotate left image one pixel due to pixmux
 void getLeftFromStereo(struct image_t *left_img, struct image_t *stereo)
 {
-  left_img->w = stereo->w / 2; left_img->h = stereo->h; left_img->type = IMAGE_GRAYSCALE;
+  left_img->w = stereo->w; left_img->h = stereo->h; left_img->type = IMAGE_GRAYSCALE;
   uint8_t *buf = (uint8_t *)left_img->buf;
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
-  for (uint16_t i = 0; i < left_img->w / 2; i++) {
-    for (uint16_t j = 0; j < left_img->h; j++) {
-      buf[i + (left_img->w * j)] = stereo_buf[2 * i + (stereo->w * j)];
-    }
+  for (uint16_t i = 0, j = 0; i < stereo->buf_size; i+=2, j++) {
+    buf[j] = stereo_buf[i];
   }
 }
 
 void getRightFromStereo(struct image_t *right_img, struct image_t *stereo)
 {
-  right_img->w = stereo->w / 2; right_img->h = stereo->h; right_img->type = IMAGE_GRAYSCALE;
+  right_img->w = stereo->w; right_img->h = stereo->h; right_img->type = IMAGE_GRAYSCALE;
   uint8_t *buf = (uint8_t *)right_img->buf;
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
-  for (uint16_t i = 0; i < right_img->w / 2; i++) {
-    for (uint16_t j = 0; j < right_img->h; j++) {
-      buf[i + (right_img->w * j)] = stereo_buf[2 * i + (stereo->w * j) + 1];
-    }
+  for (uint16_t i = 1, j = 0; i < stereo->buf_size; i+=2, j++) {
+    buf[j] = stereo_buf[i];
   }
 }
 
@@ -71,11 +67,14 @@ void split_color_from_pixmux_stereo(struct image_t *img, struct image_t *color, 
   uint8_t *img_buf = (uint8_t *)img->buf;
   uint8_t *color_buf = (uint8_t *)color->buf;
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
-  for (uint16_t i = 0; i < img->w; i++) {
-    for (uint16_t j = 0; j < img->h; j += 2) {
-      color_buf[i + (color->w * j / 2)] = img_buf[i + (img->w * j)];
-      stereo_buf[i + (stereo->w * j / 2)] = img_buf[i + (img->w * (j + 1))];
-    }
+  uint32_t idx = 0, size = img->w * img->h;
+  while (idx < size) {
+    memcpy(color_buf, img_buf+idx, img->w);
+    idx += img->w;
+    color_buf += img->w;
+    memcpy(stereo_buf, img_buf+idx, img->w);
+    idx += img->w;
+    stereo_buf += idx;
   }
 }
 

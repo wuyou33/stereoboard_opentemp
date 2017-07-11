@@ -47,7 +47,6 @@ while True:
                 continue
                 
             img = stereoboard_tools.fill_image_array(sync1, oneImage, lineLength, lineCount)
-            print img.size
             if img.size <= 32:
               print img
               count = 0

@@ -31,7 +31,11 @@ extern int phase;
 extern uint32_t prev_tim;
 extern uint32_t passed_time;
 extern uint32_t clock_period;
+
 */
-uint16_t run_droplet_algorithm(int disparities_high, uint16_t disparities_total, volatile uint32_t sys_time);
+
+uint16_t run_droplet_algorithm(int disparities_high, uint16_t disparities_total);
+uint16_t run_droplet_algorithm_low_texture(int disparities_high, uint16_t disparities_total, volatile uint32_t histogram_obs,
+    int count_disps_left, int count_disps_right);
 
 #endif /* DROPLET_ALGORITHM_H_ */

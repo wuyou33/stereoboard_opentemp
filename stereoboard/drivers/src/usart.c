@@ -92,7 +92,7 @@ uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev)
   if ((dev->usart_rx_counter_read != dev->usart_rx_counter_write)) {
 
     uint8_t value = dev->usart_rx_buffer[dev->usart_rx_counter_read];
-    dev->usart_rx_counter_read = (dev->usart_rx_counter_read + 1) % TXBUFFERSIZE;
+    dev->usart_rx_counter_read = (dev->usart_rx_counter_read + 1) % RXBUFFERSIZE;
 
     USART_ITConfig(dev->device, USART_IT_RXNE, ENABLE);
     return value;
@@ -150,6 +150,12 @@ void usart_isr(struct UartDataStruct *dev)
 
 void uart_init_hw(struct UartDataStruct *dev, int baudrate)
 {
+  /* init counters */
+  dev->usart_rx_counter_read = 0;
+  dev->usart_rx_counter_write = 0;
+  dev->usart_tx_counter_read = 0;
+  dev->usart_tx_counter_write = 0;
+
   /* Enable the USART OverSampling by 8 */
   USART_OverSampling8Cmd(dev->device, ENABLE);
 

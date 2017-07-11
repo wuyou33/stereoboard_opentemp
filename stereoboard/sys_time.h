@@ -12,6 +12,7 @@
 #include "stm32f4xx_conf.h"
 
 #define TIMER_TICKS_PER_SEC 2000
+#define TIMER_TICKS_PER_MSEC 2
 #define TIMER_PERIOD 20000
 
 inline static void sys_time_init(void)
@@ -45,7 +46,7 @@ inline static uint32_t sys_time_get(void)
 inline static uint32_t get_timer_interval(uint32_t prev_time)
 {
   volatile uint32_t now = sys_time_get();
-  if (now > prev_time) {
+  if (now >= prev_time) {
     return (now - prev_time);
   }
 
@@ -54,7 +55,7 @@ inline static uint32_t get_timer_interval(uint32_t prev_time)
 
 inline static uint32_t calc_abs_time_interval(uint32_t recent_time, uint32_t older_time)
 {
-  if (recent_time > older_time) {
+  if (recent_time >= older_time) {
     return (recent_time - older_time);
   }
 

@@ -10,6 +10,9 @@
 /* Includes ------------------------------------------------------------------*/
 
 // include std libs
+#include "main.h"
+
+#include "std.h"
 #include <math.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -199,6 +202,9 @@ int main(void)
 #ifdef NEW_MAIN
   init_project();
 #endif
+
+  // init buffers
+  memset((uint8_t*)disparity_image.buf, 0, disparity_image.buf_size);
 
   /*
     At this stage the microcontroller clock setting is already configured,
@@ -419,8 +425,7 @@ int main(void)
 
       // Read from other device with the stereo communication protocol.
       while (UsartCh() && stereoprot_add(insert_loc, 1, STEREO_BUF_SIZE) != extract_loc) {
-        uint16_t length = STEREO_BUF_SIZE;
-        if (handleStereoPackage(UsartRx(), length, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
+        if (handleStereoPackage(UsartRx(), STEREO_BUF_SIZE, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
                                 &stereocam_data.data_new, &stereocam_data.len, &stereocam_data.height)) {
         }
       }
@@ -551,9 +556,15 @@ int main(void)
       // determine phase of flight
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
 
-        int disparities_high = 0;
-        disparities_high =  evaluate_disparities_droplet((uint8_t*)disparity_image.buf, image_width, image_height, 30);
-        current_phase = run_droplet_algorithm(disparities_high, processed_pixels, sys_time_get());
+        uint32_t disparities_high = 0;
+        uint32_t count_disps_left = 0;
+        uint32_t count_disps_right = 0;
+        uint32_t hist_obs_sum = 0;
+
+        //disparities_high =  evaluate_disparities_droplet(disparity_image.image, image_width, image_height, 30);
+        disparities_high = evaluate_disparities_droplet_low_texture(&disparity_image, &count_disps_left, &count_disps_right, &hist_obs_sum);
+        //current_phase = run_droplet_algorithm(disparities_high, processed_pixels);
+        current_phase = run_droplet_algorithm_low_texture(disparities_high, processed_pixels, hist_obs_sum, count_disps_left,count_disps_right);
 
         if (current_phase == 1) {
           toSendCommand = 0;

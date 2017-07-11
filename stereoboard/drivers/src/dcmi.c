@@ -22,10 +22,10 @@ volatile uint32_t frame_processed = 0; // frame number of last frame processed b
 #define DCMI_MODE DCMI_MODE_1
 #endif
 
-uint8_t dcmi_image_buffer_8bit_1[FULL_IMAGE_SIZE];  // DMA image buffer
+uint8_t dcmi_image_buffer_8bit_1[FULL_IMAGE_SIZE] = {0};  // DMA image buffer
 
 #if (DCMI_MODE == DCMI_MODE_1) || (DCMI_MODE == DCMI_MODE_2)
-uint8_t __ccmram dcmi_user_image_buffer_8bit[FULL_IMAGE_SIZE];
+uint8_t __ccmram dcmi_user_image_buffer_8bit[FULL_IMAGE_SIZE] = {0};
 uint8_t *current_image_buffer = dcmi_user_image_buffer_8bit;
 #else
 uint8_t *current_image_buffer = dcmi_image_buffer_8bit_1;
@@ -34,7 +34,7 @@ uint8_t *current_image_buffer = dcmi_image_buffer_8bit_1;
 #if (DCMI_MODE == DCMI_MODE_2) || (DCMI_MODE == DCMI_MODE_3)
 #define DCMI_DOUBLE_BUFFER
 // Define second DMA image buffer used when dual buffer enabled
-uint8_t dcmi_image_buffer_8bit_2[FULL_IMAGE_SIZE];
+uint8_t dcmi_image_buffer_8bit_2[FULL_IMAGE_SIZE] = {0};
 #endif
 
 #if DCMI_MODE == DCMI_MODE_4
@@ -72,6 +72,13 @@ void camera_init(void)
 
   // start dcmi and dma transfers
   camera_dcmi_dma_enable();
+
+  // init all image buffers
+  memset(dcmi_image_buffer_8bit_1, 0, FULL_IMAGE_SIZE);
+#ifdef DCMI_DOUBLE_BUFFER
+  memset(dcmi_image_buffer_8bit_2, 0, FULL_IMAGE_SIZE);
+#endif
+  memset(current_image_buffer, 0, FULL_IMAGE_SIZE);
 }
 
 void camera_reset_init(void)

@@ -67,9 +67,8 @@ uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *inse
 {
 	MsgProperties msgProperties;
   // read all data from the stereo com link, check that don't overtake extract
-  if( stereoprot_add(*insert_loc, 1,buffer_size) != *extract_loc) {
+  if( stereoprot_add(*insert_loc, 1, buffer_size) != *extract_loc) {
     ser_read_buf[*insert_loc] = newByte;
- //   printf("Hello there\n");
     *insert_loc = stereoprot_add(*insert_loc, 1,buffer_size);
   }
 
@@ -83,7 +82,10 @@ uint8_t handleStereoPackage(uint8_t newByte, uint16_t buffer_size,uint16_t *inse
     	// Find the properties of the image by iterating over the complete image
       stereoprot_get_msg_properties(ser_read_buf, &msgProperties, *msg_start,buffer_size);
       // Copy array to circular buffer and remove all bytes that are indications of start and stop lines
-      uint16_t i = stereoprot_add(*msg_start, 8,buffer_size), j = 0, k = 0, index = 0;
+      uint16_t i = stereoprot_add(*msg_start, 8, buffer_size), j = 0, k = 0, index = 0;
+      if(msgProperties.height * msgProperties.width >=  buffer_size){
+        return 0;
+      }
       for (k = 0; k < msgProperties.height; k++) {
         for (j = 0; j < msgProperties.width; j++) {
           msg_buf[index++] = ser_read_buf[i];
