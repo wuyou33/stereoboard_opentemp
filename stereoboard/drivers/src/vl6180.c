@@ -8,7 +8,8 @@
 #include "vl6180.h"
 #include "sys_time.h"
 
-void VL6180xInit(void){
+void VL6180xInit(void)
+{
   //Required by datasheet
   //http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
   I2CWrite16(0x29, 0x0207, 0x01);
@@ -43,7 +44,8 @@ void VL6180xInit(void){
   I2CWrite16(0x29, 0x0030, 0x00);
 }
 
-void VL6180xDefautSettings(void){
+void VL6180xDefautSettings(void)
+{
   //Recommended settings from datasheet
   //http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
 

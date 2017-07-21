@@ -66,7 +66,7 @@ void calculateDistanceMatrix(uint8_t disparity_image[],
       n_disparities += disparityHistogram[bufferIndex][disp];
       // after n_disparities, we consider that the measurements are no longer noise
       if (n_disparities > COUNTER_THRESHOLD) {
-    	  matrix_buffer[bufferIndex] = disp;
+        matrix_buffer[bufferIndex] = disp;
         if (disp > CLOSE_BOUNDARY) {
           anyOn = 1;
         }

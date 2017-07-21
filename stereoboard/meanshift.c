@@ -77,59 +77,59 @@ void meanshiftUpdate(uint8_t image[],uint16_t width, uint16_t height, uint16_t* 
 
 }*/
 
-static struct rectangle_i searchWindow = {.x = 50,.y = 50, .w = 30, .h = 30};
+static struct rectangle_i searchWindow = {.x = 50, .y = 50, .w = 30, .h = 30};
 
 void updateSearchWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
-	searchWindow.x = x;
-	searchWindow.y = y;
-	searchWindow.w = w;
-	searchWindow.h = h;
+  searchWindow.x = x;
+  searchWindow.y = y;
+  searchWindow.w = w;
+  searchWindow.h = h;
 }
 
 void run_meanshift(struct image_t *disparity_image)
 {
   uint8_t *buf = (uint8_t *)disparity_image->buf;
 
-	//uint16_t* trackPosX, uint16_t* trackPosY, uint16_t* searchWindowWidth, uint16_t* searchWindowHeight
-	float distanceToObject = meanshiftUpdate(disparity_image, &searchWindow);
+  //uint16_t* trackPosX, uint16_t* trackPosY, uint16_t* searchWindowWidth, uint16_t* searchWindowHeight
+  float distanceToObject = meanshiftUpdate(disparity_image, &searchWindow);
 
-	// Draw a square around the object we track
-	uint16_t startPosX = searchWindow.x - searchWindow.w / 2;
-	uint16_t endPosX = searchWindow.x + searchWindow.w / 2;
-	if (startPosX < 0) {
-	  startPosX = 0;
-	  endPosX = searchWindow.w;
-	}
-	if (endPosX > IMAGE_WIDTH) {
-	  endPosX = IMAGE_WIDTH;
-	  startPosX = IMAGE_WIDTH - searchWindow.w;
-	}
+  // Draw a square around the object we track
+  uint16_t startPosX = searchWindow.x - searchWindow.w / 2;
+  uint16_t endPosX = searchWindow.x + searchWindow.w / 2;
+  if (startPosX < 0) {
+    startPosX = 0;
+    endPosX = searchWindow.w;
+  }
+  if (endPosX > IMAGE_WIDTH) {
+    endPosX = IMAGE_WIDTH;
+    startPosX = IMAGE_WIDTH - searchWindow.w;
+  }
 
-	uint16_t startPosY = searchWindow.y - searchWindow.h / 2;
-	uint16_t endPosY = searchWindow.y + searchWindow.h / 2;
-	if (startPosY < 0) {
-	  startPosY = 0;
-	  endPosY = searchWindow.h;
-	}
-	if (endPosY > IMAGE_HEIGHT) {
-	  endPosY = IMAGE_HEIGHT;
-	  startPosY = IMAGE_HEIGHT - searchWindow.h;
-	}
+  uint16_t startPosY = searchWindow.y - searchWindow.h / 2;
+  uint16_t endPosY = searchWindow.y + searchWindow.h / 2;
+  if (startPosY < 0) {
+    startPosY = 0;
+    endPosY = searchWindow.h;
+  }
+  if (endPosY > IMAGE_HEIGHT) {
+    endPosY = IMAGE_HEIGHT;
+    startPosY = IMAGE_HEIGHT - searchWindow.h;
+  }
 
-	uint16_t xpos, ypos;
-	for (xpos = startPosX; xpos < endPosX; xpos++) {
-	  for (ypos = startPosY; ypos < endPosY; ypos++) {
-	    buf[ypos * IMAGE_WIDTH + xpos] = 128;
-	  }
-	}
+  uint16_t xpos, ypos;
+  for (xpos = startPosX; xpos < endPosX; xpos++) {
+    for (ypos = startPosY; ypos < endPosY; ypos++) {
+      buf[ypos * IMAGE_WIDTH + xpos] = 128;
+    }
+  }
 
-	uint8_t meanshift_track[5];
-	meanshift_track[0] = (uint8_t)searchWindow.x;
-	meanshift_track[1] = (uint8_t)searchWindow.y;
-	meanshift_track[2] = (uint8_t)distanceToObject;   // Kirk: this doesn't look right!
+  uint8_t meanshift_track[5];
+  meanshift_track[0] = (uint8_t)searchWindow.x;
+  meanshift_track[1] = (uint8_t)searchWindow.y;
+  meanshift_track[2] = (uint8_t)distanceToObject;   // Kirk: this doesn't look right!
 #ifdef SEND_MEANSHIFT
-	SendArray(meanshift_track, 3, 1);
+  SendArray(meanshift_track, 3, 1);
 #endif
 }
 

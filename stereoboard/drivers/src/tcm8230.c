@@ -190,7 +190,7 @@ void camera_tcm8230_i2c_init(void)
 #define IMG_FORMAT IMG_FORMAT_YUV422
 #endif
 
-  // Supported Image sized
+// Supported Image sized
 #if (IMAGE_WIDTH==128) && (IMAGE_HEIGHT==96)
 #define IMAGE_SIZE IMG_SIZE_subQCIF
 #elif (IMAGE_WIDTH==160) && (IMAGE_HEIGHT==120)
@@ -240,7 +240,7 @@ void camera_tcm8230_config(void)
 
 #ifdef TCM8230_DISABLE_AL
   // Set Manual lumination
-  tcm8230_WriteReg(TCM_ALC_ADDR, TCM_ALC_MANUAL | ((TCM_ALC_ESRSPD >> 8)&0b00011111)); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
+  tcm8230_WriteReg(TCM_ALC_ADDR, TCM_ALC_MANUAL | ((TCM_ALC_ESRSPD >> 8) & 0b00011111)); // in combination with settings high saturation, seems to fix the color changing problem (making it gray when large bodies of hard color)
   tcm8230_WriteReg(TCM_ALC_ESRSPD_ADDR, TCM_ALC_ESRSPD & 0x00ff);
 #endif
 

@@ -222,11 +222,11 @@ uint8_t I2CRead16(uint8_t Addr, uint16_t Register, uint8_t *reply)
   //I2C_AcknowledgeConfig(I2C2, DISABLE);
 
   /* Test on I2C2 EV7 and clear it */
- // timeout = TIMEOUT_MAX; /* Initialize timeout value */
- // while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_BYTE_RECEIVED)) {
- //   /* If the timeout delay is exceeded, exit with error code */
- //   if ((timeout--) == 0) { return 0xF9; }
- // }
+// timeout = TIMEOUT_MAX; /* Initialize timeout value */
+// while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_BYTE_RECEIVED)) {
+//   /* If the timeout delay is exceeded, exit with error code */
+//   if ((timeout--) == 0) { return 0xF9; }
+// }
 
   /* Prepare Stop after receiving data */
   I2C_GenerateSTOP(I2C2, ENABLE);
@@ -275,11 +275,11 @@ uint8_t I2CWrite16(uint8_t Addr, uint16_t Register, uint16_t Data)
   I2C_SendData(I2C2, (Register >> 8) & 0xFF);
 
   /* Test on I2C2 EV8 and clear it */
- // timeout = TIMEOUT_MAX; /* Initialize timeout value */
- // while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+// timeout = TIMEOUT_MAX; /* Initialize timeout value */
+// while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
   //  /* If the timeout delay is exceeded, exit with error code */
   //  if ((timeout--) == 0) { return 0xFF; }
- // }*/
+// }*/
 
   /* Send I2C2 location address LSB */
   I2C_SendData(I2C2, Register & 0xFF);

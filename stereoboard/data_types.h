@@ -34,4 +34,4 @@ struct image_i {
   uint16_t h;
 };
 
-#endif	// _DATA_TYPES_H_
+#endif  // _DATA_TYPES_H_

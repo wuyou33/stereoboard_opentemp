@@ -22,13 +22,13 @@
 #endif
 #define DIV_QUALITY_LENGTH 10
 
- /*    Coordinate system stereocam (looking into the lens)
- *    x      z
- * <-----(( (*) ))              ((     )) = camera lens
- *           |                     (*)    = arrow pointed outwards
- *           | y                              (towards your direction)
- *           V
- */
+/*    Coordinate system stereocam (looking into the lens)
+*    x      z
+* <-----(( (*) ))              ((     )) = camera lens
+*           |                     (*)    = arrow pointed outwards
+*           | y                              (towards your direction)
+*           V
+*/
 
 struct edge_hist_t {
   int32_t x[IMAGE_WIDTH];   // Edge_hist: edgehistogram in x-direction (image coordinates)
@@ -99,7 +99,7 @@ struct edgeflow_results_t {
   struct edge_flow_t edge_flow;               // Translational flow and divergence measured in current time step
   struct edge_flow_t prev_edge_flow;          // Translational flow and divergence measured in previous time step
   struct displacement_t
-      displacement;         // Saves displacement of edgeflow in x and y direction (image coordinates) and stereo
+    displacement;         // Saves displacement of edgeflow in x and y direction (image coordinates) and stereo
   int32_t dist_per_column[IMAGE_WIDTH];       // Stereo distance (from stereo displacement and camera parameters)
   int32_t vel_per_column[IMAGE_WIDTH];        // Displacement x stereo distance x frequency per column
   int32_t vel_stereo_mean;                    // Velocity as measured from the difference between stereo distances in time

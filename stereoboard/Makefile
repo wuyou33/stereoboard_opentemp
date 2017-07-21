@@ -111,13 +111,13 @@ MAIN_SRCS := $(filter-out droplet.c, $(MAIN_SRCS))
 ifneq ($(PROJECT),"multigaze")
   CFLAGS+=-DUSE_USB
   CFLAGS+=-DUSE_USB_OTG_FS=1    # todo move to multigaze project file
-  
+
   CFLAGS+=-I${USB_PATH}
   CFLAGS+=-I${USB_PATH}/Core/inc
   CFLAGS+=-I${USB_PATH}/Class/cdc/inc
 
   CFLAGS+=-I${USB_OTG_PATH}/inc
-  
+
   USB_SRCS = \
   ../ext/libs/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.c  \
   ../ext/libs/STM32_USB_Device_Library/Core/src/usbd_core.c           \
@@ -125,7 +125,7 @@ ifneq ($(PROJECT),"multigaze")
   ../ext/libs/STM32_USB_Device_Library/Core/src/usbd_req.c            \
   ../ext/libs/STM32_USB_OTG_Driver/src/usb_dcd.c                      \
   ../ext/libs/STM32_USB_OTG_Driver/src/usb_dcd_int.c
-  
+
   MAIN_SRCS += $(USB_SRCS)
 else
   MAIN_SRCS := $(filter-out $(wildcard drivers/src/usb*.c), $(MAIN_SRCS))
@@ -210,8 +210,8 @@ style:
 	@find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/\r$$//' \;
 	@find . -path docs -prune -o -name '*.[ch]' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
 	@find . -path docs -prune -o -name 'Makefile*' -exec sed -i {} -e 's/[[:space:]]*$$//' \;
-	@../fix_code_style.sh *.c
-	@../fix_code_style.sh *.h
+	@../fix_code_style.sh -r "*.c"
+	@../fix_code_style.sh -r "*.h"
 
 stdplib: $(STDP_LIB)
 

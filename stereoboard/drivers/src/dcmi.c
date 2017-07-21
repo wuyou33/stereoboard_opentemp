@@ -304,7 +304,7 @@ void camera_dcmi_dma_enable(void)
 
   /* Enable DMA2 stream 1 and DCMI interface then start image capture */
   DMA_Cmd(DMA2_Stream1, ENABLE);
-  while(DMA_GetCmdStatus(DMA2_Stream1) != ENABLE) ;
+  while (DMA_GetCmdStatus(DMA2_Stream1) != ENABLE) ;
 
   /* Clear all DCMI interrupt bits */
   DCMI_ClearITPendingBit(DCMI_IT_FRAME | DCMI_IT_OVF | DCMI_IT_ERR | DCMI_IT_VSYNC | DCMI_IT_LINE);
@@ -319,7 +319,7 @@ void camera_dcmi_dma_disable(void)
 
   /* DMA must be disabled before peripheral is disabled */
   DMA_Cmd(DMA2_Stream1, DISABLE);
-  while(DMA_GetCmdStatus(DMA2_Stream1) != DISABLE) ;
+  while (DMA_GetCmdStatus(DMA2_Stream1) != DISABLE) ;
   /* Clear all DMA interrupt bits, DMA_IT_TCIF1 triggered on successful disable */
   DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_FEIF1 | DMA_IT_DMEIF1 | DMA_IT_TEIF1 | DMA_IT_HTIF1 | DMA_IT_TCIF1);
 
@@ -380,8 +380,8 @@ void dma2_stream1_isr(void)
 {
   // Transfer Complete
   if (DMA_GetITStatus(DMA2_Stream1, DMA_IT_TCIF1) != RESET) {
-    if (frame_processed == frame_counter){
-    // Get the currently used buffer
+    if (frame_processed == frame_counter) {
+      // Get the currently used buffer
 #if DCMI_MODE == DCMI_MODE_3
       if (DMA_GetCurrentMemoryTarget(DMA2_Stream1) == DMA_Memory_0) {
         current_image_buffer = dcmi_image_buffer_8bit_2;
@@ -407,7 +407,7 @@ void dma2_stream1_isr(void)
 /* camera_wait_for_frame - Request and wait for new frame from camera
  *
  */
-uint8_t* camera_wait_for_frame(void)
+uint8_t *camera_wait_for_frame(void)
 {
   frame_processed = frame_counter;
 #if DCMI_MODE == DCMI_MODE_2

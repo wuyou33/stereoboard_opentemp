@@ -44,7 +44,7 @@ void getLeftFromStereo(struct image_t *left_img, struct image_t *stereo)
   left_img->w = stereo->w; left_img->h = stereo->h; left_img->type = IMAGE_GRAYSCALE;
   uint8_t *buf = (uint8_t *)left_img->buf;
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
-  for (uint16_t i = 0, j = 0; i < stereo->buf_size; i+=2, j++) {
+  for (uint16_t i = 0, j = 0; i < stereo->buf_size; i += 2, j++) {
     buf[j] = stereo_buf[i];
   }
 }
@@ -54,7 +54,7 @@ void getRightFromStereo(struct image_t *right_img, struct image_t *stereo)
   right_img->w = stereo->w; right_img->h = stereo->h; right_img->type = IMAGE_GRAYSCALE;
   uint8_t *buf = (uint8_t *)right_img->buf;
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
-  for (uint16_t i = 1, j = 0; i < stereo->buf_size; i+=2, j++) {
+  for (uint16_t i = 1, j = 0; i < stereo->buf_size; i += 2, j++) {
     buf[j] = stereo_buf[i];
   }
 }
@@ -69,10 +69,10 @@ void split_color_from_pixmux_stereo(struct image_t *img, struct image_t *color, 
   uint8_t *stereo_buf = (uint8_t *)stereo->buf;
   uint32_t idx = 0, size = img->w * img->h;
   while (idx < size) {
-    memcpy(color_buf, img_buf+idx, img->w);
+    memcpy(color_buf, img_buf + idx, img->w);
     idx += img->w;
     color_buf += img->w;
-    memcpy(stereo_buf, img_buf+idx, img->w);
+    memcpy(stereo_buf, img_buf + idx, img->w);
     idx += img->w;
     stereo_buf += idx;
   }
@@ -180,16 +180,16 @@ void calibrate_image(uint8_t *out, uint8_t *in)
 #ifdef FULL_CALIBRATION
   int32_t i, j;
 
-  static int32_t padding_x = BYTES_PER_PIXEL*(IMAGE_WIDTH-cal_width);
-  static int32_t img_start = BYTES_PER_PIXEL*((((IMAGE_HEIGHT-cal_height)/2) * IMAGE_WIDTH)
-      - (IMAGE_WIDTH-cal_width)/2);
+  static int32_t padding_x = BYTES_PER_PIXEL * (IMAGE_WIDTH - cal_width);
+  static int32_t img_start = BYTES_PER_PIXEL * ((((IMAGE_HEIGHT - cal_height) / 2) * IMAGE_WIDTH)
+                             - (IMAGE_WIDTH - cal_width) / 2);
 #if CAMERA_CPLD_STEREO == camera_cpld_stereo_pixmux
-  for (j = 0, i = img_start; j < cal_size; j++, i+=2) {
-    if (!(j % cal_width)){
+  for (j = 0, i = img_start; j < cal_size; j++, i += 2) {
+    if (!(j % cal_width)) {
       i += padding_x; // pad image to the left
     }
     out[i] = in[calL[j]];
-    out[i+1] = in[calR[j]];
+    out[i + 1] = in[calR[j]];
   }
 #else
   memcpy(out, in, FULL_IMAGE_SIZE);

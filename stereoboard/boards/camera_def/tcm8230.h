@@ -1,5 +1,5 @@
 /*
-	This file contains the default comfiguration for a board using the tcm8230 camera
+  This file contains the default comfiguration for a board using the tcm8230 camera
 */
 
 //////////////////////////////////////////////////////

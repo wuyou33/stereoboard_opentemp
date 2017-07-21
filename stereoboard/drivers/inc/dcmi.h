@@ -46,7 +46,7 @@ void camera_dcmi_it_init(void);
 void camera_dma_it_init(void);
 
 // Request and wait for new camera frame
-uint8_t* camera_wait_for_frame(void);
+uint8_t *camera_wait_for_frame(void);
 
 void camera_crop(uint16_t offset);
 

@@ -11,7 +11,7 @@
 /*****************
  * Project parameters
  *****************/
- #define NEW_MAIN
+#define NEW_MAIN
 
 void init_project(void);
 void run_project(void);

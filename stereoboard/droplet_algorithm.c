@@ -11,7 +11,7 @@
 
 // parameter setting
 uint16_t obst_thr_1 = 7;       // obstacle threshold for phase 1
-uint16_t disp_thr_1 = 20;	  // obstacle count minimum threshold for phase 1
+uint16_t disp_thr_1 = 20;   // obstacle count minimum threshold for phase 1
 uint32_t obst_wait_2 = 1300;  // -->1800<-- wait time for phase 2
 uint16_t obst_thr_3 = 10;      // obstacle threshold for phase 3
 uint16_t obst_thr_4 = 10;      // obstacle threshold for phase 4
@@ -39,7 +39,7 @@ uint16_t run_droplet_algorithm(int disparities_high, uint16_t disparities_total)
 
   // Control logic
   if (phase == 1) { // unobstructed flight
-    if (disparities_high > obst_thr_1 || disparities_total < disp_thr_1 ) { //|| entropy < obst_entr) // if true, obstacle in sight
+    if (disparities_high > obst_thr_1 || disparities_total < disp_thr_1) {  //|| entropy < obst_entr) // if true, obstacle in sight
       obst_count_1++;
     } else if (obst_count_1 > 0) {
       obst_count_1--;
@@ -99,7 +99,7 @@ uint16_t run_droplet_algorithm(int disparities_high, uint16_t disparities_total)
 
 
 uint16_t run_droplet_algorithm_low_texture(int disparities_high, uint16_t disparities_total, volatile uint32_t histogram_obs,
-		int count_disps_left, int count_disps_right)
+    int count_disps_left, int count_disps_right)
 {
   passed_time = get_timer_interval(obst_time) / TIMER_TICKS_PER_MSEC;
 
@@ -118,9 +118,9 @@ uint16_t run_droplet_algorithm_low_texture(int disparities_high, uint16_t dispar
 
   // Control logic
   if (phase == 1) { // unobstructed flight
-    if (histogram_obs > obst_thr_1 || count_disps_left < disp_thr_1 || count_disps_right < disp_thr_1 ) { // if true, obstacle in sight
-    	phase = 3;
-    	obst_time =  sys_time_get();
+    if (histogram_obs > obst_thr_1 || count_disps_left < disp_thr_1 || count_disps_right < disp_thr_1) {  // if true, obstacle in sight
+      phase = 3;
+      obst_time =  sys_time_get();
     }
   } else if (phase == 3) { // avoid
     // Turn command signal for AutoPilot ???

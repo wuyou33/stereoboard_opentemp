@@ -17,7 +17,7 @@
 
 q7_t histogram[n_textons];
 q7_t temporary_cluster[n_textons * 64]; //highest distance = 64, so everything stays positive in signed byte
-q7_t histogram_cluster[n_textons *clust_size];
+q7_t histogram_cluster[n_textons * clust_size];
 q7_t distance_cluster[clust_size];
 uint16_t nr_in_clust = 0;
 uint16_t nr_in_temp_clust = 0;

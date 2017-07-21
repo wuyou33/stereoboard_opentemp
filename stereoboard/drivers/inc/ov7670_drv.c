@@ -1112,10 +1112,11 @@ static int ov7670_g_autoexp(int32_t *value)
   //enum v4l2_exposure_auto_type *atype = (enum v4l2_exposure_auto_type *) value;
 
   ret = ov7670_read(REG_COM8, &com8);
-  if (com8 & COM8_AEC)
-    return 1; // V4L2_EXPOSURE_AUTO;
-  else
-    return 0; // V4L2_EXPOSURE_MANUAL;
+  if (com8 & COM8_AEC) {
+    return 1;  // V4L2_EXPOSURE_AUTO;
+  } else {
+    return 0;  // V4L2_EXPOSURE_MANUAL;
+  }
 }
 
 static int ov7670_s_autoexp(int manual)

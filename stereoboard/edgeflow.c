@@ -580,7 +580,7 @@ void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *edgeflow_par
    }*/
 
   // move the indices for the edge hist structure
-   edgeflow_results->current_frame_nr = (edgeflow_results->current_frame_nr + 1) % MAX_HORIZON;
+  edgeflow_results->current_frame_nr = (edgeflow_results->current_frame_nr + 1) % MAX_HORIZON;
 
   // update previous frame offset for next computation
   if (MAX_HORIZON > 2 && (edgeflow_params->adapt_horizon == 1)) { //&& edgeflow_params->snapshot == 0) {
@@ -729,7 +729,7 @@ uint32_t calculate_displacement(int32_t *edge_hist, int32_t *edge_hist_prev, int
       // todo: it is possible to combine this for loop with the previous one...
       for (x = border_left; x < border_right; x++) {
         SAD_temp = run_sum1[x + W] - run_sum1[x - W - 1];
-        if (SAD_temp < SAD[x] || (SAD_temp == SAD[x] && (abs(scale*c) < abs(displacement[x])))) {
+        if (SAD_temp < SAD[x] || (SAD_temp == SAD[x] && (abs(scale * c) < abs(displacement[x])))) {
           sum_error += SAD_temp - SAD[x] * (c != -D);
           SAD[x] = SAD_temp;
           displacement[x] = scale * c;
@@ -1108,7 +1108,7 @@ uint32_t line_fit(int32_t *points, int32_t *slope, int32_t *intercept,
   int32_t xend = size_int - border_int - 1;
   sumX = xend * (xend + 1) / 2 - border_int * (border_int + 1) / 2
          + border_int;
-  sumX2 = xend * (xend + 1) * (2 * xend + 1) / 6 - border_int * (border_int + 1) * (2 * border_int + 1) / 6 + border_int*border_int;
+  sumX2 = xend * (xend + 1) * (2 * xend + 1) / 6 - border_int * (border_int + 1) * (2 * border_int + 1) / 6 + border_int * border_int;
   count = size_int - 2 * border_int;
 
   for (x = border_int; x < size_int - border_int; x++) {
@@ -1522,7 +1522,7 @@ uint32_t getMeanDisp(int32_t *a, int32_t n, int32_t border)
   int32_t dSum = 0;
   int32_t i, count = 0;
   for (i = border; i < n - border; ++i) {
-    if (a[i] != 0){
+    if (a[i] != 0) {
       dSum += a[i];
       count++;
     }
