@@ -1,49 +1,48 @@
-/*
- * project parameters
- *
- *  This file contains the board configuration defaults for this project
- *
- */
-
 #ifndef PROJECT_HEADER_H_
 #define PROJECT_HEADER_H_
 
 /*****************
  * Project parameters
  *****************/
-#define DEFAULT_BOARD_FUNCTION DRONERACE
-//SEND_MEANSHIFT
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#define CAPTURE_MODE_SNAPSHOT 1
 
 //////////////////////////////////////////////////////
 // Settings
-#define USE_COLOR 0
-#define SMOOTH_DISPARITY_MAP 0 // 0
-#define SEND_ILLUMINANCE 0 // 0
-
-#define SEND_FILTER 0 // 0
-#define COLOR_RATIO 0 // 0
-#define MAX_RATIO 10 // 10
-#define BRIGHT_WINDOW 0 // 0
 #define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
-#define SMALL_IMAGE
+#define DEFAULT_BOARD_FUNCTION SEND_NONE
 
-//////////////////////////////////////////////////////
-// Define image format
-#define IMAGE_WIDTH 128
-#define IMAGE_HEIGHT 96
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
+#define LED_TOGGLE
 
-#if (DCMI_TEN_BITS == 1)
-#define BYTES_PER_PIXEL 4
-#else
-#define BYTES_PER_PIXEL 2
-#endif
+#define TCM8230_DISABLE_AL
+#define TCM_ALC_ESRSPD 0x0C0
+#define TCM8230_EXTRA_SATURATION 1
 
-#define FULL_IMAGE_SIZE  (IMAGE_WIDTH*IMAGE_HEIGHT*BYTES_PER_PIXEL)
-#if (FULL_IMAGE_SIZE >= (120*1024))
-#error "Config error: Image does not fit im RAM"
-#endif
+// Gate settings
+#define GATE_NSAMPLES 1500
+#define GATE_SHAPE DOOR
+#define GATE_ROTATE
+
+// uncomment (only) one group of the following to activate the method you want to run
+
+// For color
+// #define GATE_METHOD 0
+// #define USE_COLOR 1
+
+// For grayscale
+// #define GATE_METHOD 1
+
+// For disparity
+// #define GATE_METHOD 2
+// #define DCMI_MODE DCMI_MODE_4
+// #USE_INTEGRAL_IMAGE
+
+// For edge
+#define GATE_METHOD 3
+
+// To draw the result of the gate in the image and send the image over uart, uncomment the following
+// #define GATE_DETECTION_GRAPHICS 1
+
+#define DISPARITY_RANGE 20
 
 //////////////////////////////////////////////////////
 // The default communication via UsartTx must be connected to a Usart
@@ -53,25 +52,10 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 1000000
+#define USART4_BAUD 921600
 
-//////////////////////////////////////////////////////
-// Image Encoding
-
-#if ! (defined(USE_RGB565) || defined(USE_YUV422))
-#define USE_YUV422
-#endif
-
-#ifndef TCM8230_EXTRA_SATURATION
-#define TCM8230_EXTRA_SATURATION 0
-#endif
-
-//////////////////////////////////////////////////////
-// Stereoboard: camera merging type
-
-#ifndef CAMERA_CPLD_STEREO
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-#endif
-
+#define NEW_MAIN
+extern void init_project(void);
+extern void run_project(void);
 
 #endif /* PROJECT_HEADER_H_ */

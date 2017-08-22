@@ -107,4 +107,103 @@ static int8_t boundint8(int32_t value)
   return value_int8;
 }
 
+/* getMedian: finds maximum value in array
+ * \param a is an array containing the values
+ * \param n is size of the array
+ * \return median of array
+ * */
+static uint32_t getMedian(int32_t *a, int32_t n)
+{
+  // Allocate an array of the same size and sort it.
+  int32_t i, j;
+
+  int dpSorted[n];
+  for (i = 0; i < n; ++i) {
+    dpSorted[i] = a[i];
+  }
+  for (i = n - 1; i > 0; --i) {
+    for (j = 0; j < i; ++j) {
+      if (dpSorted[j] > dpSorted[j + 1]) {
+        int32_t dTemp = dpSorted[j];
+        dpSorted[j] = dpSorted[j + 1];
+        dpSorted[j + 1] = dTemp;
+      }
+    }
+  }
+
+  // Middle or average of middle values in the sorted array.
+  int32_t dMedian = 0;
+  if ((n % 2) == 0) {
+    dMedian = (dpSorted[n / 2] + dpSorted[(n / 2) - 1]) / 2.0;
+  } else {
+    dMedian = dpSorted[n / 2];
+  }
+  return dMedian;
+}
+/* getMean: calculate mean of array
+ * \param a is an array containing the values
+ * \param n is size of the array
+ * \return mean of array
+ * */
+static uint32_t getMean(int32_t *a, int32_t n)
+{
+  int32_t dSum = a[0];
+  int32_t i;
+  for (i = 1; i < n; ++i) {
+    dSum += a[i];
+  }
+  return dSum / n;
+}
+
+/* ipow: calculates the power of the value
+ * \param base
+ * \param exp (the power of the base)
+ * \return result
+ *
+ * */
+static int ipow(int base, int exp)
+{
+  int result = 1;
+  while (exp) {
+    if (exp & 1) {
+      result *= base;
+    }
+    exp >>= 1;
+    base *= base;
+  }
+
+  return result;
+}
+
+static float get_random_number_f(void)
+{
+  int rand_num = rand() % 1000;
+  float r = (float)rand_num / 1000.0f;
+  return r;
+}
+
+static float get_minimum_f(float *nums, uint16_t n_elements, uint16_t *index)
+{
+  (*index) = 0;
+  float min = nums[0];
+  uint16_t i;
+  for (i = 1; i < n_elements; i++) {
+    if (nums[i] < min) {
+      (*index) = i;
+      min = nums[i];
+    }
+  }
+  return min;
+}
+
+static uint32_t get_sum(uint8_t *nums, uint16_t n_elements)
+{
+  uint32_t sum = nums[0];
+  uint16_t i;
+  for (i = 1; i < n_elements; i++) {
+    sum += nums[i];
+  }
+  return sum;
+}
+
 #endif

@@ -198,3 +198,110 @@ void calibrate_image(uint8_t *out, uint8_t *in)
   memcpy(out, in, FULL_IMAGE_SIZE);
 #endif
 }
+
+void get_integral_image(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t *integral_image)
+{
+  if (integral_image == NULL) {
+    return;
+  }
+  uint16_t x, y;
+  for (x = 0; x < image_width; x++) {
+    for (y = 0; y < image_height; y++) {
+      if (x >= 1 && y >= 1) {
+        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width] + integral_image[x - 1 + y * image_width] +
+                                              integral_image[x + (y - 1) * image_width] - integral_image[x - 1 + (y - 1) * image_width];
+      } else if (x >= 1) {
+        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width] + integral_image[x - 1 + y * image_width];
+      } else if (y >= 1) {
+        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width] + integral_image[x + (y - 1) * image_width];
+      } else {
+        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width];
+      }
+    }
+  }
+}
+
+uint32_t get_sum_disparities(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y, uint32_t *integral_image,
+                             uint32_t image_width, uint32_t image_height)
+{
+  return integral_image[min_x + min_y * image_width] + integral_image[max_x + max_y * image_width] -
+         integral_image[max_x + min_y * image_width] - integral_image[min_x + max_y * image_width];
+}
+
+uint32_t get_avg_disparity(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y, uint32_t *integral_image,
+                           uint32_t image_width, uint32_t image_height)
+{
+  // width and height of the window
+  uint32_t w = max_x - min_x + 1;
+  uint32_t h = max_y - min_y + 1;
+
+  return get_sum_disparities(min_x, min_y, max_x, max_y, integral_image, image_width, image_height) / (w * h);
+}
+
+
+uint16_t image_yuv422_colorfilt_mod(struct image_t *input, struct image_t *output, uint8_t y_m, uint8_t y_M,
+                                    uint8_t u_m, uint8_t u_M, uint8_t v_m, uint8_t v_M, uint16_t *cnt_bin)
+{
+  int8_t N = 3;
+
+  uint16_t cnt = 0;
+  uint8_t *source = input->buf;
+  uint8_t *dest = output->buf;
+
+  // Copy the creation timestamp (stays the same)
+  output->ts = input->ts;
+
+  // Go through all the pixels
+  for (uint16_t y = 0; y < input->h; y++) {
+    for (uint16_t x = 0; x < input->w; x += 2) {
+      // Check if the color is inside the specified values
+      if ((source[0] >= u_m)
+          && (source[0] <= u_M)
+          && (source[2] >= v_m)
+          && (source[2] <= v_M)
+         ) {
+        // UYVY
+        if (source[1] >= y_m && source[1] <= y_M) {
+          dest[0] = source[0];  // U
+          cnt++;
+
+          for (int j = 0; j < N; j++) {
+            if (x < input->w * (j + 1) / N) {
+              cnt_bin[j]++;
+              break;
+            }
+          }
+
+        } else {
+          dest[0] = 127;        // U
+        }
+        if (source[3] >= y_m && source[3] <= y_M) {
+          dest[2] = source[2];  // V
+          cnt++;
+
+          for (int j = 0; j < N; j++) {
+            if (x < input->w * (j + 1) / N) {
+              cnt_bin[j]++;
+              break;
+            }
+          }
+
+        } else {
+          dest[2] = 127;        // V
+        }
+      } else {
+        // UYVY
+        dest[0] = 127;        // U
+        dest[2] = 127;        // V
+      }
+
+      dest[1] = source[1];  // Y1
+      dest[3] = source[3];  // Y2
+
+      // Go to the next 2 pixels
+      dest += 4;
+      source += 4;
+    }
+  }
+  return cnt;
+}

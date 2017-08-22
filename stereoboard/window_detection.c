@@ -7,6 +7,7 @@
 
 #include "window_detection.h"
 #include "usart.h"
+#include "stereo_image.h"
 
 static const uint8_t RES = 100;
 
@@ -177,42 +178,6 @@ uint16_t detect_escape(uint8_t *in, uint32_t image_width, uint32_t image_height,
   }
 
   return min_avg;
-}
-
-void get_integral_image(uint8_t *in, uint32_t image_width, uint32_t image_height, uint32_t *integral_image)
-{
-  uint16_t x, y;
-  for (x = 0; x < image_width; x++) {
-    for (y = 0; y < image_height; y++) {
-      if (x >= 1 && y >= 1) {
-        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width] + integral_image[x - 1 + y * image_width] +
-                                              integral_image[x + (y - 1) * image_width] - integral_image[x - 1 + (y - 1) * image_width];
-      } else if (x >= 1) {
-        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width] + integral_image[x - 1 + y * image_width];
-      } else if (y >= 1) {
-        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width] + integral_image[x + (y - 1) * image_width];
-      } else {
-        integral_image[x + y * image_width] = (uint32_t) in[x + y * image_width];
-      }
-    }
-  }
-}
-
-uint32_t get_sum_disparities(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y, uint32_t *integral_image,
-                             uint32_t image_width, uint32_t image_height)
-{
-  return integral_image[min_x + min_y * image_width] + integral_image[max_x + max_y * image_width] -
-         integral_image[max_x + min_y * image_width] - integral_image[min_x + max_y * image_width];
-}
-
-uint32_t get_avg_disparity(uint16_t min_x, uint16_t min_y, uint16_t max_x, uint16_t max_y, uint32_t *integral_image,
-                           uint32_t image_width, uint32_t image_height)
-{
-  // width and height of the window
-  uint32_t w = max_x - min_x + 1;
-  uint32_t h = max_y - min_y + 1;
-
-  return RES * get_sum_disparities(min_x, min_y, max_x, max_y, integral_image, image_width, image_height) / (w * h);
 }
 
 uint16_t get_window_response(uint16_t x, uint16_t y, uint16_t feature_size, uint16_t border, uint32_t *integral_image,

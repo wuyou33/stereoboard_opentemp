@@ -1464,54 +1464,6 @@ uint32_t getMaximum(uint32_t *a, uint32_t n)
   return max_ind;
 }
 
-/* getMedian: finds maximum value in array
- * \param a is an array containing the values
- * \param n is size of the array
- * \return median of array
- * */
-uint32_t getMedian(int32_t *a, int32_t n)
-{
-  // Allocate an array of the same size and sort it.
-  int32_t i, j;
-
-  int dpSorted[n];
-  for (i = 0; i < n; ++i) {
-    dpSorted[i] = a[i];
-  }
-  for (i = n - 1; i > 0; --i) {
-    for (j = 0; j < i; ++j) {
-      if (dpSorted[j] > dpSorted[j + 1]) {
-        int32_t dTemp = dpSorted[j];
-        dpSorted[j] = dpSorted[j + 1];
-        dpSorted[j + 1] = dTemp;
-      }
-    }
-  }
-
-  // Middle or average of middle values in the sorted array.
-  int32_t dMedian = 0;
-  if ((n % 2) == 0) {
-    dMedian = (dpSorted[n / 2] + dpSorted[(n / 2) - 1]) / 2.0;
-  } else {
-    dMedian = dpSorted[n / 2];
-  }
-  return dMedian;
-}
-/* getMean: calculate mean of array
- * \param a is an array containing the values
- * \param n is size of the array
- * \return mean of array
- * */
-uint32_t getMean(int32_t *a, int32_t n)
-{
-  int32_t dSum = a[0];
-  int32_t i;
-  for (i = 1; i < n; ++i) {
-    dSum += a[i];
-  }
-  return dSum / n;
-}
-
 /* getMean: calculate mean of array
  * \param a is an array containing the values
  * \param n is size of the array
@@ -1571,25 +1523,5 @@ uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size)
     }
   }
   return amountPeaks;
-}
-
-/* ipow: calculates the power of the value
- * \param base
- * \param exp (the power of the base)
- * \return result
- *
- * */
-int ipow(int base, int exp)
-{
-  int result = 1;
-  while (exp) {
-    if (exp & 1) {
-      result *= base;
-    }
-    exp >>= 1;
-    base *= base;
-  }
-
-  return result;
 }
 

@@ -70,12 +70,16 @@
 #include "gate_detection_fp.h"
 /********************************************************************/
 
-//uint8_t __ccmram jpeg_image_buffer_8bit[FULL_IMAGE_SIZE];  // todo how big should this actually be?
-uint8_t __ccmram disparity_image_buffer[FULL_IMAGE_SIZE / 2];
+//uint8_t __ccmram jpeg_image_buffer_8bit[FULL_IMAGE_SIZE / 2];  // todo how big should this actually be?
 
-// integral_image has size 128 * 96 * 4 = 49152 bytes = C000 in hex
-#if defined(WINDOW)
+#if defined(USE_INTEGRAL_IMG)
+#if (DCMI_MODE != DCMI_MODE_4)
+#warning "You should use DCMI_MODE_4 when using integral image!"
+#endif
 uint32_t __ccmram integral_image[FULL_IMAGE_SIZE / 2];
+uint8_t disparity_image_buffer[FULL_IMAGE_SIZE / 2];
+#else
+uint8_t __ccmram disparity_image_buffer[FULL_IMAGE_SIZE / 2];
 #endif
 
 uint16_t offset_crop = 0;
@@ -359,17 +363,10 @@ int main(void)
   }
 
   // DRONERACE:
-  float x_center = 64;
-  float y_center = 48;
-  float radius = 50;
-  float x0 = x_center;
-  float y0 = y_center;
-  float size0 = radius;
-  float fitness = 0.4f;
-  q15_t x_center_fp = 64;
-  q15_t y_center_fp = 48;
-  q15_t radius_fp = 50;
-  q15_t fitness_fp = 4;
+  q15_t fitness = 40;
+  q15_t x_center = 64;
+  q15_t y_center = 48;
+  q15_t radius = 50;
   uint8_t dronerace_message[8]; // the above + frame rate
   float feature_list_f [4 * features_max_number];
 
@@ -494,7 +491,6 @@ int main(void)
                            thr1, thr2, min_y, max_y, sub_disp_histogram);
         //SendArray((uint8_t*)disparity_image.buf, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-        int initialize_fit_with_pars = 0;
         int FP = 0;
         int min_sub_disparity = disparity_range * RESOLUTION_FACTOR - 1;
         int sum_points = 0;
@@ -516,28 +512,40 @@ int main(void)
         min_sub_disparity = min_sub_disparity > enforced_min ? min_sub_disparity : enforced_min;
 
         if (!FP) {
-          gate_detection(&disparity_image, &x_center, &y_center, &radius, &fitness, &x0, &y0, &size0, min_sub_disparity);
+          struct gate_t gate = {0};
+#ifdef DRONERACE
+          gen_gate_detection(&disparity_image, NULL, &gate, integral_image);
+#endif
+
+          dronerace_message[0] = (uint8_t) gate.x; // TODO: what if these are outside of the image?
+          dronerace_message[1] = (uint8_t) gate.y; // what if these are outside of the image?
+          dronerace_message[2] = (uint8_t) gate.sz;
+          // fitness of the fit - lower is better:
+          dronerace_message[3] = (uint8_t) gate.q;
+          // these last three message elements indicate where the closest obstacle roughly is:
+          dronerace_message[5] = (uint8_t) gate.x;
+          dronerace_message[6] = (uint8_t) gate.y;
         } else {
           // fixed point implementation:
-          //int initialize_fit_with_pars = 0;
-          gate_detection_fp(&disparity_image, &x_center_fp, &y_center_fp, &radius_fp, &fitness_fp, initialize_fit_with_pars, min_sub_disparity);
-          x_center = (float) x_center_fp;
-          y_center = (float) y_center_fp;
-          radius = (float) radius_fp;
-          fitness = ((float) fitness_fp) / FITNESS_RESOLUTION;
+          int initialize_fit_with_pars = 0;
+          gate_detection_fp(&disparity_image, &x_center, &y_center, &radius, &fitness, initialize_fit_with_pars,
+                            min_sub_disparity);
+          fitness /= FITNESS_RESOLUTION;
+
+          // fit parameters, where the gate is likely to be:
+          dronerace_message[0] = (uint8_t) x_center; // TODO: what if these are outside of the image?
+          dronerace_message[1] = (uint8_t) y_center; // what if these are outside of the image?
+          dronerace_message[2] = (uint8_t) radius;
+          // fitness of the fit - lower is better:
+          dronerace_message[3] = (uint8_t)(100 * fitness);
+
+          // these last three message elements indicate where the closest obstacle roughly is:
+          dronerace_message[5] = (uint8_t) x_center;
+          dronerace_message[6] = (uint8_t) y_center;
         }
 
-        // fit parameters, where the gate is likely to be:
-        dronerace_message[0] = (uint8_t) x_center; // TODO: what if these are outside of the image?
-        dronerace_message[1] = (uint8_t) y_center; // what if these are outside of the image?
-        dronerace_message[2] = (uint8_t) radius;
-        // fitness of the fit - lower is better:
-        dronerace_message[3] = (uint8_t)(100 * fitness);
         // what is our update rate?
         dronerace_message[4] = (uint8_t) 1000 / frame_dt;
-        // these last three message elements indicate where the closest obstacle roughly is:
-        dronerace_message[5] = (uint8_t) x0;
-        dronerace_message[6] = (uint8_t) y0;
         dronerace_message[7] = (uint8_t)(mean_disparity / RESOLUTION_FACTOR);
 
         // send disparity image:

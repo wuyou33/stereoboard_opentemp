@@ -184,8 +184,6 @@ int32_t edgestereo_obstacle_detection(int32_t *dist_per_column, uint8_t *obstacl
 uint32_t getMinimum2(uint32_t *a, uint32_t n, uint32_t *min_error);
 void find_minimum(int32_t *pSrc, uint8_t blockSize, int32_t *pResult, uint32_t *pIndex, uint8_t min_index);
 uint32_t getMaximum(uint32_t *a, uint32_t n);
-uint32_t getMedian(int32_t *daArray, int32_t iSize);
-uint32_t getMean(int32_t *daArray, int32_t iSize);
 uint32_t getTotalIntensityImage(uint8_t *in, uint32_t image_height, uint32_t image_width);
 uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size);
 uint32_t getMeanDisp(int32_t *a, int32_t n, int32_t border);
