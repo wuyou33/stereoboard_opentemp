@@ -98,6 +98,7 @@ $(BIN_IMAGE): $(EXECUTABLE)
 
 MAIN_SRCS  = $(wildcard drivers/src/*.c)
 MAIN_SRCS += $(wildcard ../common/*.c)
+MAIN_SRCS += $(wildcard math/*.c)
 MAIN_SRCS += $(wildcard *.c)
 MAIN_SRCS += $(CV_PATH)/image.c $(CV_PATH)/encoding/jpeg.c
 

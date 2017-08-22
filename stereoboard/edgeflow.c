@@ -31,46 +31,65 @@ void arm_fill_q31(int32_t val, int32_t *array, uint32_t size)
 #endif
 
 #include "stereo_math.h"
+#include "math/filter.h"
+#include "math/stats.h"
 
 enum FilterType {
   NONE,
   KALMAN,
-  MOVING_AVGERAGE
+  MOVING_AVERAGE
 };
 
-#ifndef DISPARITY_RANGE
-#define DISPARITY_RANGE 15
+#ifndef EDGEFLOW_DISPARITY_RANGE
+#define EDGEFLOW_DISPARITY_RANGE 15
 #endif
 
-#ifndef WINDOW_SIZE
-#define WINDOW_SIZE 8
+#ifndef EDGEFLOW_WINDOW_SIZE
+#define EDGEFLOW_WINDOW_SIZE 5
 #endif
 
-// used as a temporary storage for Sum of Absolute difference computations
-static int32_t __ccmram SAD[IMAGE_WIDTH] = {0};
-static int32_t __ccmram SAD_right[IMAGE_WIDTH] = {0};
-static int32_t __ccmram run_sum1[IMAGE_WIDTH] = {0};
-static int32_t __ccmram run_sum2[IMAGE_WIDTH] = {0};
+#ifndef EDGEFLOW_USE_SNAPSHOT
+#define EDGEFLOW_USE_SNAPSHOT false
+#endif
+
+// Edgeflow variables
+//send array with flow parameters
+#ifdef EDGEFLOW_DEBUG
+uint8_t edgeflow_msg[128 * 5];
+#else
+uint8_t edgeflow_msg[25];
+#endif
+
+//shared variables
+struct edgeflow_parameters_t edgeflow_params;
+struct edgeflow_t edgeflow;
+struct snapshot_t edgeflow_snapshot;
+
+float sumN1, sumN2;
+
+float coupled_flow_fit(struct displacement_t *disp, struct displacement_t *stereo_disp,
+                       uint32_t RES, float scale_x, float scale_y, uint16_t w, uint16_t h, uint16_t border,
+                       struct vec3_t *result);
+
 
 /* edgeflow_total: The total function for the edgeflow algorithm
- * \param divergenceArray is Array containing information to send to lisa-s
- * \param stereocam_data_int16  is the data the stereocam receives from the lisa s
- * \param stereocam_len is the length of the received data array, to make sure that it receives data.
- * \param current_image_buffer is the image of the present image step
- * \param edgeflow_params is a struct containing al the parameters for edgeflow
- * \param edgeflow_results is a struct containing the resulting values of edgeflow
+ * \param current_image_buffer is the image of the present image step.
+ * \param iamge_time is the time the image was taken in us.
+ * \param data_in is the data the stereocam receives from the autopilot.
+ * \param data_len is the length of the received data array, to make sure that it receives data.
  * */
-void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
-                    uint8_t data_len, uint8_t *current_image_buffer,
-                    struct edgeflow_parameters_t *edgeflow_params,
-                    struct edgeflow_results_t *edgeflow_results)
+void edgeflow_total(uint8_t *current_image_buffer, uint32_t image_time, int16_t *data_in, uint8_t data_len)
 {
-  if (data_len > 0) {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = stereocam_data_int16[0]; //in RES * [rad]
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = stereocam_data_int16[1]; //in RES * [rad]
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].yaw = stereocam_data_int16[2];  //in RES * [rad]
+  // move the indices for the edge hist structure
+  edgeflow.current_frame_nr = (edgeflow.current_frame_nr + 1) % MAX_HORIZON;
 
-    edgeflow_params->derotation = (int8_t) stereocam_data_int16[3];
+  if (data_len > 0) {
+    edgeflow.edge_hist[edgeflow.current_frame_nr].roll = data_in[0];  //in RES * [rad]
+    edgeflow.edge_hist[edgeflow.current_frame_nr].pitch = data_in[1]; //in RES * [rad]
+    edgeflow.edge_hist[edgeflow.current_frame_nr].yaw = data_in[2];   //in RES * [rad]
+    edgeflow.edge_hist[edgeflow.current_frame_nr].alt = edgeflow_params.RES;  //stereocam_data_int16[2];  //in RES * m
+
+    edgeflow_params.derotation = (int8_t) data_in[3];
     /*
     edgeflow_params->derotation = stereocam_data_int16[2];
     edgeflow_params->adapt_horizon = stereocam_data_int16[3];
@@ -83,124 +102,115 @@ void edgeflow_total(uint8_t edgeflowArray[], int16_t *stereocam_data_int16,
     */
 
   } else {
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].roll = 0;
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].pitch = 0;
-    edgeflow_results->edge_hist[edgeflow_results->current_frame_nr].yaw =  0;
-    edgeflow_params->derotation = 0;
+    edgeflow.edge_hist[edgeflow.current_frame_nr].roll = 0;
+    edgeflow.edge_hist[edgeflow.current_frame_nr].pitch = 0;
+    edgeflow.edge_hist[edgeflow.current_frame_nr].yaw =  0;
+    edgeflow.edge_hist[edgeflow.current_frame_nr].alt = edgeflow_params.RES;
+
+    edgeflow_params.derotation = 0;
   }
 
-  calculate_edge_flow(current_image_buffer, edgeflow_params, edgeflow_results);
+  edgeflow.edge_hist[edgeflow.current_frame_nr].frame_time = image_time;
 
-  edgeflow_calc_vel(edgeflow_params, edgeflow_results);
+  calculate_edge_flow(current_image_buffer, &edgeflow_params, &edgeflow);
+
+  // skip first two frames from snapshot
+  if (edgeflow_snapshot.snapshots < 2) {
+    edgeflow_snapshot.keyframe = edgeflow.edge_hist[edgeflow.current_frame_nr];
+    edgeflow_snapshot.snapshots++;
+  } else if (EDGEFLOW_USE_SNAPSHOT) {
+    calculate_snapshot_displacement(&edgeflow_params, &edgeflow, &edgeflow_snapshot);
+  }
 
 #ifndef COMPILE_ON_LINUX
-  edgeflow_to_sendarray(edgeflowArray, edgeflow_params, edgeflow_results);
+  edgeflow_to_sendarray(edgeflow_msg);
 #endif
 }
 
 /*  edgeflow_init: Initialize structures edgeflow_params and results
  * \param edgeflow_params is a struct containing al the parameters for edgeflow
- * \param edgeflow_results is a struct containing the resulting values of edgeflow
+ * \param edgeflow is a struct containing the resulting values of edgeflow
  * \param FOVX and FOVY are the field of view of the camera
  * \param img_w and img_h are the pixel dimensions of the image
  * \param use_monocam is a boolean that indicates if a monocam or stereocam is used
  * */
-void edgeflow_init(struct edgeflow_parameters_t *edgeflow_params, struct edgeflow_results_t *edgeflow_results,
-                   int16_t img_w, int16_t img_h, int8_t use_monocam)
+void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam)
 {
-  memset(SAD, 0, IMAGE_WIDTH);
-  memset(SAD_right, 0, IMAGE_WIDTH);
-  memset(run_sum1, 0, IMAGE_WIDTH);
-  memset(run_sum2, 0, IMAGE_WIDTH);
-
-  edgeflow_params->RES = 100;
-  edgeflow_params->fovx = (int32_t)(FOVX * edgeflow_params->RES);
-  edgeflow_params->fovy = (int32_t)(FOVY * edgeflow_params->RES);
-  edgeflow_params->img_height = img_h;
-  edgeflow_params->img_width = img_w;
-  edgeflow_params->max_horizon = MAX_HORIZON;
+  edgeflow_params.RES = 100;
+  edgeflow_params.fovx = (int32_t)(FOVX * edgeflow_params.RES);
+  edgeflow_params.fovy = (int32_t)(FOVY * edgeflow_params.RES);
+  edgeflow_params.img_h = img_h;
+  edgeflow_params.img_w = img_w;
+  edgeflow_params.max_horizon = MAX_HORIZON;
 
 #ifdef COMPILE_ON_LINUX
-  edgeflow_params->stereo_shift =  0;
+  edgeflow_params.stereo_shift =  0;
 #else
-  edgeflow_params->stereo_shift =  DISPARITY_OFFSET_HORIZONTAL;
+  edgeflow_params.stereo_shift =  DISPARITY_OFFSET_HORIZONTAL;
 #endif
-  edgeflow_params->camera_seperation =  6;       // in cm
+  edgeflow_params.camera_seperation = (int16_t)(0.06 * edgeflow_params.RES);        // in m * RES
 
-  edgeflow_params->max_disparity_range = DISPARITY_RANGE;
-  edgeflow_params->Q = (int32_t)(0.2 * edgeflow_params->RES);
-  edgeflow_params->R = (int32_t)(1. * edgeflow_params->RES);
-  edgeflow_params->alpha = (int32_t)(0.6 * edgeflow_params->RES);
+  edgeflow_params.Q = (int32_t)(0.5 * edgeflow_params.RES);
+  edgeflow_params.R = (int32_t)(1. * edgeflow_params.RES);
+  edgeflow_params.alpha = (int32_t)(0.75 * edgeflow_params.RES);
 
-  edgeflow_params->use_monocam = use_monocam;
+  edgeflow_params.use_monocam = use_monocam;
 
-  edgeflow_params->disparity_range = DISPARITY_RANGE; // this is not used as range but as max, maybe rename?
-  edgeflow_params->window_size = WINDOW_SIZE;
-  edgeflow_params->derotation = 0;
-  edgeflow_params->adapt_horizon = 1;
-  edgeflow_params->snapshot = 0;
-  edgeflow_params->filter_type = NONE;
+  edgeflow_params.disparity_range = EDGEFLOW_DISPARITY_RANGE; // this is not used as range but as max, maybe rename?
+  edgeflow_params.window_size = EDGEFLOW_WINDOW_SIZE;
+  edgeflow_params.derotation = 1;
+  edgeflow_params.adapt_horizon = 1;
+  edgeflow_params.filter_type = NONE;
 
   // Initialize variables
-  edgeflow_results->current_frame_nr = 0;
-  edgeflow_results->prev_frame_x = 0;
-  edgeflow_results->prev_frame_y = 0;
-  edgeflow_results->prev_frame_offset_x = 1;
-  edgeflow_results->prev_frame_offset_y = 1;
-  // edgeflow_results->edge_hist[(MAX_HORIZON - 1) % MAX_HORIZON].frame_time = 0;  // used for sensing first run
+  edgeflow.current_frame_nr = 0;
+  edgeflow.prev_frame_x = 0;
+  edgeflow.prev_frame_y = 0;
+  edgeflow.prev_frame_offset_x = 1;
+  edgeflow.prev_frame_offset_y = 1;
 
-  memset(edgeflow_results->displacement.x, 0, sizeof(edgeflow_results->displacement.x));
-  memset(edgeflow_results->displacement.y, 0, sizeof(edgeflow_results->displacement.y));
-  memset(edgeflow_results->displacement.stereo, 0, sizeof(edgeflow_results->displacement.stereo));
-  memset(edgeflow_results->dist_per_column, 0, sizeof(edgeflow_results->dist_per_column));
-  memset(edgeflow_results->vel_per_column, 0, sizeof(edgeflow_results->vel_per_column));
+  for (uint16_t i = 0; i < MAX_HORIZON; i++) {
+    edgeflow.edge_hist[i].alt = 0;
+    edgeflow.edge_hist[i].frame_time = 0;
+    edgeflow.edge_hist[i].pitch = 0;
+    edgeflow.edge_hist[i].roll = 0;
+    edgeflow.edge_hist[i].yaw = 0;
+    memset(edgeflow.edge_hist[i].x, 0, sizeof(edgeflow.edge_hist[i].x));
+    memset(edgeflow.edge_hist[i].y, 0, sizeof(edgeflow.edge_hist[i].y));
+  }
 
-  edgeflow_results->hz_x = 25 * edgeflow_params->RES;
-  edgeflow_results->hz_y = 25 * edgeflow_params->RES;
+  memset(edgeflow.disp.x, 0, sizeof(edgeflow.disp.x));
+  memset(edgeflow.disp.y, 0, sizeof(edgeflow.disp.y));
+  memset(edgeflow.disp.stereo, 0, sizeof(edgeflow.disp.stereo));
+
+  edgeflow.ran_twice = 0;
+  edgeflow.dt = 0;
+  edgeflow.hz.x = 25 * edgeflow_params.RES;
+  edgeflow.hz.y = 25 * edgeflow_params.RES;
 
   // Edgeflow: initialize previous translational flow in x-direction (image coordinates)
-  edgeflow_results->edge_flow.flow_x = edgeflow_results->prev_edge_flow.flow_x = 0;
-  // Edgeflow: initialize previous divergence in x-direction (image coordinates)
-  edgeflow_results->edge_flow.div_x = edgeflow_results->prev_edge_flow.div_x = 0;
-  // Edgeflow: initialize previous translational flow in y-direction (image coordinates)
-  edgeflow_results->edge_flow.flow_y = edgeflow_results->prev_edge_flow.flow_y = 0;
-  // Edgeflow: initialize previous translational flow in y-direction (image coordinates)
-  edgeflow_results->edge_flow.div_y = edgeflow_results->prev_edge_flow.div_y = 0;
+  edgeflow.vel = (struct vec3_t) {0, 0, 0};
+  edgeflow.prev_vel = (struct vec3_t) {0, 0, 0};
 
   // Initialize kalman
-  edgeflow_results->covariance.C_flow_x = (int32_t)(0.2 * edgeflow_params->RES);
-  edgeflow_results->covariance.C_flow_y = (int32_t)(0.2 * edgeflow_params->RES);
-  edgeflow_results->covariance.C_div_x = (int32_t)(0.2 * edgeflow_params->RES);
-  edgeflow_results->covariance.C_div_y = (int32_t)(0.2 * edgeflow_params->RES);
-  edgeflow_results->covariance.C_height = (int32_t)(0.2 * edgeflow_params->RES);
+  edgeflow_params.cov.C_vel = (struct vec3_t) {(int32_t)(0.2 * edgeflow_params.RES), (int32_t)(0.2 * edgeflow_params.RES), (int32_t)(0.2 * edgeflow_params.RES)};
+  edgeflow_params.cov.C_dist = (struct vec3_t) {(int32_t)(0.2 * edgeflow_params.RES), (int32_t)(0.2 * edgeflow_params.RES), (int32_t)(0.2 * edgeflow_params.RES)};
 
-  edgeflow_results->avg_dist = 0;
-  edgeflow_results->avg_disp = 0;
-  edgeflow_results->prev_avg_dist = 0;
-  edgeflow_results->vel_x_global = 0;
-  edgeflow_results->prev_vel_x_global = 0;
-  edgeflow_results->vel_y_global = 0;
-  edgeflow_results->prev_vel_y_global = 0;
-  edgeflow_results->vel_z_global = 0;
-  edgeflow_results->prev_vel_z_global = 0;
-  edgeflow_results->vel_x_pixelwise = 0;
-  edgeflow_results->prev_vel_x_pixelwise = 0;
-  edgeflow_results->vel_z_pixelwise = 0;
-  edgeflow_results->prev_vel_z_pixelwise = 0;
+  edgeflow.avg_dist = 0;
+  edgeflow.avg_disp = 0;
+  edgeflow.prev_avg_dist = 0;
 
-  edgeflow_results->snapshot_is_taken = 0;
-  edgeflow_params->snapshot_length = 300;
-  edgeflow_results->snapshot_counter = edgeflow_params->snapshot_length + 1;
+  edgeflow_snapshot.snapshots = 0;
+  edgeflow_snapshot.dist = (struct vec3_t) {0, 0, 0};
+  edgeflow_snapshot.dist_traveled = (struct vec3_t) {0, 0, 0};
 }
 
 /*  edgeflow_to_sendarray: This function fills up the array that is send to the lisa -s
  * \param edgeflow_array is the array to be send back to the autopilot
  * \param edgeflow_params is a struct containing al the parameters for edgeflow
- * \param edgeflow_results is a struct containing the resulting values of edgeflow
+ * \param edgeflow is a struct containing the resulting values of edgeflow
  * */
-void edgeflow_to_sendarray(uint8_t edgeflow_array[],
-                           struct edgeflow_parameters_t *edgeflow_params,
-                           struct edgeflow_results_t *edgeflow_results)
+void edgeflow_to_sendarray(uint8_t edgeflow_array[])
 {
 
   /*EDGEFLOW_DEBUG defines which type of information is send through the edgelflowArray.
@@ -210,8 +220,8 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[],
 
 #ifdef EDGEFLOW_DEBUG
   uint8_t edgeflow_debug_array[128 * 5];
-  uint8_t *current_frame_nr = &edgeflow_results->current_frame_nr;
-  uint8_t *previous_frame_offset = &edgeflow_results->previous_frame_offset;
+  uint8_t *current_frame_nr = &edgeflow->current_frame_nr;
+  uint8_t *previous_frame_offset = &edgeflow->previous_frame_offset;
 
   uint8_t previous_frame_x = (*current_frame_nr - previous_frame_offset[0] + MAX_HORIZON) %
                              MAX_HORIZON; // wrap index
@@ -224,14 +234,14 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[],
   uint8_t plot3[128];
   for (x = 0; x < 128; x++) {
 
-    plot3[x] = boundint8((edgeflow_results->displacement.stereo[x] * 10 + 127));
+    plot3[x] = boundint8((edgeflow->displacement.stereo[x] * 10 + 127));
 
-    plot2[x] = boundint8((edgeflow_results->displacement.x[x] * 20 + 127));
-    edge_hist_int8[x] = boundint8((edgeflow_results->vel_per_column[x] / 100 + 127));
-    displacement_int8[x] = boundint8((edgeflow_results->stereo_distance_per_column[x] / 10  + 127));
+    plot2[x] = boundint8((edgeflow->displacement.x[x] * 20 + 127));
+    edge_hist_int8[x] = boundint8((edgeflow->vel_per_column[x] / 100 + 127));
+    displacement_int8[x] = boundint8((edgeflow->stereo_distance_per_column[x] / 10  + 127));
 
-    edge_hist_prev_int8[x] = boundint8((edgeflow_results->vel_x_pixelwise * (128 * 100 / 104)
-                                        + edgeflow_results->vel_z_pixelwise * (x - 64)) / 100 + 127);
+    edge_hist_prev_int8[x] = boundint8((edgeflow->vel.x * (128 * 100 / 104)
+                                        + edgeflow->vel.z * (x - 64)) / 100 + 127);
 
   }
 
@@ -248,79 +258,97 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[],
   memcpy(edgeflow_array, edgeflow_debug_array, 128 * 5 * sizeof(uint8_t));
 
 #else
-  edgeflow_array[0] = (edgeflow_results->edge_flow.div_x >> 8) & 0xff;
-  edgeflow_array[1] = (edgeflow_results->edge_flow.div_x) & 0xff;
-  edgeflow_array[2] = (edgeflow_results->edge_flow.flow_x >> 8) & 0xff;
-  edgeflow_array[3] = (edgeflow_results->edge_flow.flow_x) & 0xff;
-  edgeflow_array[4] = (edgeflow_results->edge_flow.div_y >> 8) & 0xff;
-  edgeflow_array[5] = (edgeflow_results->edge_flow.div_y) & 0xff;
-  edgeflow_array[6] = (edgeflow_results->edge_flow.flow_y >> 8) & 0xff;
-  edgeflow_array[7] = (edgeflow_results->edge_flow.flow_y) & 0xff;
 
-  edgeflow_array[8] = boundint8(edgeflow_results->distance_closest_obstacle / 10);
-  edgeflow_array[9] = boundint8(edgeflow_results->hz_x / edgeflow_params->RES);
+  edgeflow_array[0] = edgeflow_params.RES;
+  edgeflow_array[1] = boundint8(edgeflow.distance_closest_obstacle / 10);
+  edgeflow_array[2] = boundint8(edgeflow.hz.x / edgeflow_params.RES);
+  edgeflow_array[3] = boundint8(1e6 / edgeflow.dt);
 
-  edgeflow_array[10] = (edgeflow_results->vel_x_global >> 8) & 0xff;
-  edgeflow_array[11] = (edgeflow_results->vel_x_global) & 0xff;
-  edgeflow_array[12] = (edgeflow_results->vel_y_global >> 8) & 0xff;
-  edgeflow_array[13] = (edgeflow_results->vel_y_global) & 0xff;
-  edgeflow_array[14] = (edgeflow_results->vel_z_global >> 8) & 0xff;
-  edgeflow_array[15] = (edgeflow_results->vel_z_global) & 0xff;
+  edgeflow_array[4] = (edgeflow.vel.x >> 8) & 0xff;
+  edgeflow_array[5] = (edgeflow.vel.x) & 0xff;
+  edgeflow_array[6] = (edgeflow.vel.y >> 8) & 0xff;
+  edgeflow_array[7] = (edgeflow.vel.y) & 0xff;
+  edgeflow_array[8] = (edgeflow.vel.z >> 8) & 0xff;
+  edgeflow_array[9] = (edgeflow.vel.z) & 0xff;
 
-  edgeflow_array[16] = (edgeflow_results->vel_x_pixelwise >> 8) & 0xff;
-  edgeflow_array[17] = (edgeflow_results->vel_x_pixelwise) & 0xff;
-  edgeflow_array[18] = (edgeflow_results->vel_z_pixelwise >> 8) & 0xff;
-  edgeflow_array[19] = (edgeflow_results->vel_z_pixelwise) & 0xff;
+  edgeflow_array[10] = (edgeflow.vel_x_stereo_avoid_pixelwise >> 8) & 0xff;
+  edgeflow_array[11] = (edgeflow.vel_x_stereo_avoid_pixelwise) & 0xff;
+  edgeflow_array[12] = (edgeflow.vel_z_stereo_avoid_pixelwise >> 8) & 0xff;
+  edgeflow_array[13] = (edgeflow.vel_z_stereo_avoid_pixelwise) & 0xff;
 
-  edgeflow_array[20] = (edgeflow_results->vel_x_stereo_avoid_pixelwise >> 8) & 0xff;
-  edgeflow_array[21] = (edgeflow_results->vel_x_stereo_avoid_pixelwise) & 0xff;
-  edgeflow_array[22] = (edgeflow_results->vel_z_stereo_avoid_pixelwise >> 8) & 0xff;
-  edgeflow_array[23] = (edgeflow_results->vel_z_stereo_avoid_pixelwise) & 0xff;
+  edgeflow_array[14] = (edgeflow_snapshot.dist_traveled.x >> 8) & 0xff;
+  edgeflow_array[15] = (edgeflow_snapshot.dist_traveled.x) & 0xff;
+  edgeflow_array[16] = (edgeflow_snapshot.dist_traveled.y >> 8) & 0xff;
+  edgeflow_array[17] = (edgeflow_snapshot.dist_traveled.y) & 0xff;
+  edgeflow_array[18] = (edgeflow_snapshot.dist_traveled.z >> 8) & 0xff;
+  edgeflow_array[19] = (edgeflow_snapshot.dist_traveled.z) & 0xff;
 
-  /* edgeflow_array[20] = ((uint8_t)(edgeflow_results->vel_x_global / 10) + 127);
-   edgeflow_array[21] = ((uint8_t)(edgeflow_results->vel_y_global / 10) + 127);
-
-   edgeflow_array[22] = ((uint8_t)(edgeflow_results->vel_x_pixelwise / 10) + 127);
-   edgeflow_array[23] = ((uint8_t)(edgeflow_results->vel_z_pixelwise / 10) + 127);*/
+  edgeflow_array[20] = (edgeflow.flow_quality);
+  edgeflow_array[21] = (edgeflow_snapshot.snapshot_quality);
 
 #endif
 }
 
-/*  edgeflow_calc_vel: calculate height and by edgeflow
- *\param edgeflow_params is a struct containing al the parameters for edgeflow
- *\param edgeflow_results is a struct containing the resulting values of edgeflow
+/*  calculate_edge_flow: calculate the global optical flow by edgeflow
+ * \param in[]            is an array containing the pixel intensities of the (stereo)image
+ * \param edgeflow_params is a struct containing al the parameters for edgeflow
+ * \param edgeflow        is a struct containing the resulting values of edgeflow
  * */
-void edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_params, struct edgeflow_results_t *edgeflow_results)
+void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *params, struct edgeflow_t *edgeflow)
 {
-  // Assign pointers to variable values in results (for smaller calculations)
-  int32_t *vel_x_global = &edgeflow_results->vel_x_global;
-  int32_t *vel_y_global = &edgeflow_results->vel_y_global;
-  int32_t *vel_z_global = &edgeflow_results->vel_z_global;
+  int16_t border = params->window_size + params->disparity_range;
 
-  int32_t *vel_x_pixelwise = &edgeflow_results->vel_x_pixelwise;
-  int32_t *vel_z_pixelwise = &edgeflow_results->vel_z_pixelwise;
-  int32_t *prev_vel_x_global = &edgeflow_results->prev_vel_x_global;
-  int32_t *prev_vel_y_global = &edgeflow_results->prev_vel_y_global;
-  int32_t *prev_vel_z_global = &edgeflow_results->prev_vel_z_global;
-  int32_t *prev_vel_x_pixelwise = &edgeflow_results->prev_vel_x_pixelwise;
-  int32_t *prev_vel_z_pixelwise = &edgeflow_results->prev_vel_z_pixelwise;
-
-  //int32_t *prev_vel_y = &edgeflow_results->prev_vel_y;
-  int32_t *avg_disp = &edgeflow_results->avg_disp;
-  int32_t *avg_dist = &edgeflow_results->avg_dist;
-  int32_t *prev_avg_dist = &edgeflow_results->prev_avg_dist;
-  struct edge_flow_t *edge_flow = &edgeflow_results->edge_flow;
-  struct covariance_t *covariance = &edgeflow_results->covariance;
+  // check that inputs within allowable ranges
+  if (params->disparity_range > EDGEFLOW_DISPARITY_RANGE) {
+    params->disparity_range = EDGEFLOW_DISPARITY_RANGE;
+  }
 
   // Assign pointers to parameters
-  int32_t monocam = edgeflow_params->use_monocam;
-  int32_t fov_x = edgeflow_params->fovx;
-  int32_t fov_y = edgeflow_params->fovy;
-  int32_t RES = edgeflow_params->RES;
-  uint32_t R = edgeflow_params->R;
-  uint32_t Q = edgeflow_params->Q;
-  int16_t img_w = edgeflow_params->img_width;
-  int16_t img_h = edgeflow_params->img_height;
+  int32_t monocam = params->use_monocam;
+  int32_t fov_x = params->fovx;
+  int32_t fov_y = params->fovy;
+  int32_t RES = params->RES;
+  uint32_t R = params->R;
+  uint32_t Q = params->Q;
+  int16_t img_w = params->img_w;
+  int16_t img_h = params->img_h;
+
+  // Define arrays and pointers for edge histogram and displacements
+  int32_t *edge_hist_x = edgeflow->edge_hist[edgeflow->current_frame_nr].x;
+  int32_t *edge_hist_x_right =  edgeflow->edge_hist_right;
+  int32_t *edge_hist_y = edgeflow->edge_hist[edgeflow->current_frame_nr].y;
+
+  // Calculate Edge Histogram
+  calculate_edge_hist(in, edge_hist_x, img_w, img_h, 'x', 'l');
+  calculate_edge_hist(in, edge_hist_y, img_w, img_h, 'y', 'l');
+  calculate_edge_hist(in, edge_hist_x_right, img_w, img_h, 'x', 'r');
+
+  if (edgeflow->ran_twice < 2) {
+    edgeflow->ran_twice++;
+    return;
+  }
+
+  // compute previous frame number relative to dynamic parameters
+  edgeflow->prev_frame_x = (edgeflow->current_frame_nr - edgeflow->prev_frame_offset_x
+                            + MAX_HORIZON) %  MAX_HORIZON; // wrap index
+  edgeflow->prev_frame_y = (edgeflow->current_frame_nr - edgeflow->prev_frame_offset_y
+                            + MAX_HORIZON) %  MAX_HORIZON; // wrap index
+
+  //store the time of the frame
+  edgeflow->dt = edgeflow->edge_hist[edgeflow->current_frame_nr].frame_time -
+                 edgeflow->edge_hist[(edgeflow->current_frame_nr - 1 + MAX_HORIZON) %  MAX_HORIZON].frame_time;
+
+  edgeflow->hz.x = 1e6 / ((edgeflow->edge_hist[edgeflow->current_frame_nr].frame_time - edgeflow->edge_hist[edgeflow->prev_frame_x].frame_time) / RES);
+  edgeflow->hz.y = 1e6 / ((edgeflow->edge_hist[edgeflow->current_frame_nr].frame_time - edgeflow->edge_hist[edgeflow->prev_frame_y].frame_time) / RES);
+
+  // Compute stereo image disparity
+  calculate_disparity(edge_hist_x, edge_hist_x_right, edgeflow->disp.stereo, img_w, params->window_size,
+                      params->stereo_shift * RES, edgeflow->disp.confidence_stereo, RES, 0, params->disparity_range);
+
+  edgeflow->avg_disp = getMeanDisp(edgeflow->disp.stereo, img_w, border, RES / 4);
+
+  /*edgeflow->avg_disp = calculate_disparity_fullimage(edge_hist_x, edge_hist_x_right, img_w, disp_range,
+                               edgeflow_params->stereo_shift);*/
 
   // disparity to distance in dm given 6cm dist between cams and Field of View (FOV) of 60deg
   // d =  Npix*cam_separation /(2*disp*tan(FOV/2))
@@ -328,287 +356,205 @@ void edgeflow_calc_vel(struct edgeflow_parameters_t *edgeflow_params, struct edg
   // d = 0.06*128 / (2*disp*1.042/2)
   // d = RES*0.06*128 / (disp*RES*1.042)
   // d = RES*0.06*PIX / (disp*FOVX)
-  if (*avg_disp > 0) {
-    *avg_dist = (RES * RES * edgeflow_params->camera_seperation * img_w) / (*avg_disp * fov_x * 100);
-  } else {
-    // use avg_disp = 1
-    *avg_dist = (RES * RES * edgeflow_params->camera_seperation * img_w) / (fov_x * 100);
+
+  // TODO replace with LUT
+  if (edgeflow->avg_disp > 0) {
+    edgeflow->avg_dist = (RES * RES * params->camera_seperation * img_w) / (edgeflow->avg_disp * fov_x);
   }
   if (monocam) {
-    *avg_dist = 1;
+    edgeflow->avg_dist = edgeflow->edge_hist->alt;
   }
 
   //filter height: TODO: use height directly from lisa s edgeflow_params->snapshot = 0;
-  switch (edgeflow_params->filter_type) {
+  switch (params->filter_type) {
     case KALMAN:
       // todo use a variable covariance value maybe based on fit quality
-      *avg_dist = simpleKalmanFilter(&(covariance->C_height), *prev_avg_dist, *avg_dist, Q, R, RES);
+      edgeflow->avg_dist = simpleKalmanFilter(&(params->cov.C_dist.z), edgeflow->prev_avg_dist, edgeflow->avg_dist, Q, R, RES);
       break;
-    case MOVING_AVGERAGE:
-      *avg_dist =  moving_fading_average(*prev_avg_dist, *avg_dist, edgeflow_params->alpha, RES);
+    case MOVING_AVERAGE:
+      edgeflow->avg_dist =  moving_average(edgeflow->prev_avg_dist, edgeflow->avg_dist, params->alpha, RES);
       break;
     default:
       break;
   }
 
-  // Calculate the stereo distance and flow x distance per column
-  int32_t x;
-  int32_t border = edgeflow_params->disparity_range + edgeflow_params->window_size;
+  //calculate angle diff [pix/s * RES]
+  int16_t der_shift_x = 0;
+  int16_t der_shift_y = 0;
 
-  int32_t weight[IMAGE_WIDTH];
-  for (x = border; x < img_w - border; x++) {
-    if (edgeflow_results->displacement.stereo[x] != 0) {
-      edgeflow_results->dist_per_column[x] = (RES * RES * (int32_t)edgeflow_params->camera_seperation
-                                              * img_w) / (edgeflow_results->displacement.stereo[x] * fov_x * 100); // RES * RES / RES [m]
-
-      // Calculate stereo distance per column
-      edgeflow_results->vel_per_column[x] = (edgeflow_results->dist_per_column[x] * edgeflow_results->displacement.x[x]) / RES; // RES * RES / RES
-
-      weight[x] = 1;    // todo test effect of using real weighting
-    } else {
-      edgeflow_results->vel_per_column[x] = 0;
-      edgeflow_results->dist_per_column[x] = 0;
-      weight[x] = 0;
-    }
+  if (params->derotation) {
+    // TODO: consider adding the pixel dependent derotation (edge_x: qx^2, edge_y: py^2), may increase the fit quality under rotation
+    der_shift_y = RES * (edgeflow->edge_hist[edgeflow->prev_frame_y].roll - edgeflow->edge_hist[edgeflow->current_frame_nr].roll) * img_h / params->fovy;
+    der_shift_x = RES * (edgeflow->edge_hist[edgeflow->prev_frame_x].pitch - edgeflow->edge_hist[edgeflow->current_frame_nr].pitch) * img_w / params->fovx;
   }
 
-  // Detect the closest obstacle in EdgeStereo
-  edgeflow_results->distance_closest_obstacle = edgestereo_obstacle_detection(
-        edgeflow_results->dist_per_column, edgeflow_results->obstacle_detect, img_w, border);
+  // Calculate displacement
+  calculate_disparity(edgeflow->edge_hist[edgeflow->prev_frame_x].x, edge_hist_x, edgeflow->disp.x, img_w, params->window_size,
+                      der_shift_x, edgeflow->disp.confidence_x, RES, -params->disparity_range, params->disparity_range);
 
-  // calculate avoidance manouvers
-  avoid_velocity_from_stereo(edgeflow_results->dist_per_column,
-                             &edgeflow_results->vel_x_stereo_avoid_pixelwise, &edgeflow_results->vel_z_stereo_avoid_pixelwise, 50, img_w,
-                             border, edgeflow_params->stereo_shift);
+  calculate_disparity(edgeflow->edge_hist[edgeflow->prev_frame_y].y, edge_hist_y, edgeflow->disp.y, img_h, params->window_size,
+                      der_shift_y, edgeflow->disp.confidence_y, RES, -params->disparity_range, params->disparity_range);
 
-  edgeflow_results->vel_stereo_mean = getMean(edgeflow_results->vel_per_column, img_w);
+  float scale_x = (float)(edgeflow->hz.x * params->camera_seperation * params->img_w) / params->fovx;
+  float scale_y = (float)(edgeflow->hz.y * edgeflow->avg_dist) / (params->RES * params->RES);
 
-  weighted_line_fit(edgeflow_results->vel_per_column, weight, &edge_flow->scaled_div, &edge_flow->scaled_flow_x,
-                    img_w, border, RES, 0);
+  edgeflow->flow_quality = bounduint8(params->RES * coupled_flow_fit(&(edgeflow->disp), &(edgeflow->disp), RES,
+                                      scale_x, scale_y, params->img_w, params->img_h, border, &(edgeflow->vel)));
 
   // change axis system from left-top to centre-centre
-  edge_flow->scaled_flow_x += edge_flow->scaled_div * img_w / 2;
+  edgeflow->vel.x += edgeflow->vel.z * img_w / 2;
+  edgeflow->vel.y += edgeflow->vel.z * img_h / 2;
 
-  *vel_x_pixelwise = edge_flow->scaled_flow_x * fov_x / (RES * RES * img_w);
-  *vel_z_pixelwise = -edge_flow->scaled_div / RES;
+  // scale velocity by camera characteristics
+  edgeflow->vel.x = edgeflow->vel.x * fov_x / (img_w * RES);
+  edgeflow->vel.y = edgeflow->vel.y * fov_y / (img_h * RES);
 
-#if EDGEFLOW_USE_HEIGHT_AUTOPILOT
-  *avg_dist = edgeflow_params->alt_state_lisa;
-#else
-  // we do a bit of resolution gymnastics here...
-  *vel_x_global = (edge_flow->flow_x * (*avg_dist) / RES) * fov_x / (RES * RES * img_w);
-  *vel_y_global = (edge_flow->flow_y * (*avg_dist) / RES) * fov_y / (RES * RES * img_h);
-  *vel_z_global = -edge_flow->div_x * (*avg_dist) / (RES * RES);
-#endif
+  // z is facing forward
+  edgeflow->vel.z = -edgeflow->vel.z;
 
   // filter output
-  switch (edgeflow_params->filter_type) {
+  switch (params->filter_type) {
     case KALMAN:
       // todo use a variable covariance value maybe based on fit quality
-      *vel_x_global = simpleKalmanFilter(&(covariance->C_flow_x), *prev_vel_x_global, *vel_x_global, Q, R, RES);
-      *vel_y_global = simpleKalmanFilter(&(covariance->C_flow_y), *prev_vel_y_global, *vel_y_global, Q, R, RES);
-      *vel_z_global = simpleKalmanFilter(&(covariance->C_div_x), *prev_vel_z_global, *vel_z_global, Q, R, RES);
-      *vel_x_pixelwise = simpleKalmanFilter(&(covariance->C_flow_x), *prev_vel_x_pixelwise, *vel_x_pixelwise, Q, R, RES);
-      *vel_z_pixelwise = simpleKalmanFilter(&(covariance->C_flow_y), *prev_vel_z_pixelwise, *vel_z_pixelwise, Q, R, RES);
+      edgeflow->vel.x = simpleKalmanFilter(&(params->cov.C_vel.x), edgeflow->prev_vel.x, edgeflow->vel.x, Q, R, RES);
+      edgeflow->vel.y = simpleKalmanFilter(&(params->cov.C_vel.y), edgeflow->prev_vel.y, edgeflow->vel.y, Q, R, RES);
+      edgeflow->vel.z = simpleKalmanFilter(&(params->cov.C_vel.z), edgeflow->prev_vel.z, edgeflow->vel.z, Q, R, RES);
       break;
-    case MOVING_AVGERAGE:
-      *vel_x_global =  moving_fading_average(*prev_vel_x_global, *vel_x_global, edgeflow_params->alpha, RES);
-      *vel_y_global =  moving_fading_average(*prev_vel_y_global, *vel_y_global, edgeflow_params->alpha, RES);
-      *vel_x_pixelwise =  moving_fading_average(*prev_vel_x_pixelwise, *vel_x_pixelwise, edgeflow_params->alpha, RES);
-      *vel_z_pixelwise =  moving_fading_average(*prev_vel_z_pixelwise, *vel_z_pixelwise, edgeflow_params->alpha, RES);
+    case MOVING_AVERAGE:
+      edgeflow->vel.x =  moving_average(edgeflow->prev_vel.x, edgeflow->vel.x, params->alpha, RES);
+      edgeflow->vel.y =  moving_average(edgeflow->prev_vel.y, edgeflow->vel.y, params->alpha, RES);
+      edgeflow->vel.z =  moving_average(edgeflow->prev_vel.z, edgeflow->vel.z, params->alpha, RES);
       break;
     default:
       break;
   }
 
   // Store previous values
-  *prev_avg_dist = *avg_dist;
-  *prev_vel_x_global = *vel_x_global;
-  *prev_vel_y_global = *vel_y_global;
-  *prev_vel_z_global = *vel_z_global;
-  *prev_vel_x_pixelwise = *vel_x_pixelwise;
-  *prev_vel_z_pixelwise = *vel_z_pixelwise;
+  edgeflow->prev_avg_dist = edgeflow->avg_dist;
+  edgeflow->prev_vel = edgeflow->vel;
+
+  // update previous frame offset for next computation
+  if (MAX_HORIZON > 2 && (params->adapt_horizon == 1)) {
+    static uint32_t flow_mag_x, flow_mag_y;
+    static int8_t change_x, change_y;
+    flow_mag_x = abs(edgeflow->disp.x[abs_max((int32_t *)edgeflow->disp.x, (uint32_t)img_w)] - der_shift_x);
+    flow_mag_y = abs(edgeflow->disp.y[abs_max((int32_t *)edgeflow->disp.y, (uint32_t)img_h)] - der_shift_y);
+
+    // get similarity with previous frame
+    int32_t similarity_x = SAD(edge_hist_x, edgeflow->edge_hist[(edgeflow->current_frame_nr - 1 + MAX_HORIZON) % MAX_HORIZON].x, img_w);
+    int32_t similarity_y = SAD(edge_hist_y, edgeflow->edge_hist[(edgeflow->current_frame_nr - 1 + MAX_HORIZON) % MAX_HORIZON].y, img_h);
+
+    const uint32_t min_flow = 300;//params->disparity_range * RES / 5;
+    const uint32_t max_flow = 700;//params->disparity_range * RES / 2;
+
+    change_x = change_y = 0;
+    // Increment or decrement previous frame offset based on previous measured flow.
+    if ((flow_mag_x >= max_flow) || similarity_x < 10000) {  // flow too high or previous frame very similar, likely not moving
+      change_x = -1;
+    } else if (flow_mag_x <= min_flow) {                     // flow low, can increase resolution
+      change_x = 1;
+    }
+
+    if ((int8_t)edgeflow->prev_frame_offset_x + change_x > 0 && edgeflow->prev_frame_offset_x + change_x < MAX_HORIZON) {
+      edgeflow->prev_frame_offset_x += change_x;
+    }
+
+    if ((flow_mag_y >= max_flow) || similarity_y < 10000) { // flow too high or previous frame very similar, likely not moving
+      change_y = -1;
+    } else if (flow_mag_y <= min_flow) {                    // flow low, can increase resolution
+      change_y = 1;
+    }
+
+    if ((int8_t)edgeflow->prev_frame_offset_y + change_y > 0 && edgeflow->prev_frame_offset_y + change_y < MAX_HORIZON) {
+      edgeflow->prev_frame_offset_y += change_y;
+    }
+  }
 }
 
 /*  calculate_edge_flow: calculate the global optical flow by edgeflow
- * \param in[] is an array containing the pixel intensities of the (stereo)image
- * \param edgeflow_params is a struct containing al the parameters for edgeflow
- * \param edgeflow_results is a struct containing the resulting values of edgeflow
- *
- *   TODO: reintergrate snapshot (doesn't work very well yet!!)
- *
+ * \param params edgeflow settings
+ * \param edgeflow is a struct containing the previously computed values of edgeflow
+ * \param snapshot is a struct containting the resulting snapshot displacement
  * */
-void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *edgeflow_params,
-                         struct edgeflow_results_t *edgeflow_results)
+void calculate_snapshot_displacement(struct edgeflow_parameters_t *params, struct edgeflow_t *edgeflow, struct snapshot_t *snapshot)
 {
-  struct displacement_t *displacement = &edgeflow_results->displacement;
-  struct edge_hist_t *edge_hist = edgeflow_results->edge_hist;
-  struct edge_flow_t *edge_flow = &edgeflow_results->edge_flow;
+  int16_t border = params->window_size + params->disparity_range;
 
-  int32_t img_w = edgeflow_params->img_width;
-  int32_t img_h = edgeflow_params->img_height;
-  int32_t RES = edgeflow_params->RES;
-  uint8_t disp_range = edgeflow_params->disparity_range;
-  uint8_t window_size = edgeflow_params->window_size;
-
-  // check that inputs within allowable ranges
-  if (disp_range > DISPARITY_RANGE) {
-    disp_range = DISPARITY_RANGE;
-  }
-
-
-
-  // Define arrays and pointers for edge histogram and displacements
-  int32_t *edge_hist_x = edge_hist[edgeflow_results->current_frame_nr].x;
-  int32_t *edge_hist_x_right =  edgeflow_results->edge_hist_right;
-  int32_t *edge_hist_y = edge_hist[edgeflow_results->current_frame_nr].y;
-
-  // Calculate Edge Histogram
-  calculate_edge_hist(in, edge_hist_x, img_w, img_h, 'x', 'l');
-  calculate_edge_hist(in, edge_hist_y, img_w, img_h, 'y', 'l');
-  calculate_edge_hist(in, edge_hist_x_right, img_w, img_h, 'x', 'r');
-
-  // compute previous frame number relative to dynamic parameters
-  edgeflow_results->prev_frame_x = (edgeflow_results->current_frame_nr - edgeflow_results->prev_frame_offset_x
-                                    + MAX_HORIZON) %  MAX_HORIZON; // wrap index
-  edgeflow_results->prev_frame_y = (edgeflow_results->current_frame_nr - edgeflow_results->prev_frame_offset_y
-                                    + MAX_HORIZON) %  MAX_HORIZON; // wrap index
-
-  //store the time of the frame
-  // Calculate velocity TODO:: Find a way to use extract function correctly for this, since the results is different with than without
-#ifdef COMPILE_ON_LINUX
-  printf("num frames back, x: %d, y: %d\n", edgeflow_results->prev_frame_offset_x, edgeflow_results->prev_frame_offset_y);
-  edgeflow_results->hz_x = RES * 7 / edgeflow_results->prev_frame_offset_x;
-  edgeflow_results->hz_y = RES * 7 / edgeflow_results->prev_frame_offset_y;
-#else
-  edgeflow_results->hz_x = (RES * TIMER_TICKS_PER_SEC)
-                           / calc_abs_time_interval(edge_hist[edgeflow_results->current_frame_nr].frame_time,
-                               edge_hist[edgeflow_results->prev_frame_x].frame_time);
-  edgeflow_results->hz_y = (RES * TIMER_TICKS_PER_SEC)
-                           / calc_abs_time_interval(edge_hist[edgeflow_results->current_frame_nr].frame_time,
-                               edge_hist[edgeflow_results->prev_frame_y].frame_time);
-#endif
-
-  int32_t *prev_edge_hist_x, *prev_edge_hist_y;
-  //TODO: Snapshot commented out, have to debug!
-
-  // copy previous edge histogram based on previous frame number
-  /* if (edgeflow_results->snapshot_is_taken == 1 && edgeflow_params->snapshot == 1
-   && (edgeflow_params->autopilot_mode == 10 || edgeflow_params->autopilot_mode == 11
-   || edgeflow_params->autopilot_mode == 12)) {
-   prev_edge_hist_x = edgeflow_results->edge_hist_snapshot.x;
-   prev_edge_hist_y = edgeflow_results->edge_hist_snapshot.y;
-   edgeflow_results->snapshot_counter++;
-   } else {*/
-  prev_edge_hist_x = edge_hist[edgeflow_results->prev_frame_x].x;
-  prev_edge_hist_y = edge_hist[edgeflow_results->prev_frame_y].y;
-  //}
-
-  /*if (edgeflow_params->snapshot == 1 && (edgeflow_results->snapshot_is_taken == 0
-   || edgeflow_results->snapshot_counter > edgeflow_params->snapshot_lenght)) {
-   memcpy(&edgeflow_results->edge_hist_snapshot.x, edge_hist_x, sizeof(int32_t) * img_w);
-   memcpy(&edgeflow_results->edge_hist_snapshot.y, edge_hist_y, sizeof(int32_t) * img_h);
-   edgeflow_results->snapshot_counter = 0;
-   edgeflow_results->snapshot_is_taken = 1;
-   }*/
-
-  //calculate angle diff [RAD * RES]
-
-  // TODO: implementing derotation like this is very low resolution...
+  //calculate angle diff [pix/s * RES]
   int16_t der_shift_x = 0;
   int16_t der_shift_y = 0;
 
-  //TODO: test with paparazzi implementation if rotation is done correctly
-  if (edgeflow_params->derotation) {
-    int16_t roll_prev = edge_hist[edgeflow_results->prev_frame_y].roll;
-    int16_t pitch_prev = edge_hist[edgeflow_results->prev_frame_x].pitch;
-
-    der_shift_y = (roll_prev - edge_hist[edgeflow_results->current_frame_nr].roll) * img_h / (edgeflow_params->fovy);
-    der_shift_x = (pitch_prev - edge_hist[edgeflow_results->current_frame_nr].pitch) * img_w / (edgeflow_params->fovx);
+  if (params->derotation) {
+    der_shift_y = params->RES * (snapshot->keyframe.roll - edgeflow->edge_hist[edgeflow->current_frame_nr].roll) * params->img_h / (params->fovy);
+    der_shift_x = params->RES * (snapshot->keyframe.pitch - edgeflow->edge_hist[edgeflow->current_frame_nr].pitch) * params->img_w / (params->fovx);
   }
+
   // Calculate displacement
-  uint32_t error_hor = calculate_displacement(edge_hist_x, prev_edge_hist_x, displacement->x, img_w, window_size,
-                       disp_range, der_shift_x, edgeflow_results->hz_x);
+  calculate_disparity(snapshot->keyframe.x, edgeflow->edge_hist[edgeflow->current_frame_nr].x, snapshot->disp.x, params->img_w, params->window_size,
+                      der_shift_x, snapshot->disp.confidence_x, params->RES, -params->disparity_range, params->disparity_range);
 
-  uint32_t error_ver = calculate_displacement(edge_hist_y, prev_edge_hist_y, displacement->y, img_h, window_size,
-                       disp_range, der_shift_y, edgeflow_results->hz_y);
+  calculate_disparity(snapshot->keyframe.y, edgeflow->edge_hist[edgeflow->current_frame_nr].y, snapshot->disp.y, params->img_h, params->window_size,
+                      der_shift_y, snapshot->disp.confidence_y, params->RES, -params->disparity_range, params->disparity_range);
 
-  calculate_disparity(edge_hist_x, edge_hist_x_right, displacement->stereo, img_w, window_size, disp_range,
-                      edgeflow_params->stereo_shift, displacement->confidence);
+  float scale_x = (float)(params->RES * params->camera_seperation * params->img_w) / params->fovx;
+  float scale_y = (float)edgeflow->avg_dist / params->RES;
 
-  /*edgeflow_results->avg_disp = calculate_disparity_fullimage(edge_hist_x, edge_hist_x_right, img_w, disp_range,
-                               edgeflow_params->stereo_shift);*/
-
-  edgeflow_results->avg_disp = getMeanDisp(displacement->stereo, img_w, window_size + disp_range);
-
-  // Fit a linear line
-  uint32_t line_error_fit_hor = line_fit(displacement->x, &edge_flow->div_x, &edge_flow->flow_x, img_w,
-                                         window_size + disp_range, RES, 0);
-  uint32_t line_error_fit_ver = line_fit(displacement->y, &edge_flow->div_y, &edge_flow->flow_y, img_h,
-                                         window_size + disp_range, RES, 0);
+  // solve fit
+  snapshot->snapshot_quality = bounduint8(params->RES * coupled_flow_fit(&(snapshot->disp), &(edgeflow->disp),
+                                          params->RES, scale_x, scale_y, params->img_w, params->img_h, border, &(snapshot->dist)));
 
   // change axis system from left-top to centre-centre
-  edge_flow->flow_x += edge_flow->div_x * img_w / 2;
-  edge_flow->flow_y += edge_flow->div_y * img_h / 2;
+  snapshot->dist.x += snapshot->dist.z * params->img_w / 2;
+  snapshot->dist.y += snapshot->dist.z * params->img_h / 2;
 
-  //Calculate and Store quality values
-  uint32_t totalIntensity = getTotalIntensityImage(in, img_w, img_h);
-  uint32_t mean_hor = getMean(edge_hist_x, img_w);
-  uint32_t mean_ver = getMean(edge_hist_y, img_h);
-  uint32_t median_hor = getMedian(edge_hist_x, img_w);
-  uint32_t median_ver = getMedian(edge_hist_y, img_h);
-  uint32_t amountPeaks_hor = getAmountPeaks(edge_hist_x, 500, img_w);
-  uint32_t amountPeaks_ver = getAmountPeaks(edge_hist_y, 500, img_h);
+  // scale velocity by camera characteristics
+  snapshot->dist.x = snapshot->dist.x * params->fovx / (params->img_w * params->RES);
+  snapshot->dist.y = snapshot->dist.y * params->fovy / (params->img_h * params->RES);
 
-  edgeflow_results->quality_meas[0] = boundint8(totalIntensity / 20000);
-  edgeflow_results->quality_meas[1] = boundint8(mean_hor / 20);
-  edgeflow_results->quality_meas[2] = boundint8(mean_ver / 20);
-  edgeflow_results->quality_meas[3] = boundint8(median_hor / 20);
-  edgeflow_results->quality_meas[4] = boundint8(median_ver / 20);
-  edgeflow_results->quality_meas[5] = boundint8(amountPeaks_hor);
-  edgeflow_results->quality_meas[6] = boundint8(amountPeaks_ver);
-  edgeflow_results->quality_meas[7] = boundint8(line_error_fit_hor / 10);
-  edgeflow_results->quality_meas[8] = boundint8(line_error_fit_ver / 10);
+  // z axis should be pointing forward
+  snapshot->dist.z = -snapshot->dist.z;
 
-  int32_t *pointer = (int32_t *) edgeflow_results->quality_meas + 9;
-  pointer[0] = error_hor;
-  pointer[1] = error_ver;
+  // filter output
+  switch (params->filter_type) {
+    case KALMAN:
+      // todo use a variable covariance value maybe based on fit quality
+      snapshot->dist.x = simpleKalmanFilter(&(params->cov.C_dist.x),
+                                            snapshot->prev_dist.x + edgeflow->vel.x * edgeflow->dt / 1e6, snapshot->dist.x, params->Q, params->R, params->RES);
+      snapshot->dist.y = simpleKalmanFilter(&(params->cov.C_dist.y),
+                                            snapshot->prev_dist.y + edgeflow->vel.y * edgeflow->dt / 1e6, snapshot->dist.y, params->Q, params->R, params->RES);
+      snapshot->dist.z = simpleKalmanFilter(&(params->cov.C_dist.z),
+                                            snapshot->prev_dist.z + edgeflow->vel.z * edgeflow->dt / 1e6, snapshot->dist.z, params->Q, params->R, params->RES);
+      break;
+    case MOVING_AVERAGE:
+      snapshot->dist.x =  moving_average(snapshot->prev_dist.x + edgeflow->vel.x * edgeflow->dt / 1e6,
+                                         snapshot->dist.x, params->alpha, params->RES);
+      snapshot->dist.y =  moving_average(snapshot->prev_dist.y + edgeflow->vel.y * edgeflow->dt / 1e6,
+                                         snapshot->dist.y, params->alpha, params->RES);
+      snapshot->dist.z =  moving_average(snapshot->prev_dist.z + edgeflow->vel.z * edgeflow->dt / 1e6,
+                                         snapshot->dist.z, params->alpha, params->RES);
+      break;
+    default:
+      break;
+  }
 
-  /* if (edgeflow_results->snapshot_is_taken == 1 && edgeflow_params->snapshot == 0) {
-   edgeflow_results->snapshot_counter = edgeflow_params->snapshot_lenght + 1;
-   edgeflow_results->snapshot_is_taken = 0;
-   }*/
+  // compute distance travelled since last snapshot
+  snapshot->dist_traveled.x = snapshot->dist.x - snapshot->prev_dist.x;
+  snapshot->dist_traveled.y = snapshot->dist.y - snapshot->prev_dist.y;
+  snapshot->dist_traveled.z = snapshot->dist.z - snapshot->prev_dist.z;
 
-  // move the indices for the edge hist structure
-  edgeflow_results->current_frame_nr = (edgeflow_results->current_frame_nr + 1) % MAX_HORIZON;
+  // determine if we need a new snapshot
+  int32_t max_displacement = abs(snapshot->disp.x[abs_max(snapshot->disp.x, params->img_w)]);
 
-  // update previous frame offset for next computation
-  if (MAX_HORIZON > 2 && (edgeflow_params->adapt_horizon == 1)) { //&& edgeflow_params->snapshot == 0) {
-    uint32_t flow_mag_x, flow_mag_y;
-    uint32_t div_mag_x, div_mag_y;
-    flow_mag_x = abs(edge_flow->flow_x);
-    flow_mag_y = abs(edge_flow->flow_y);
-    div_mag_x = abs(edge_flow->div_x);
-    div_mag_y = abs(edge_flow->div_y);
-
-    uint32_t min_flow = RES * RES * disp_range / 8;
-    uint32_t max_flow = RES * RES * disp_range / 2;
-
-    // Increment or decrement previous frame offset based on previous measured flow.
-    if ((flow_mag_x > max_flow || div_mag_x > 2 * max_flow / img_w) &&
-        edgeflow_results->prev_frame_offset_x > 1) {
-      edgeflow_results->prev_frame_offset_x--;
-    } else if ((flow_mag_x < min_flow && div_mag_x < min_flow / (2 * img_w))
-               && edgeflow_results->prev_frame_offset_x < MAX_HORIZON - 1) {
-      edgeflow_results->prev_frame_offset_x++;
-    }
-    if ((flow_mag_y > max_flow  || div_mag_y > 2 * max_flow / img_h) &&
-        edgeflow_results->prev_frame_offset_y > 1) {
-      edgeflow_results->prev_frame_offset_y--;
-    } else if ((flow_mag_y < min_flow && div_mag_y < min_flow / (2 * img_h))
-               && edgeflow_results->prev_frame_offset_y < MAX_HORIZON - 1) {
-      edgeflow_results->prev_frame_offset_y++;
-    }
+  if ((edgeflow->edge_hist[edgeflow->current_frame_nr].frame_time - snapshot->keyframe.frame_time) > 5e6    // more than 5 seconds
+      || max_displacement >= params->RES * params->disparity_range / 2                                      // max displacement aboe 50% of max
+      //|| snapshot->snapshot_quality < 20                                                                  // fit quality too low
+      || sumN1 < IMAGE_WIDTH / 10                                                                           // not enough points for fit
+      || sumN2 < IMAGE_HEIGHT / 10) {                                                                       // not enough points for fit
+    snapshot->keyframe = edgeflow->edge_hist[edgeflow->current_frame_nr];
+    snapshot->prev_dist = (struct vec3_t) {0, 0, 0};
+  } else {
+    // Store previous values
+    snapshot->prev_dist = snapshot->dist;
   }
 }
 
@@ -681,145 +627,126 @@ void calculate_edge_hist(uint8_t *in, int32_t *edge_hist, uint16_t img_w, uint16
       ;  // hang to show user something isn't right
 }
 
-/* calculate_displacement: Calculate_displacement calculates the displacement between two histograms in time
- * \param edge_histogram is an array containing the summed up gradient intensities
- * \param edge_histogram_prev contains the edge_histogram from the previous timeframe
- * \param displacement is an array that contains the pixel displacements of the compared edgehistograms
- * \param size indicates the size of array (important for x and y direction)
- * \param window indicates the pixel size of the window of neighboring pixels
- * \param disp_range indicates how far the block matching algorithm should search
- * \param der_shift is the pixel shift caused by rotation of the camera
- * */
-uint32_t calculate_displacement(int32_t *edge_hist, int32_t *edge_hist_prev, int32_t *displacement, uint16_t size,
-                                uint8_t window, uint8_t disp_range, int32_t der_shift, int32_t scale)
-{
-  int32_t c;
-  int32_t x;
-  int32_t SAD_temp;
-
-  int32_t W = window;
-  int32_t D = disp_range;
-  uint32_t sum_error = 0;
-  uint8_t SHIFT_TOO_FAR = 0;
-
-  uint16_t border_left = W + D;
-  uint16_t border_right = size - W - D;
-
-  if (der_shift > 0) {
-    border_left += der_shift;
-  } else if (der_shift < 0) {
-    border_right += der_shift;
-  }
-
-  if (border_left >= border_right || abs(der_shift) >= 10) {
-    SHIFT_TOO_FAR = 1;
-  }
-
-  if (!SHIFT_TOO_FAR) {
-    arm_fill_q31(INT32_MAX, SAD, IMAGE_WIDTH);
-
-    for (c = -D; c <= D; c++) {
-      // compute running sum of SAD for all pixels at current disparity
-      run_sum1[border_left - W] = abs(edge_hist[D] - edge_hist_prev[D + c + der_shift]);
-      for (x = border_left - W + 1; x < border_right + W; x++) {
-        run_sum1[x] = run_sum1[x - 1] + abs(edge_hist[x] - edge_hist_prev[x + c + der_shift]);
-      }
-
-      // store displacement with minimum SAD error
-      // todo: it is possible to combine this for loop with the previous one...
-      for (x = border_left; x < border_right; x++) {
-        SAD_temp = run_sum1[x + W] - run_sum1[x - W - 1];
-        if (SAD_temp < SAD[x] || (SAD_temp == SAD[x] && (abs(scale * c) < abs(displacement[x])))) {
-          sum_error += SAD_temp - SAD[x] * (c != -D);
-          SAD[x] = SAD_temp;
-          displacement[x] = scale * c;
-        }
-      }
-    }
-  }
-
-  return sum_error;
-}
+// used as a temporary storage for Sum of Absolute difference computations
+static int32_t __ccmram SAD1[IMAGE_WIDTH] = {0};
+static int32_t __ccmram SAD2[IMAGE_WIDTH] = {0};
+static int32_t __ccmram SAD_left[IMAGE_WIDTH] = {0};
+static int32_t __ccmram SAD_right[IMAGE_WIDTH] = {0};
+static int32_t __ccmram SAD_prev[IMAGE_WIDTH] = {0};
+static int32_t __ccmram run_sum1[IMAGE_WIDTH] = {0};
+static int32_t __ccmram run_sum2[IMAGE_WIDTH] = {0};
 
 /* calculate_displacement_stereo: Calculate_displacement calculates the displacement between two histograms in stereo
- * \param edge_histogram is an array containing the summed up gradient intensities
- * \param edge_histogram_right contains the edge_histogram from the previous timeframe
- * \param displacement is an array that contains the pixel displacements of the compared edgehistograms
+ * \param edge_hist1
+ * \param edge_hist2
+ * \param disparity is an array that contains the pixel displacements of the compared edgehistograms
  * \param size indicates the size of array (important for x and y direction)
  * \param window indicates the pixel size of the window of neighboring pixels
- * \param disp_range indicates how far the block matching algorithm should search
- * \param stereo_shift is the pixel shift between the stereocameras, determined by calibration
+ * \param pix_shift is the pixel shift between the stereocameras, determined by calibration in subpixel (scaled by RES)
+ * \param min_disp minimum disparity to search
+ * \param max_disp maximum disparity to search
  * */
-uint32_t calculate_disparity(int32_t *edge_hist_l, int32_t *edge_hist_r, uint32_t *disparity, uint16_t size,
-                             uint8_t window, uint8_t disp_range, int16_t stereo_shift, uint32_t *confidence)
+uint32_t calculate_disparity(int32_t *edge_hist1, int32_t *edge_hist2, int32_t *disparity, uint16_t size,
+                             uint8_t window, int16_t pix_shift, uint32_t *confidence,
+                             int32_t RES, int32_t min_disp, int32_t max_disp)
 {
-  int32_t c, xl, xr;
-  int32_t SAD_temp, mean_temp;
-  int32_t mean[IMAGE_WIDTH] = {0};
-  int32_t *var = confidence;
+  int32_t c, x1, x2;
+  int32_t SAD_temp;
 
-  int8_t disp_right[IMAGE_WIDTH];
+  uint32_t disp2[IMAGE_WIDTH] = {0};
 
   int32_t W = window;
-  int32_t D = disp_range;
+  int32_t right_shift = max_disp + min_disp;    // This shift is used to add extra offset for array indexing with displacement check
   uint32_t sum_error = 0;
 
-  int16_t border_left = W + D;
-  int16_t border_right = size - W;
+  int16_t border_left = max_disp;           //
+  int16_t border_right = size + min_disp;   // todo min_disp > 0
 
-  if (stereo_shift > 0) {
-    border_left += stereo_shift;
-  } else if (stereo_shift < 0) {
-    border_right += stereo_shift;
+  // for debugging derotation
+  //int32_t sub_pix_shift = pix_shift;
+  //pix_shift = 0;
+
+  int32_t sub_pix_shift = pix_shift % RES;
+  pix_shift /= RES;
+
+  if (pix_shift > 0) {
+    border_left += pix_shift;
+  } else if (pix_shift < 0) {
+    border_right += pix_shift;
   }
 
-  arm_fill_q31(INT32_MAX, SAD, IMAGE_WIDTH);
-  arm_fill_q31(INT32_MAX, SAD_right, IMAGE_WIDTH);
-  arm_fill_q31(0, var, IMAGE_WIDTH);
+  arm_fill_q31(0, disparity, size);
+  arm_fill_q31(0, confidence, size);
 
-  for (c = 0; c <= D; c++) {
+  if (border_right - border_left < 10) {
+    return UINT32_MAX;    // too much pixel shift to compute result
+  }
+
+  // border with window
+  int16_t border_leftW = border_left + W + 1;   // left border of output
+  int16_t border_rightW = border_right - W;     // right left border of output
+
+  arm_fill_q31(INT32_MAX, SAD1, IMAGE_WIDTH);
+  arm_fill_q31(INT32_MAX, SAD2, IMAGE_WIDTH);
+  arm_fill_q31(0, SAD_prev, IMAGE_WIDTH);
+
+  for (c = min_disp; c <= max_disp; c++) {
     // compute running sum of SAD for all pixels at current disparity
-    run_sum1[border_left - W] = abs(edge_hist_l[border_left - W] - edge_hist_r[border_left - W - c - stereo_shift]);
-    run_sum2[border_left - W - D] = abs(edge_hist_l[border_left - W - D + c] -
-                                        edge_hist_r[border_left - W - D - stereo_shift]);
-    for (xl = border_left - W + 1, xr = xl - D; xl < border_right + W; xl++, xr++) {
-      run_sum1[xl] = run_sum1[xl - 1] + abs(edge_hist_l[xl] - edge_hist_r[xl - c - stereo_shift]);
-      run_sum2[xr] = run_sum2[xr - 1] + abs(edge_hist_l[xr + c] - edge_hist_r[xr - stereo_shift]);
+    run_sum1[border_left] = abs(edge_hist1[border_left] - edge_hist2[border_left - c - pix_shift]);
+    run_sum2[border_left - right_shift] = abs(edge_hist1[border_left - right_shift + c] -
+                                          edge_hist2[border_left - right_shift - pix_shift]);
+    for (x1 = border_left + 1, x2 = x1 - right_shift; x1 < border_right; x1++, x2++) {
+      run_sum1[x1] = run_sum1[x1 - 1] + abs(edge_hist1[x1] - edge_hist2[x1 - c - pix_shift]);
+      run_sum2[x2] = run_sum2[x2 - 1] + abs(edge_hist1[x2 + c] - edge_hist2[x2 - pix_shift]);
     }
 
     // compute SAD over window [x-W,x+W] for each pixel using the running sum
-    for (xl = border_left, xr = xl - D; xl < border_right; xl++, xr++) {
-      SAD_temp = run_sum1[xl + W] - run_sum1[xl - W - 1];
-
-      // compute variance
-      mean_temp = mean[xl];
-      mean[xl] += (SAD_temp - mean[xl]) / (c + 1);
-      var[xl] += mean_temp * (SAD_temp - mean[xl]);
-
+    for (x1 = border_leftW, x2 = x1 - right_shift; x1 < border_rightW; x1++, x2++) {
+      SAD_temp = run_sum2[x1 + W] - run_sum2[x1 - W - 1];
       // store disparity with minimum SAD error for left image
-      if (SAD_temp < SAD[xl]) {
-        sum_error += SAD_temp - SAD[xl] * (c != 0);
-        SAD[xl] = SAD_temp;
-        disparity[xl] = c;
+      if (SAD_temp < SAD1[x1]) {
+        SAD1[x1] = SAD_temp;
+        disparity[x1] = c;
+        SAD_left[x1] = SAD_prev[x1];
+        SAD_right[x1] = 0;
+      } else {
+        if (!SAD_right[x1]) {
+          SAD_right[x1] = SAD_temp;
+        }
       }
+      SAD_prev[x1] = SAD_temp;
       // Same for right image
-      SAD_temp = run_sum2[xr + W] - run_sum2[xr - W - 1];
-      if (SAD_temp < SAD_right[xr]) {
-        SAD_right[xr] = SAD_temp;
-        disp_right[xr] = c;
+      SAD_temp = run_sum2[x2 + W] - run_sum2[x2 - W - 1];
+      if (SAD_temp < SAD2[x2]) {
+        SAD2[x2] = SAD_temp;
+        disp2[x2] = c;
       }
     }
   }
 
-  for (xl = border_left; xl < border_right; xl++) {
-    if (disparity[xl] != disp_right[xl - disparity[xl]]) {
-      // occluded image column
-      disparity[xl] = 0;//disparity[xl-1];
-      confidence[xl] = 0;
-    } else if (SAD[xl] != 0) {
-      confidence[xl] /= D * SAD[xl]; // scale the variance with the minimum error
-    } else {
-      confidence[xl] = INT32_MAX;
+  for (x1 = border_leftW; x1 < border_rightW; x1++) {
+    if (disparity[x1] != disp2[x1 - disparity[x1]]) { // occluded image column
+      disparity[x1] = 0;
+      confidence[x1] = 0;
+    } else { // good fit
+      sum_error += SAD1[x1];
+      // subpixel disparity computation, fit parabola and assign minimum
+      if (disparity[x1] > min_disp && disparity[x1] < max_disp) {
+        disparity[x1] = RES * disparity[x1] + sub_pix_shift - RES * (SAD_right[x1] - SAD_left[x1]) / (SAD_left[x1] - 2 * SAD1[x1] + SAD_right[x1]) / 2;
+      } else {
+        disparity[x1] = RES * disparity[x1] + sub_pix_shift;
+      }
+
+      if (!SAD1[x1]) {
+        SAD1[x1] = 1;
+      }
+
+      // confidence is the relative error of min and surrounding fit
+      if ((SAD_right[x1] < SAD_left[x1] && disparity[x1] < max_disp) || disparity[x1] <= min_disp) {
+        confidence[x1] = RES * SAD_right[x1] / SAD1[x1];
+      } else {
+        confidence[x1] = RES * SAD_left[x1] / SAD1[x1];
+      }
     }
   }
 
@@ -837,8 +764,11 @@ uint32_t calculate_disparity(int32_t *edge_hist_l, int32_t *edge_hist_r, uint32_
 int32_t calculate_disparity_fullimage(int32_t *edge_hist_l, int32_t *edge_hist_r, uint16_t size, uint8_t D,
                                       int16_t stereo_shift)
 {
+  static int32_t SAD[EDGEFLOW_DISPARITY_RANGE] = {0};
+
   int32_t c, x;
-  int32_t min_error, min_index;
+  int32_t min_error;
+  uint32_t min_index;
 
   uint16_t border_left = D;
   uint16_t border_right = size;
@@ -1077,294 +1007,6 @@ uint8_t evaluate_edgeflow_stereo(int32_t *stereo_distance_per_column, int32_t si
 }
 
 
-/* line_fit: fits a line using least squares to the histogram disparity map
- * \param displacement is an array that contains the pixel displacements of the compared edgehistograms
- * \param divergence is slope of the optical flow field
- * \param slope is intercept of the optical flow (calculated from middle from image)
- * \param size is the  size of stereo_distance_per_column
- * \param border is the search window + search distance used in blockmatching
- * \param RES is resolution used to calculate the line fit (int based math)
- * \param x_offset offset is x value for linefit
- * */
-// Line_fit fits a line using least squares to the histogram disparity map
-uint32_t line_fit(int32_t *points, int32_t *slope, int32_t *intercept,
-                  uint32_t size, uint32_t border, int32_t RES, int32_t x_offset)
-{
-  int32_t x;
-
-  int32_t count = 0;
-  int32_t sumY = 0;
-  int32_t sumX = 0;
-  int32_t sumX2 = 0;
-  int32_t sumXY = 0;
-  int32_t border_int = (int32_t) border;
-  int32_t size_int = (int32_t) size;
-  uint32_t total_error = 0;
-
-  *slope = 0;
-  *intercept = 0;
-
-  // compute fixed sums
-  int32_t xend = size_int - border_int - 1;
-  sumX = xend * (xend + 1) / 2 - border_int * (border_int + 1) / 2
-         + border_int;
-  sumX2 = xend * (xend + 1) * (2 * xend + 1) / 6 - border_int * (border_int + 1) * (2 * border_int + 1) / 6 + border_int * border_int;
-  count = size_int - 2 * border_int;
-
-  for (x = border_int; x < size_int - border_int; x++) {
-    sumY += points[x];
-    sumXY += (x + x_offset) * points[x];
-  }
-
-  // We need at least two points to do a line fit
-  if (count < 2) {
-    return INT32_MAX;
-  }
-
-  // *divergence = (sumXY - sumX * yMean) / (sumX2 - sumX * xMean); // compute slope of line ax + b
-  if ((sumX2 - sumX * sumX / count) != 0) {
-    *slope = RES * (sumXY - sumX * sumY / count) / (sumX2 - sumX * sumX / count);  // compute slope of line ax + b
-  } else {
-    //divergence_int = 10000;
-  }
-
-  // compute b (or y) intercept of line ax + b
-  *intercept = (RES * sumY - *slope * sumX) / count;
-
-  for (x = border_int; x < size_int - border_int; x++) {
-    total_error += abs(RES * points[x] - *slope * (x + x_offset) - *intercept);
-  }
-
-  return total_error / count;
-}
-
-/* weighted_line_fit: fits a line using least squares to the histogram disparity map, excluding the areas that have faulty distance measurements
- * \param displacement is an array that contains the pixel displacements of the compared edgehistograms
- * \param faulty_distance is an array with binary values, to indicate where the distance measure was faulty and not (those coordinates will not be included in the line fit)
- * \param divergence is slope of the optical flow field
- * \param slope is intercept of the optical flow (calculated from middle from image)
- * \param size is the  size of stereo_distance_per_column
- * \param border is the search window + search distance used in blockmatching
- * \param RES is resolution used to calculate the line fit (int based math)
- * \param x_offset offset is x value for linefit
- * */
-uint32_t weighted_line_fit(int32_t *points, int32_t *weight, int32_t *slope,
-                           int32_t *intercept, uint32_t size, uint32_t border, uint16_t RES,
-                           int32_t x_offset)
-{
-  int32_t x;
-  int32_t count = 0;
-  int32_t Sx = 0, Sy = 0;   // weighted average of x and y
-  int32_t sumW = 0;
-
-  int32_t border_int = (int32_t) border;
-  int32_t size_int = (int32_t) size;
-  uint32_t total_error = 0;
-
-  *slope = 0;
-  *intercept = 0;
-
-  for (x = border_int; x < size_int - border_int; x++) {
-    if (weight[x] > 0) {
-      Sx += weight[x] * (x + x_offset);
-      Sy += weight[x] * points[x];
-      sumW += weight[x];
-      count++;
-    }
-  }
-
-  // We need at least two points to do a line fit
-  if (count < 2 || sumW == 0) {
-    return INT32_MAX;
-  }
-
-  Sx /= sumW;
-  Sy /= sumW;
-
-  // compute fixed sums
-  int32_t nominator = 0, denominator = 0;
-  for (x = border_int; x < size_int - border_int; x++) {
-    nominator += weight[x] * (points[x] - Sy) * (x + x_offset - Sx);
-    denominator += weight[x] * (x + x_offset - Sx) * (x + x_offset - Sx);
-  }
-
-  if (denominator != 0) {
-    *slope = RES * nominator / denominator;
-  }
-
-  *intercept = RES * Sy - *slope * Sx; // compute b (or y) intercept of line ax + b.
-
-  for (x = border_int; x < size_int - border_int; x++) {
-    total_error += abs(RES * points[x] - *slope * (x + x_offset) - *intercept);
-  }
-
-  return total_error / count;
-}
-
-/* weighted_line_fit: fits a line using least squares to the histogram disparity map, excluding the areas that have faulty distance measurements
- * \param displacement is an array that contains the pixel displacements of the compared edgehistograms
- * \param faulty_distance is an array with binary values, to indicate where the distance measure was faulty and not (those coordinates will not be included in the line fit)
- * \param divergence is slope of the optical flow field
- * \param slope is intercept of the optical flow (calculated from middle from image)
- * \param size is the  size of stereo_distance_per_column
- * \param border is the search window + search distance used in blockmatching
- * \param RES is resolution used to calculate the line fit (int based math)
- * \param p0 is the constraint condition, line must pass through (x0,y0), set (struct point_t){0,0} if not used
- * */
-uint32_t constrained_line_fit(int32_t *points, int32_t *weight, int32_t *slope,
-                              int32_t *intercept, uint32_t size, uint32_t border, uint16_t RES,
-                              struct point_t p0)
-{
-  // solve least squares minimization for equation y - y0 = m(x - x0)
-  int32_t x;
-  uint32_t error;
-  for (x = border; x < size - border; x++) {
-    points[x] -= p0.y;
-  }
-  if (weight != NULL) {
-    error = weighted_line_fit(points, weight, slope, intercept, size, border, RES, p0.x);
-  } else {
-    error = line_fit(points, slope, intercept, size, border, RES, p0.x);
-  }
-  *intercept = p0.y - *slope * p0.x;
-  return error;
-}
-
-/* weighted_line_fit: fits a line using least squares to the histogram disparity map, excluding the areas that have faulty distance measurements
- * \param displacement is an array that contains the pixel displacements of the compared edgehistograms
- * \param divergence is slope of the optical flow field
- * \param slope is intercept of the optical flow (calculated from middle from image)
- * \param faulty_distance is an array with binary values, to indicate where the distance measure was faulty and not (those coordinates will not be included in the line fit)
- * \param size is the  size of stereo_distance_per_column
- * \param border is the search window + search distance used in blockmatching
- * \param RES is resolution used to calculate the line fit (int based math)
- *
- * TODO: Make the inlier_threshold and inlier ratio adaptable
- * */
-void line_fit_RANSAC(int8_t *displacement, int32_t *divergence, int32_t *flow,
-                     uint8_t *faulty_distance, uint16_t size, uint32_t border, int32_t RES)
-{
-
-  int16_t inlier_threshold = 2000;
-  int16_t inlier_ratio = 40;
-  int16_t num_inliers_wanted = (int16_t)(inlier_ratio
-                                         * (size - (int32_t) border * 2) / 100);
-  int16_t num_inliers = 0;
-  //Fit a linear line with RANSAC (from Guido's code)
-  int32_t ransac_iter = 50;
-  int32_t it;
-  uint32_t ind1, ind2, tmp, entry;
-  int32_t total_error = 0, best_ind = 0;
-  int32_t error;
-  int32_t dx, dflow, predicted_flow;
-  // flow = a * x + b
-  int32_t a[ransac_iter];
-  int32_t b[ransac_iter];
-  uint32_t errors[ransac_iter];
-
-  uint16_t  counter_pass_check = 0;
-
-  uint16_t entries = size - 2 * border;
-
-  for (it = 0; it < ransac_iter; it++) {
-    ind1 = rand() % entries + border;
-    ind2 = rand() % entries + border;
-
-    while (ind1 == ind2) {
-      ind2 = rand() % entries + border;
-    }
-    // TODO: is this really necessary?
-    if (ind1 > ind2) {
-      tmp = ind2;
-      ind2 = ind1;
-      ind1 = tmp;
-    }
-
-    dx = ind2 - ind1;   // never zero
-    dflow = displacement[ind2] - displacement[ind1];
-
-    // Fit line with two points
-    a[it] = RES * dflow / dx;
-    b[it] = RES * (int32_t)displacement[ind1] - (a[it] * ind1);
-    // evaluate fit:
-
-    total_error = 0;
-    for (entry = border; entry < size - border; entry++) {
-      predicted_flow = a[it] * entry + b[it];
-      error = abs((RES * (int32_t)displacement[entry] - predicted_flow));
-
-      if ((int32_t) error < inlier_threshold * RES && faulty_distance[entry] == 0) {
-        num_inliers++;
-        total_error += (error / (RES));
-      }
-
-      //total_error += ipow(RES*displacement[entry] - predicted_flow,2);
-    }
-
-
-    if ((num_inliers > num_inliers_wanted)) {
-      errors[it] = total_error;
-      counter_pass_check++;
-
-    } else {
-
-      errors[it] = UINT32_MAX;
-    }
-
-    num_inliers = 0;
-    total_error = 0;
-  }
-
-  // select best fit:
-  uint32_t min_error = 0;
-  best_ind = getMinimum2(errors, ransac_iter, &min_error);
-
-  if (counter_pass_check > 0) {
-    *divergence = a[best_ind];
-    *flow = b[best_ind];
-  } else {
-    *divergence = 0;
-    *flow = 0;
-  }
-
-}
-
-/* simpleKalmanFilter: simple one dimension kalman filter
- * \param cov is covariance value of the measurement
- * \param previous_est is the previous estimate (from kalmanfilter previous timestep)
- * \param current_meas is current measurement update
- * \param Q is process noise
- * \param R is measurement noise
- * \param RES is resolution used for the int based math
- * \return new variable estimate
- *
- * */
-int32_t simpleKalmanFilter(int32_t *cov, int32_t previous_est,
-                           int32_t current_meas, int32_t Q, int32_t R, int32_t RES)
-{
-  int32_t predict_cov = *cov + Q;
-  int32_t K = RES * predict_cov / (*cov + R);
-
-  *cov = ((RES - K) * predict_cov) / RES;
-
-  return (previous_est + (K * (current_meas - previous_est)) / RES);
-}
-
-
-/* moving_fading_average: an average filter with a forget function
- * \param previous_est is the previous smoothed variable
- * \param current_meas is current measurement update
- * \param alpha is the forget factor
- * \param RES is resolution used for the int based math
- * \return new variable estimate
- *
- * */
-int32_t moving_fading_average(int32_t previous_est, int32_t current_meas,
-                              int32_t alpha, int32_t RES)
-{
-  return (alpha * current_meas + (RES - alpha) * previous_est) / RES;
-}
-
 /* visuzlize_divergence This function is a visualization tool which visualizes the Edge filter in the one image and the histogram disparity with line fit in the second.
  * \param in[] is an array containing the pixel intensities of the (stereo)image
  * \param displacement is pixel displacement of edgehistograms
@@ -1400,31 +1042,9 @@ void visualize_divergence(uint8_t *in, int8_t *displacement, int32_t slope,
   }
 }
 
-/* getMinimum2: finds minimum value in array
- * \param a is an array containing the values
- * \param n is size of the array
- * \param min_error is the minimum value of array
- * \return min_ind is the index of the minimum value located on the array
- *
- * */
-uint32_t getMinimum2(uint32_t *a, uint32_t n, uint32_t *min_error)
-{
-  uint32_t i;
-  uint32_t min_ind = 0;
-  *min_error = a[min_ind];
-  for (i = 1; i < n; i++) {
-    if (a[i] < *min_error) {
-      min_ind = i;
-      *min_error = a[i];
-    }
-  }
-  return min_ind;
-}
-
 /** Returns the minimum value in an array with the accompanying index
  * If there are multiple indices containing the same minimum value,
  * the index closest to the min_index will be returned
- *
  */
 void find_minimum(int32_t *pSrc, uint8_t blockSize, int32_t *pResult, uint32_t *pIndex, uint8_t min_index)
 {
@@ -1442,86 +1062,120 @@ void find_minimum(int32_t *pSrc, uint8_t blockSize, int32_t *pResult, uint32_t *
   }
 }
 
-
-/* getMaximum: finds maximum value in array
- * \param a is an array containing the values
- * \param n is size of the array
- * \return max_ind is the index of the maximum value located on the array
- *
- * */
-uint32_t getMaximum(uint32_t *a, uint32_t n)
-{
-  uint32_t c;
-  uint32_t max_error = a[0];
-  uint32_t max_ind = 0;
-
-  for (c = 1; c < n; c++) {
-    if (a[c] > max_error) {
-      max_ind = c;
-      max_error = a[c];
-    }
-  }
-  return max_ind;
-}
-
 /* getMean: calculate mean of array
  * \param a is an array containing the values
  * \param n is size of the array
  * \return mean of array
  * */
-uint32_t getMeanDisp(int32_t *a, int32_t n, int32_t border)
+uint32_t getMeanDisp(uint32_t *a, int32_t n, int32_t border, uint32_t thresh)
 {
   int32_t dSum = 0;
   int32_t i, count = 0;
   for (i = border; i < n - border; ++i) {
-    if (a[i] != 0) {
+    if (a[i] >= thresh) {
       dSum += a[i];
       count++;
     }
   }
-  return dSum / count;
+  if (count) {
+    return dSum / count;
+  } else {
+    return 0;
+  }
 }
 
-/* getTotalIntensityImage: calculate summed intensity of image
- * \param in is the image buffer
- * \param img_h
- * \param img_w
- * \return mean summed up intensities
- * */
-uint32_t getTotalIntensityImage(uint8_t *in, uint32_t img_h, uint32_t img_w)
+/** Compute divergence and ventral flow using coupled Bayesian linear regression
+ * In short, we linearly solve the following set of equations with a bayesian prior
+ * u * Z = -U + xW
+ * v * Z = -V + yW
+ * where u and v are the components of the flow vector at colomn x and row y respectively, Z is the distance to the row/colomn,
+ * U and V are the relative velocities in the x and y directions respectively.
+ * The solution to the Bayesian linear regression for [U V W]' is given by inv(X'X + P)*X'Y
+ * in this case X is a vector of the indicies of the row and colomn and Y are the displacments
+ *
+ * @param disp displacement being fit
+ * @param stereo_disp displacement sruct holding stereo distance and confidence
+ * @param RES is resolution of displacement
+ * @param scale_x is factor to scale dispalcement in x direction
+ * @param scale_y is factor to scale dispalcement in y direction
+ * @param w width of array
+ * @param h heihgt of array
+ * @param border usable array boundaries
+ * @param result Resultant fit parameters
+ */
+float coupled_flow_fit(struct displacement_t *disp, struct displacement_t *stereo_disp,
+                       uint32_t RES, float scale_x, float scale_y, uint16_t w, uint16_t h, uint16_t border,
+                       struct vec3_t *result)
 {
 
-  uint32_t y = 0, x = 0;
-  uint32_t idx = 0;
-  uint32_t px_offset = 0;
-  uint32_t totalIntensity = 0;
-  for (x = 1; x < img_w - 1; x++) {
-    for (y = 0; y < img_h; y++) {
-      idx = 2 * (img_w * y + (x)); // 2 for interlace
+  static const float prior = 0.5f;
+  static int32_t x, y;
+  static float u, v;
 
-      totalIntensity += (uint32_t) in[idx + px_offset];
+  uint32_t conf_threshold = (int32_t)(1.2 * RES);  // confidence threshold
+
+  sumN1 = 0.f; sumN2 = 0.f;
+  float sumY1 = 0.f, sumY2 = 0.f;
+  float sumY1Y1 = 0.f, sumY2Y2 = 0.f;
+  float sumX1 = 0.f, sumX2 = 0.f;
+  float sumX12 = 0.f, sumX22 = 0.f;
+  float sumXY1 = 0.f, sumXY2 = 0.f;
+
+  for (x = border; x < w - border; x++) {
+    if (stereo_disp->stereo[x] >= RES && stereo_disp->confidence_stereo[x] >= conf_threshold && disp->confidence_x[x] >= conf_threshold) {
+      sumN1++;
+      sumX1 += x;
+      sumX12 += x * x;
+
+      // convert displacement to flow vector
+      u = (float)(disp->x[x]) * scale_x / stereo_disp->stereo[x];
+
+      sumY1 += u;
+      sumY1Y1 += u * u;
+      sumXY1 += u * x;
     }
   }
-  return totalIntensity;
-}
 
-/* getAmountPeaks: calculate amount of peaks of an edgehistogram
- * \param edgehist is an edgehistogram
- * \param median of edgehistogram
- * \param size is size of edgehistogram
- * \return amount of peaks
- * */
-uint32_t getAmountPeaks(int32_t *edgehist, uint32_t median, int32_t size)
-{
-  uint32_t amountPeaks = 0;
-  int32_t i = 0;
+  for (y = border; y < h - border; y++) {
+    if (disp->confidence_y[y] >= conf_threshold) {
+      sumN2++;
+      sumX2 += y;
+      sumX22 += y * y;
 
-  for (i = 1; i < size + 1; i++) {
-    if (edgehist[i - 1] < edgehist[i] && edgehist[i] > edgehist[i + 1]
-        && edgehist[i] > (int16_t) median) {
-      amountPeaks++;
+      // convert displacement to flow vector
+      v = (float) disp->y[y] * scale_y;
+
+      sumY2 += v;
+      sumY2Y2 += v * v;
+      sumXY2 += v * y;
     }
   }
-  return amountPeaks;
-}
 
+  // introduce prior and some variables for products used multiple times
+  sumN1 += prior;
+  sumN2 += prior;
+  float sumX12X22 = sumX12 + sumX22 + prior;
+  float sumX1X1 = sumX1 * sumX1;
+  float sumX2X2 = sumX2 * sumX2;
+  float sumX1X2 = sumX1 * sumX2;
+  float sumXY1XY2 = sumXY1 + sumXY2;
+
+  float det = sumN1 * sumN2 * sumX12X22 - sumN1 * sumX2X2 - sumN2 * sumX1X1;
+
+  // solve least squares equation y\A
+  float U = (sumN2 * (sumX12X22 * sumY1 - sumX1 * sumXY1XY2) + sumX1X2 * sumY2 - sumX2X2 * sumY1) / det;
+  float V = (sumN1 * (sumX12X22 * sumY2 - sumX2 * sumXY1XY2) + sumX1X2 * sumY1 - sumX1X1 * sumY2) / det;
+  float W = (sumN1 * sumN2 * sumXY1XY2 - sumN1 * sumX2 * sumY2 - sumN2 * sumX1 * sumY1) / det;
+
+  // compute fit quality, coefficient of determination
+  float R2 = 1.0f;
+  if (sumY1Y1 + sumY2Y2 > 0) {
+    R2 = (U * (U * sumN1 + W * sumX1) + V * (V * sumN2 + W * sumX2) + W * (U * sumX1 + V * sumX2 + W * sumX12X22)) / (sumY1Y1 + sumY2Y2);
+  }
+
+  result->x = (int32_t)U;
+  result->y = (int32_t)V;
+  result->z = (int32_t)W;
+
+  return R2;
+}

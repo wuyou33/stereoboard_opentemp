@@ -58,7 +58,6 @@
 #include "distance_matrix.h"
 #include "edgeflow.h"
 #include "droplet_algorithm.h"
-#include "filter_color.h"
 #include "stereo_vision.h"
 #include "window_detection.h"
 #include "forward_velocity_estimator.h"
@@ -144,17 +143,6 @@ stereoboard_algorithm_type getBoardFunction(void)
 #endif
 }
 
-//Initializing all structures and elements for the optical flow algorithm (divergence.c)
-struct edgeflow_parameters_t edgeflow_parameters;
-struct edgeflow_results_t edgeflow_results;
-
-//send array with flow parameters
-#ifdef EDGEFLOW_DEBUG
-uint8_t edgeflowArray[128 * 5];
-#else
-uint8_t edgeflowArray[25];
-#endif
-
 #ifdef WINDOW
 
 #define WINDOWBUFSIZE 8  // 8 for window and 8 for divergence
@@ -177,14 +165,16 @@ struct image_t current_image_pair = {
   .w = IMAGE_WIDTH,
   .h = IMAGE_HEIGHT,
   .buf_size = FULL_IMAGE_SIZE,
-  .type = IMAGE_GRAYSCALE
+  .type = IMAGE_GRAYSCALE,
+  .pprz_ts = 0
 };  // todo this should probably be dependent on the cpld config
 
 struct image_t disparity_image = {
   .w = IMAGE_WIDTH,
   .h = IMAGE_HEIGHT,
   .buf_size = FULL_IMAGE_SIZE / 2,
-  .type = IMAGE_GRAYSCALE
+  .type = IMAGE_GRAYSCALE,
+  .pprz_ts = 0
 };
 
 // Timing counters
@@ -378,13 +368,8 @@ int main(void)
   int disparity_velocity_step = 0;
 
   // initialize edgeflow
-  edgeflow_init(&edgeflow_parameters, &edgeflow_results, IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
+  edgeflow_init(IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
 // led_clear();
-  uint8_t quality_measures_index;
-  for (quality_measures_index = 0; quality_measures_index < DIV_QUALITY_LENGTH;
-       quality_measures_index++) {
-    edgeflow_results.quality_meas[quality_measures_index++] = 0;
-  }
 
   // main loop
   while (1) {
@@ -404,7 +389,6 @@ int main(void)
 
       // wait for new frame
       current_image_pair.buf = camera_wait_for_frame();
-      edgeflow_results.edge_hist[edgeflow_results.current_frame_nr].frame_time = sys_time_get();
 
 #ifdef NEW_MAIN
       run_project();
@@ -417,8 +401,10 @@ int main(void)
         freq_counter = 0;
         sys_time_prev_long = sys_time_get();
       }
-      frame_dt = 1000 * get_timer_interval(sys_time_prev) / TIMER_TICKS_PER_SEC;
+      frame_dt = get_timer_interval_ms(sys_time_prev);
       sys_time_prev = sys_time_get();
+
+      current_image_pair.pprz_ts += frame_dt * 1000;
 
       // Read from other device with the stereo communication protocol.
       while (UsartCh() && stereoprot_add(insert_loc, 1, STEREO_BUF_SIZE) != extract_loc) {
@@ -661,8 +647,7 @@ int main(void)
       if (current_stereoboard_algorithm == SEND_EDGEFLOW || current_stereoboard_algorithm == STEREO_VELOCITY) {
 
         // calculate the edge flow
-        edgeflow_total(edgeflowArray, (int16_t *)stereocam_data.data, stereocam_data.len, (uint8_t *)current_image_pair.buf,
-                       &edgeflow_parameters, &edgeflow_results);
+        edgeflow_total((uint8_t *)current_image_pair.buf, current_image_pair.pprz_ts, (int16_t *)stereocam_data.data, stereocam_data.len);
 
         stereocam_data.data_new = 0;
       }
@@ -831,28 +816,28 @@ int main(void)
 #endif
 
       if (current_stereoboard_algorithm == STEREO_VELOCITY) {
-        edgeflowArray[4] = maxDispFound;
+        edgeflow_msg[4] = maxDispFound;
         int disparities_high =  evaluate_disparities_droplet((uint8_t *)disparity_image.buf, image_width, image_height, 80);
         if (disparities_high > 200) {
-          edgeflowArray[5] = 200;
+          edgeflow_msg[5] = 200;
         } else {
-          edgeflowArray[5] = (uint8_t)disparities_high;
+          edgeflow_msg[5] = (uint8_t)disparities_high;
         }
-        edgeflowArray[6] = (uint8_t)(processed_pixels / 100);
-        edgeflowArray[10] = avg_disp_left;
-        edgeflowArray[11] = avg_disp_right;
+        edgeflow_msg[6] = (uint8_t)(processed_pixels / 100);
+        edgeflow_msg[10] = avg_disp_left;
+        edgeflow_msg[11] = avg_disp_right;
         led_clear();
         if (maxDispFound > 22) {
           led_set();
         }
-        SendArray(edgeflowArray, 23, 1);
+        SendArray(edgeflow_msg, 23, 1);
       }
 
       if (current_stereoboard_algorithm == SEND_EDGEFLOW) {
 #ifdef EDGEFLOW_DEBUG
-        SendArray(edgeflowArray, 128, 5);
+        SendArray(edgeflow_msg, 128, 5);
 #else
-        SendArray(edgeflowArray, 25, 1);
+        SendArray(edgeflow_msg, 25, 1);
 #endif
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {

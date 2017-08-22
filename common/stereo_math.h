@@ -82,8 +82,8 @@
 static uint8_t bounduint8(int32_t value)
 {
   uint8_t value_uint8;
-  if (value > 255) {
-    value_uint8 = 255;
+  if (value > UINT8_MAX) {
+    value_uint8 = UINT8_MAX;
   } else if (value < 0) {
     value_uint8 = 0;
   } else {
@@ -96,10 +96,10 @@ static uint8_t bounduint8(int32_t value)
 static int8_t boundint8(int32_t value)
 {
   int8_t value_int8;
-  if (value > 127) {
-    value_int8 = 127;
-  } else if (value < -128) {
-    value_int8 = -128;
+  if (value > INT8_MAX) {
+    value_int8 = INT8_MAX;
+  } else if (value < INT8_MIN) {
+    value_int8 = INT8_MIN;
   } else {
     value_int8 = (int8_t) value;
   }

@@ -62,5 +62,15 @@ inline static uint32_t calc_abs_time_interval(uint32_t recent_time, uint32_t old
   return (recent_time + TIMER_PERIOD - older_time);
 }
 
+inline static uint32_t get_timer_interval_ms(uint32_t prev_time)
+{
+  return get_timer_interval(prev_time) / TIMER_TICKS_PER_MSEC;
+}
+
+inline static uint32_t calc_abs_time_interval_ms(uint32_t recent_time, uint32_t older_time)
+{
+  return calc_abs_time_interval(recent_time, older_time) / TIMER_TICKS_PER_MSEC;
+}
+
 #endif /* SYS_TIME_H_ */
 #endif /* PROFILING_H_ */

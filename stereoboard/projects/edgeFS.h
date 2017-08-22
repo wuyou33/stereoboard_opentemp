@@ -17,6 +17,7 @@
 //////////////////////////////////////////////////////
 // Settings
 #define LED_TOGGLE
+#define EDGEFLOW_USE_SNAPSHOT true
 
 #define DCMI_MODE DCMI_MODE_3
 
