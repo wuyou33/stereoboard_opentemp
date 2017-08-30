@@ -79,7 +79,7 @@ STDP_SRCS += $(wildcard ${DSP_LIB_PATH}/**/*.c)
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 
-all: check_user_inputs print $(BIN_IMAGE) #check_user_data_size
+all: check_user_inputs print pprzlink $(BIN_IMAGE) #check_user_data_size
 	$(info Build Successful!)
 
 check_user_inputs:
@@ -147,22 +147,19 @@ MAIN_OBJS = $(MAIN_SRCS:.c=.o)
 #MAIN_DEPS = $(MAIN_OBJS:.o=.d)
 MAIN_LST = $(MAIN_SRCS:.c=.lst)
 
-export VALIDATE_XML=FALSE
+$(EXECUTABLE): 	\
+    startup_stm32f4xx.s \
+    ${STDP_LIB} \
+    $(MAIN_OBJS)
+	
+	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
+
 ifdef USE_PPRZLINK
-$(EXECUTABLE): 	\
-    startup_stm32f4xx.s \
-    ${STDP_LIB} \
-    $(MAIN_OBJS)
-	
+export VALIDATE_XML=FALSE
+pprzlink:
 	$(MAKE) -C $(PPRZ_PATH) -s --no-print-directory pymessages
-	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
 else
-$(EXECUTABLE): 	\
-    startup_stm32f4xx.s \
-    ${STDP_LIB} \
-    $(MAIN_OBJS)
-	
-	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
+pprzlink:
 endif
 
 clean:
