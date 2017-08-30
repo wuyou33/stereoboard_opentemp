@@ -29,6 +29,6 @@
 #define UsartTx Usart4Tx
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
-#define USART4_BAUD 115200
+#define USART4_BAUD 921600
 
 #endif /* PROJECT_HEADER_H_ */

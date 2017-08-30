@@ -57,7 +57,7 @@ enum FilterType {
 #ifdef EDGEFLOW_DEBUG
 uint8_t edgeflow_msg[128 * 5];
 #else
-uint8_t edgeflow_msg[25];
+uint8_t edgeflow_msg[22];
 #endif
 
 //shared variables
@@ -65,12 +65,13 @@ struct edgeflow_parameters_t edgeflow_params;
 struct edgeflow_t edgeflow;
 struct snapshot_t edgeflow_snapshot;
 
+struct cam_state_t *cam_state = NULL;
+
 float sumN1, sumN2;
 
 float coupled_flow_fit(struct displacement_t *disp, struct displacement_t *stereo_disp,
                        uint32_t RES, float scale_x, float scale_y, uint16_t w, uint16_t h, uint16_t border,
                        struct vec3_t *result);
-
 
 /* edgeflow_total: The total function for the edgeflow algorithm
  * \param current_image_buffer is the image of the present image step.
@@ -78,39 +79,23 @@ float coupled_flow_fit(struct displacement_t *disp, struct displacement_t *stere
  * \param data_in is the data the stereocam receives from the autopilot.
  * \param data_len is the length of the received data array, to make sure that it receives data.
  * */
-void edgeflow_total(uint8_t *current_image_buffer, uint32_t image_time, int16_t *data_in, uint8_t data_len)
+void edgeflow_total(uint8_t *current_image_buffer, uint32_t image_time)
 {
   // move the indices for the edge hist structure
   edgeflow.current_frame_nr = (edgeflow.current_frame_nr + 1) % MAX_HORIZON;
 
-  if (data_len > 0) {
-    edgeflow.edge_hist[edgeflow.current_frame_nr].roll = data_in[0];  //in RES * [rad]
-    edgeflow.edge_hist[edgeflow.current_frame_nr].pitch = data_in[1]; //in RES * [rad]
-    edgeflow.edge_hist[edgeflow.current_frame_nr].yaw = data_in[2];   //in RES * [rad]
-    edgeflow.edge_hist[edgeflow.current_frame_nr].alt = edgeflow_params.RES;  //stereocam_data_int16[2];  //in RES * m
+  edgeflow.edge_hist[edgeflow.current_frame_nr].frame_time = image_time;
 
-    edgeflow_params.derotation = (int8_t) data_in[3];
-    /*
-    edgeflow_params->derotation = stereocam_data_int16[2];
-    edgeflow_params->adapt_horizon = stereocam_data_int16[3];
-    edgeflow_params->window_size = stereocam_data_int16[4];
-    edgeflow_params->disparity_range = stereocam_data_int16[5];
-    edgeflow_params->snapshot = stereocam_data_int16[6];
-    edgeflow_params->stereo_shift = stereocam_data_int16[7];
-
-    edgeflow_params->autopilot_mode = stereocam_data_int16[8];
-    */
-
+  if (cam_state != NULL &&
+      abs(edgeflow.edge_hist[edgeflow.current_frame_nr].frame_time - cam_state->us_timestamp) > 1e6) {
+    edgeflow_params.derotation = 1;
+    edgeflow.edge_hist[edgeflow.current_frame_nr].phi = (int16_t)(cam_state->phi * edgeflow_params.RES);
+    edgeflow.edge_hist[edgeflow.current_frame_nr].theta = (int16_t)(cam_state->theta * edgeflow_params.RES);
+    edgeflow.edge_hist[edgeflow.current_frame_nr].psi = (int16_t)(cam_state->psi * edgeflow_params.RES);
+    edgeflow.edge_hist[edgeflow.current_frame_nr].alt = (int16_t)(cam_state->alt * edgeflow_params.RES);
   } else {
-    edgeflow.edge_hist[edgeflow.current_frame_nr].roll = 0;
-    edgeflow.edge_hist[edgeflow.current_frame_nr].pitch = 0;
-    edgeflow.edge_hist[edgeflow.current_frame_nr].yaw =  0;
-    edgeflow.edge_hist[edgeflow.current_frame_nr].alt = edgeflow_params.RES;
-
     edgeflow_params.derotation = 0;
   }
-
-  edgeflow.edge_hist[edgeflow.current_frame_nr].frame_time = image_time;
 
   calculate_edge_flow(current_image_buffer, &edgeflow_params, &edgeflow);
 
@@ -133,9 +118,12 @@ void edgeflow_total(uint8_t *current_image_buffer, uint32_t image_time, int16_t 
  * \param FOVX and FOVY are the field of view of the camera
  * \param img_w and img_h are the pixel dimensions of the image
  * \param use_monocam is a boolean that indicates if a monocam or stereocam is used
+ * \param cam_state_ref pointer to cam state struct, set to NULL for no derotation
  * */
-void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam)
+void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam, struct cam_state_t *cam_state_ref)
 {
+  cam_state = cam_state_ref;
+
   edgeflow_params.RES = 100;
   edgeflow_params.fovx = (int32_t)(FOVX * edgeflow_params.RES);
   edgeflow_params.fovy = (int32_t)(FOVY * edgeflow_params.RES);
@@ -158,7 +146,7 @@ void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam)
 
   edgeflow_params.disparity_range = EDGEFLOW_DISPARITY_RANGE; // this is not used as range but as max, maybe rename?
   edgeflow_params.window_size = EDGEFLOW_WINDOW_SIZE;
-  edgeflow_params.derotation = 1;
+  edgeflow_params.derotation = 0;
   edgeflow_params.adapt_horizon = 1;
   edgeflow_params.filter_type = NONE;
 
@@ -172,9 +160,9 @@ void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam)
   for (uint16_t i = 0; i < MAX_HORIZON; i++) {
     edgeflow.edge_hist[i].alt = 0;
     edgeflow.edge_hist[i].frame_time = 0;
-    edgeflow.edge_hist[i].pitch = 0;
-    edgeflow.edge_hist[i].roll = 0;
-    edgeflow.edge_hist[i].yaw = 0;
+    edgeflow.edge_hist[i].theta = 0;
+    edgeflow.edge_hist[i].phi = 0;
+    edgeflow.edge_hist[i].psi = 0;
     memset(edgeflow.edge_hist[i].x, 0, sizeof(edgeflow.edge_hist[i].x));
     memset(edgeflow.edge_hist[i].y, 0, sizeof(edgeflow.edge_hist[i].y));
   }
@@ -284,9 +272,8 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[])
   edgeflow_array[19] = (edgeflow_snapshot.dist_traveled.z) & 0xff;
 
   edgeflow_array[20] = (edgeflow.flow_quality);
-  edgeflow_array[21] = (edgeflow_snapshot.snapshot_quality);
-
-#endif
+  edgeflow_array[21] = (edgeflow_snapshot.quality);
+#endif // EDGEFLOW_DEBUG
 }
 
 /*  calculate_edge_flow: calculate the global optical flow by edgeflow
@@ -384,8 +371,8 @@ void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *params, stru
 
   if (params->derotation) {
     // TODO: consider adding the pixel dependent derotation (edge_x: qx^2, edge_y: py^2), may increase the fit quality under rotation
-    der_shift_y = RES * (edgeflow->edge_hist[edgeflow->prev_frame_y].roll - edgeflow->edge_hist[edgeflow->current_frame_nr].roll) * img_h / params->fovy;
-    der_shift_x = RES * (edgeflow->edge_hist[edgeflow->prev_frame_x].pitch - edgeflow->edge_hist[edgeflow->current_frame_nr].pitch) * img_w / params->fovx;
+    der_shift_y = RES * (edgeflow->edge_hist[edgeflow->prev_frame_y].phi - edgeflow->edge_hist[edgeflow->current_frame_nr].phi) * img_h / params->fovy;
+    der_shift_x = RES * (edgeflow->edge_hist[edgeflow->prev_frame_x].theta - edgeflow->edge_hist[edgeflow->current_frame_nr].theta) * img_w / params->fovx;
   }
 
   // Calculate displacement
@@ -398,8 +385,8 @@ void calculate_edge_flow(uint8_t *in, struct edgeflow_parameters_t *params, stru
   float scale_x = (float)(edgeflow->hz.x * params->camera_seperation * params->img_w) / params->fovx;
   float scale_y = (float)(edgeflow->hz.y * edgeflow->avg_dist) / (params->RES * params->RES);
 
-  edgeflow->flow_quality = bounduint8(params->RES * coupled_flow_fit(&(edgeflow->disp), &(edgeflow->disp), RES,
-                                      scale_x, scale_y, params->img_w, params->img_h, border, &(edgeflow->vel)));
+  edgeflow->flow_quality = bounduint8((int32_t)(params->RES * coupled_flow_fit(&(edgeflow->disp), &(edgeflow->disp), RES,
+                                      scale_x, scale_y, params->img_w, params->img_h, border, &(edgeflow->vel))));
 
   // change axis system from left-top to centre-centre
   edgeflow->vel.x += edgeflow->vel.z * img_w / 2;
@@ -485,8 +472,8 @@ void calculate_snapshot_displacement(struct edgeflow_parameters_t *params, struc
   int16_t der_shift_y = 0;
 
   if (params->derotation) {
-    der_shift_y = params->RES * (snapshot->keyframe.roll - edgeflow->edge_hist[edgeflow->current_frame_nr].roll) * params->img_h / (params->fovy);
-    der_shift_x = params->RES * (snapshot->keyframe.pitch - edgeflow->edge_hist[edgeflow->current_frame_nr].pitch) * params->img_w / (params->fovx);
+    der_shift_y = params->RES * (snapshot->keyframe.phi - edgeflow->edge_hist[edgeflow->current_frame_nr].phi) * params->img_h / (params->fovy);
+    der_shift_x = params->RES * (snapshot->keyframe.theta - edgeflow->edge_hist[edgeflow->current_frame_nr].theta) * params->img_w / (params->fovx);
   }
 
   // Calculate displacement
@@ -500,8 +487,8 @@ void calculate_snapshot_displacement(struct edgeflow_parameters_t *params, struc
   float scale_y = (float)edgeflow->avg_dist / params->RES;
 
   // solve fit
-  snapshot->snapshot_quality = bounduint8(params->RES * coupled_flow_fit(&(snapshot->disp), &(edgeflow->disp),
-                                          params->RES, scale_x, scale_y, params->img_w, params->img_h, border, &(snapshot->dist)));
+  snapshot->quality = bounduint8((int32_t)(params->RES * coupled_flow_fit(&(snapshot->disp), &(edgeflow->disp),
+                                          params->RES, scale_x, scale_y, params->img_w, params->img_h, border, &(snapshot->dist))));
 
   // change axis system from left-top to centre-centre
   snapshot->dist.x += snapshot->dist.z * params->img_w / 2;
@@ -547,7 +534,7 @@ void calculate_snapshot_displacement(struct edgeflow_parameters_t *params, struc
 
   if ((edgeflow->edge_hist[edgeflow->current_frame_nr].frame_time - snapshot->keyframe.frame_time) > 5e6    // more than 5 seconds
       || max_displacement >= params->RES * params->disparity_range / 2                                      // max displacement aboe 50% of max
-      //|| snapshot->snapshot_quality < 20                                                                  // fit quality too low
+      //|| snapshot->quality < 20                                                                  // fit quality too low
       || sumN1 < IMAGE_WIDTH / 10                                                                           // not enough points for fit
       || sumN2 < IMAGE_HEIGHT / 10) {                                                                       // not enough points for fit
     snapshot->keyframe = edgeflow->edge_hist[edgeflow->current_frame_nr];

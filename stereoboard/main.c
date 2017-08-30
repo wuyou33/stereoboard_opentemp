@@ -67,6 +67,12 @@
 #include "dronerace_gate_detector.h"
 #include "gate_detection.h"
 #include "gate_detection_fp.h"
+
+#ifdef USE_PPRZLINK
+#include "pprz_datalink.h"
+#include "pprzlink/intermcu_msg.h"
+#endif
+
 /********************************************************************/
 
 //uint8_t __ccmram jpeg_image_buffer_8bit[FULL_IMAGE_SIZE / 2];  // todo how big should this actually be?
@@ -235,6 +241,10 @@ int main(void)
   uint8_t inv_freq_stereo = 5;
   uint8_t avg_disp_left, avg_disp_right;
 
+#ifdef USE_PPRZLINK
+  datalink_init(&USART4_Data);
+#endif
+
   /***********
    * MAIN LOOP
    ***********/
@@ -330,13 +340,12 @@ int main(void)
   int pos_y = 0;
 
   // Stereo communication input protocol
-  uint8_t ser_read_buf[STEREO_BUF_SIZE];           // circular buffer for incoming data
-  uint8_t msg_buf[STEREO_BUF_SIZE];         // define local data
+  uint8_t msg_buf[STEREO_BUF_SIZE];           // define local data
   struct uint8array {
     uint8_t len;
     uint8_t height;
     uint8_t *data;
-    uint8_t data_new;
+    bool data_new;
   };
   struct uint8array stereocam_data = {.len = 0, .data = msg_buf, .data_new = 0, .height = 0}; // buffer used to contain image without line endings
   uint16_t insert_loc, extract_loc, msg_start;   // place holders for buffer read and write
@@ -367,8 +376,9 @@ int main(void)
   uint8_t maxDispFound = 0;
   int disparity_velocity_step = 0;
 
+  struct cam_state_t cam_state;
   // initialize edgeflow
-  edgeflow_init(IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM);
+  edgeflow_init(IMAGE_WIDTH, IMAGE_HEIGHT, USE_MONOCAM, &cam_state);
 // led_clear();
 
   // main loop
@@ -406,13 +416,40 @@ int main(void)
 
       current_image_pair.pprz_ts += frame_dt * 1000;
 
+#ifdef USE_PPRZLINK
+      // read all messages received since last frame
+      pprz_check_and_parse(&dev, &pprz, stereocam_data.data, &stereocam_data.data_new);
+
+      // If we have a message we should parse it
+      while (stereocam_data.data_new) {
+        uint8_t msg_id = stereocam_data.data[1];
+
+        // add messages below, see intermcu_msg.h for the message defines
+        switch(msg_id)
+        {
+          case DL_STEREOCAM_STATE:
+            cam_state.phi = DL_STEREOCAM_STATE_phi(stereocam_data.data);
+            cam_state.theta = DL_STEREOCAM_STATE_theta(stereocam_data.data);
+            cam_state.psi = DL_STEREOCAM_STATE_psi(stereocam_data.data);
+            cam_state.alt = DL_STEREOCAM_STATE_agl(stereocam_data.data);
+            cam_state.us_timestamp = current_image_pair.pprz_ts;
+            break;
+
+          default:
+            break;
+        }
+        stereocam_data.data_new = false;
+        pprz_check_and_parse(&dev, &pprz, stereocam_data.data, &stereocam_data.data_new);
+      }
+#else
+      static uint8_t ser_read_buf[STEREO_BUF_SIZE];      // circular buffer for incoming data
       // Read from other device with the stereo communication protocol.
       while (UsartCh() && stereoprot_add(insert_loc, 1, STEREO_BUF_SIZE) != extract_loc) {
         if (handleStereoPackage(UsartRx(), STEREO_BUF_SIZE, &insert_loc, &extract_loc, &msg_start, msg_buf, ser_read_buf,
                                 &stereocam_data.data_new, &stereocam_data.len, &stereocam_data.height)) {
         }
       }
-
+#endif
       // New frame code: Vertical blanking = ON
 
       // Calculate the disparity map, only when we need it
@@ -645,11 +682,8 @@ int main(void)
       led_toggle();
 #endif
       if (current_stereoboard_algorithm == SEND_EDGEFLOW || current_stereoboard_algorithm == STEREO_VELOCITY) {
-
         // calculate the edge flow
-        edgeflow_total((uint8_t *)current_image_pair.buf, current_image_pair.pprz_ts, (int16_t *)stereocam_data.data, stereocam_data.len);
-
-        stereocam_data.data_new = 0;
+        edgeflow_total((uint8_t *)current_image_pair.buf, current_image_pair.pprz_ts);
       }
 
       // compute and send window detection parameters
@@ -837,8 +871,25 @@ int main(void)
 #ifdef EDGEFLOW_DEBUG
         SendArray(edgeflow_msg, 128, 5);
 #else
-        SendArray(edgeflow_msg, 25, 1);
-#endif
+#ifdef USE_PPRZLINK
+        uint8_t frame_freq = boundint8(edgeflow.hz.x / edgeflow_params.RES);
+        uint8_t func_freq = boundint8(1e6 / edgeflow.dt);
+        uint8_t res = bounduint8(edgeflow_params.RES);
+
+        int16_t vx = edgeflow.vel.x, vy = edgeflow.vel.y, vz = edgeflow.vel.z;
+        int16_t dx = edgeflow_snapshot.dist_traveled.x, dy = edgeflow_snapshot.dist_traveled.y, dz = edgeflow_snapshot.dist_traveled.z;
+
+        uint16_t avg_dist = edgeflow.avg_dist;
+
+        pprz_msg_send_STEREOCAM_VELOCITY(&(pprz.trans_tx), &dev,
+            0, &(res), &frame_freq, &func_freq,
+            &vx, &vy, &vz, &dx, &dy, &dz,
+            &(edgeflow.flow_quality), &(edgeflow_snapshot.quality),
+            &avg_dist);
+#else
+        SendArray(edgeflow_msg, 22, 1);
+#endif  // USE_PPRZLINK
+#endif  // EDGEFLOW_DEBUG
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
         SendCommand(toSendCommand);

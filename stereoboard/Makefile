@@ -2,6 +2,7 @@ TARGET        = StereoBoard
 BOARD        ?= default
 PROJECT      ?= example
 HEADER       ?= $(PROJECT)
+#USE_PPRZLINK = 1
 
 EXECUTABLE    = $(TARGET).elf
 BIN_IMAGE     = $(TARGET).bin
@@ -38,8 +39,9 @@ CFLAGS        += -Wunused-variable -Wuninitialized -Wreturn-type -Wimplicit-func
 
 LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc -lrdimon
 # to run from FLASH
-LFLAGS        += -Wl,-T,stm32_flash.ld
+LFLAGS        += -Wl,-T,stm32_flash.ld,-Map,memory.map
 
+PPRZ_PATH      = ../ext/pprzlink
 CV_PATH        = ../ext/drone_vision/cv
 STMLIB_PATH    = ../ext/libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
 STDPH_PATH     = ${STMLIB_PATH}/Libraries/STM32F4xx_StdPeriph_Driver
@@ -77,7 +79,7 @@ STDP_SRCS += $(wildcard ${DSP_LIB_PATH}/**/*.c)
 
 STDP_OBJS = $(STDP_SRCS:.c=.o)
 
-all: check_user_inputs print $(BIN_IMAGE)
+all: check_user_inputs print $(BIN_IMAGE) #check_user_data_size
 	$(info Build Successful!)
 
 check_user_inputs:
@@ -102,14 +104,23 @@ MAIN_SRCS += $(wildcard math/*.c)
 MAIN_SRCS += $(wildcard *.c)
 MAIN_SRCS += $(CV_PATH)/image.c $(CV_PATH)/encoding/jpeg.c
 
+# include PPRZLINK
+ifdef USE_PPRZLINK
+	CFLAGS+=-I${PPRZ_PATH}/var/include -DUSE_PPRZLINK -DDOWNLINK
+	MAIN_SRCS += $(wildcard ${PPRZ_PATH}/var/share/pprzlink/src/pprz_transport.c)
+else
+	MAIN_SRCS := $(filter-out pprz_datalink.c, $(MAIN_SRCS))
+endif
+
 ifneq (,$(wildcard projects/$(PROJECT).c))
   MAIN_SRCS += projects/$(PROJECT).c
 endif
 
 MAIN_SRCS := $(filter-out droplet.c, $(MAIN_SRCS))
+MAIN_SRCS := $(filter-out learning.c, $(MAIN_SRCS))
 
 # if building multigaze, include usb drivers
-ifneq ($(PROJECT),"multigaze")
+ifeq ($(PROJECT),"multigaze")
   CFLAGS+=-DUSE_USB
   CFLAGS+=-DUSE_USB_OTG_FS=1    # todo move to multigaze project file
 
@@ -133,19 +144,33 @@ else
 endif
 
 MAIN_OBJS = $(MAIN_SRCS:.c=.o)
+#MAIN_DEPS = $(MAIN_OBJS:.o=.d)
 MAIN_LST = $(MAIN_SRCS:.c=.lst)
 
+export VALIDATE_XML=FALSE
+ifdef USE_PPRZLINK
 $(EXECUTABLE): 	\
     startup_stm32f4xx.s \
     ${STDP_LIB} \
-		$(MAIN_OBJS)
-
+    $(MAIN_OBJS)
+	
+	$(MAKE) -C $(PPRZ_PATH) -s --no-print-directory pymessages
 	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
+else
+$(EXECUTABLE): 	\
+    startup_stm32f4xx.s \
+    ${STDP_LIB} \
+    $(MAIN_OBJS)
+	
+	$(CC) $(CFLAGS) $^ -o $@  -L./ $(LFLAGS)
+endif
 
 clean:
 	@rm -rf $(EXECUTABLE)
 	@rm -rf $(BIN_IMAGE)
 	@rm -rf $(MAIN_LST) $(MAIN_OBJS)
+	@find . -type f -name '*.o' -delete
+	@find . -type f -name '*.d' -delete
 
 mrproper:
 	make clean -C ./
@@ -229,6 +254,9 @@ lst: $(MAIN_LST)
 %.lst: %.c
 	$(CC) -c -g -Wa,-a,-ad $(CFLAGS) $< > $@
 
+#%.o: %.c
+#	$(CC) -c $(CFLAGS) -MM -MF $(patsubst %.o,%.d,$@) -o $@ $<
+
 roland: PROJECT_FILE=roland
 roland: all
 
@@ -240,5 +268,7 @@ stereoavoid: all
 
 explorer: PROJECT_FILE="projects/explorer.h" BOARD_FILE="boards/board_6.h"
 explorer: all
+
+#-include $(MAIN_OBJS:.o=.d)
 
 .PHONY: all clean style testallprojects testallboards

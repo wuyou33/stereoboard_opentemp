@@ -88,7 +88,7 @@ static inline void SendImage(uint8_t *b, uint16_t width, uint16_t height)
     ;
 }
 
-static inline  void SendDisparityMap(uint8_t *b)
+static inline void SendDisparityMap(uint8_t *b)
 {
   uint8_t code[4];
   code[0] = 0xff;

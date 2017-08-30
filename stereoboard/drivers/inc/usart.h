@@ -35,6 +35,9 @@ struct UartDataStruct {
   int usart_tx_counter_write;
   int usart_rx_counter_read;
   int usart_rx_counter_write;
+  uint8_t (*tx)(uint8_t*, uint16_t);
+  uint8_t (*rx)(void);
+  uint8_t (*char_available)(void);
   uint8_t usart_tx_buffer[TXBUFFERSIZE];
   uint8_t usart_rx_buffer[RXBUFFERSIZE];
 };

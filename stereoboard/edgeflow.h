@@ -47,13 +47,21 @@ struct rot_t {
   int32_t psi;
 };
 
+struct cam_state_t {
+  float phi;
+  float theta;
+  float psi;
+  float alt;
+  int32_t us_timestamp;
+};
+
 struct edge_hist_t {
   int32_t x[IMAGE_WIDTH];   // Edge_hist: edgehistogram in x-direction (image coordinates)
   int32_t y[IMAGE_HEIGHT];  // Edge_hist: edgehistogram in y-direction (image coordinates)
   int32_t frame_time;       // Edge_hist: Frame time corresponding to the image from which the edge histogram is made [in us]
-  int16_t roll;             // Edge_hist: roll: rotation around the x-axis of the camera (along image width) [rad]
-  int16_t pitch;            // Edge_hist: pitch: rotation around the y-axis of the camera (along image height)[rad]
-  int16_t yaw;              // Edge_hist: yaw: rotation around the z-axis of the camera (perpendicular on frame plane) [rad]
+  int16_t phi;              // Edge_hist: phi: rotation around the x-axis of the camera (along image width) [rad]
+  int16_t theta;            // Edge_hist: theta: rotation around the y-axis of the camera (along image height)[rad]
+  int16_t psi;              // Edge_hist: psi: rotation around the z-axis of the camera (perpendicular on frame plane) [rad]
   int16_t alt;              // altitude of camera above ground, used in monocam mode
 };
 
@@ -133,7 +141,7 @@ struct snapshot_t {
   struct vec3_t dist;
   struct vec3_t dist_traveled;
   struct vec3_t prev_dist;
-  uint8_t snapshot_quality;           // Quality of displacement estimate
+  uint8_t quality;                    // Quality of displacement estimate
 };
 
 // shared variables
@@ -143,8 +151,8 @@ extern struct edgeflow_t edgeflow;
 extern struct snapshot_t edgeflow_snapshot;
 
 // Global Functions divergence
-void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam);
-void edgeflow_total(uint8_t *current_image_buffer, uint32_t frame_time, int16_t *data_in, uint8_t data_len);
+void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam, struct cam_state_t *cam_state_ref);
+void edgeflow_total(uint8_t *current_image_buffer, uint32_t frame_time);
 void edgeflow_to_sendarray(uint8_t *edgeflow_array);
 
 // Calculation functions
