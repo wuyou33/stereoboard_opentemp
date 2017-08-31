@@ -868,28 +868,7 @@ int main(void)
       }
 
       if (current_stereoboard_algorithm == SEND_EDGEFLOW) {
-#ifdef EDGEFLOW_DEBUG
-        SendArray(edgeflow_msg, 128, 5);
-#else
-#ifdef USE_PPRZLINK
-        uint8_t frame_freq = boundint8(edgeflow.hz.x / edgeflow_params.RES);
-        uint8_t func_freq = boundint8(1e6 / edgeflow.dt);
-        uint8_t res = bounduint8(edgeflow_params.RES);
-
-        int16_t vx = edgeflow.vel.x, vy = edgeflow.vel.y, vz = edgeflow.vel.z;
-        int16_t dx = edgeflow_snapshot.dist_traveled.x, dy = edgeflow_snapshot.dist_traveled.y, dz = edgeflow_snapshot.dist_traveled.z;
-
-        uint16_t avg_dist = edgeflow.avg_dist;
-
-        pprz_msg_send_STEREOCAM_VELOCITY(&(pprz.trans_tx), &dev,
-            0, &(res), &frame_freq, &func_freq,
-            &vx, &vy, &vz, &dx, &dy, &dz,
-            &(edgeflow.flow_quality), &(edgeflow_snapshot.quality),
-            &avg_dist);
-#else
-        SendArray(edgeflow_msg, 22, 1);
-#endif  // USE_PPRZLINK
-#endif  // EDGEFLOW_DEBUG
+        send_edgeflow();
       }
       if (current_stereoboard_algorithm == SEND_COMMANDS || current_stereoboard_algorithm == SEND_FRAMERATE_STEREO) {
         SendCommand(toSendCommand);

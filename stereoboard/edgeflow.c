@@ -34,6 +34,13 @@ void arm_fill_q31(int32_t val, int32_t *array, uint32_t size)
 #include "math/filter.h"
 #include "math/stats.h"
 
+#ifdef USE_PPRZLINK
+#include "pprz_datalink.h"
+#include "pprzlink/intermcu_msg.h"
+#else
+#include "raw_digital_video_stream.h"
+#endif
+
 enum FilterType {
   NONE,
   KALMAN,
@@ -50,14 +57,6 @@ enum FilterType {
 
 #ifndef EDGEFLOW_USE_SNAPSHOT
 #define EDGEFLOW_USE_SNAPSHOT false
-#endif
-
-// Edgeflow variables
-//send array with flow parameters
-#ifdef EDGEFLOW_DEBUG
-uint8_t edgeflow_msg[128 * 5];
-#else
-uint8_t edgeflow_msg[22];
 #endif
 
 //shared variables
@@ -106,10 +105,6 @@ void edgeflow_total(uint8_t *current_image_buffer, uint32_t image_time)
   } else if (EDGEFLOW_USE_SNAPSHOT) {
     calculate_snapshot_displacement(&edgeflow_params, &edgeflow, &edgeflow_snapshot);
   }
-
-#ifndef COMPILE_ON_LINUX
-  edgeflow_to_sendarray(edgeflow_msg);
-#endif
 }
 
 /*  edgeflow_init: Initialize structures edgeflow_params and results
@@ -193,21 +188,16 @@ void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam, struct cam_
   edgeflow_snapshot.dist_traveled = (struct vec3_t) {0, 0, 0};
 }
 
-/*  edgeflow_to_sendarray: This function fills up the array that is send to the lisa -s
- * \param edgeflow_array is the array to be send back to the autopilot
- * \param edgeflow_params is a struct containing al the parameters for edgeflow
- * \param edgeflow is a struct containing the resulting values of edgeflow
- * */
-void edgeflow_to_sendarray(uint8_t edgeflow_array[])
+/*  send_edgeflow: This function sends edgeflow message
+ */
+void send_edgeflow(void)
 {
-
+#ifdef EDGEFLOW_DEBUG
   /*EDGEFLOW_DEBUG defines which type of information is send through the edgelflowArray.
    For debugging, intermediate results are necessary to simplify the programming
    When EDGEFLOW_DEBUG is defined, it will send through the current histogram, the previous and the calculated displacement
    when it is not defined, it will send through flow, divergence and velocity*/
-
-#ifdef EDGEFLOW_DEBUG
-  uint8_t edgeflow_debug_array[128 * 5];
+  static uint8_t edgeflow_debug_msg[128 * 5] = {0};
   uint8_t *current_frame_nr = &edgeflow->current_frame_nr;
   uint8_t *previous_frame_offset = &edgeflow->previous_frame_offset;
 
@@ -233,47 +223,66 @@ void edgeflow_to_sendarray(uint8_t edgeflow_array[])
 
   }
 
-  memcpy(edgeflow_debug_array, &edge_hist_int8, 128 * sizeof(uint8_t)); // copy quality measures to output array
-  memcpy(edgeflow_debug_array + 128, &edge_hist_prev_int8,
+  memcpy(edgeflow_debug_msg, &edge_hist_int8, 128 * sizeof(uint8_t)); // copy quality measures to output array
+  memcpy(edgeflow_debug_msg + 128, &edge_hist_prev_int8,
          128 * sizeof(uint8_t));// copy quality measures to output array
-  memcpy(edgeflow_debug_array + 128 * 2, &displacement_int8,
+  memcpy(edgeflow_debug_msg + 128 * 2, &displacement_int8,
          128 * sizeof(uint8_t));// copy quality measures to output array
-  memcpy(edgeflow_debug_array + 128 * 3, &plot2,
+  memcpy(edgeflow_debug_msg + 128 * 3, &plot2,
          128 * sizeof(uint8_t));// copy quality measures to output array
-  memcpy(edgeflow_debug_array + 128 * 4, &plot3,
+  memcpy(edgeflow_debug_msg + 128 * 4, &plot3,
          128 * sizeof(uint8_t));// copy quality measures to output array
 
-  memcpy(edgeflow_array, edgeflow_debug_array, 128 * 5 * sizeof(uint8_t));
+  memcpy(edgeflow_msg, edgeflow_debug_msg, 128 * 5 * sizeof(uint8_t));
 
+  SendArray(edgeflow_msg, 128, 5);
+
+#elif defined(USE_PPRZLINK)
+  uint8_t frame_freq = boundint8(edgeflow.hz.x / edgeflow_params.RES);
+  uint8_t func_freq = boundint8(1e6 / edgeflow.dt);
+  uint8_t res = bounduint8(edgeflow_params.RES);
+
+  int16_t vx = edgeflow.vel.x, vy = edgeflow.vel.y, vz = edgeflow.vel.z;
+  int16_t dx = edgeflow_snapshot.dist_traveled.x, dy = edgeflow_snapshot.dist_traveled.y, dz = edgeflow_snapshot.dist_traveled.z;
+
+  uint16_t avg_dist = edgeflow.avg_dist;
+
+  pprz_msg_send_STEREOCAM_VELOCITY(&(pprz.trans_tx), &dev,
+      0, &(res), &frame_freq, &func_freq,
+      &vx, &vy, &vz, &dx, &dy, &dz,
+      &(edgeflow.flow_quality), &(edgeflow_snapshot.quality),
+      &avg_dist);
 #else
+  static uint8_t edgeflow_msg[22] = {0};
+  edgeflow_msg[0] = edgeflow_params.RES;
+  edgeflow_msg[1] = boundint8(edgeflow.distance_closest_obstacle / 10);
+  edgeflow_msg[2] = boundint8(edgeflow.hz.x / edgeflow_params.RES);
+  edgeflow_msg[3] = boundint8(1e6 / edgeflow.dt);
 
-  edgeflow_array[0] = edgeflow_params.RES;
-  edgeflow_array[1] = boundint8(edgeflow.distance_closest_obstacle / 10);
-  edgeflow_array[2] = boundint8(edgeflow.hz.x / edgeflow_params.RES);
-  edgeflow_array[3] = boundint8(1e6 / edgeflow.dt);
+  edgeflow_msg[4] = (edgeflow.vel.x >> 8) & 0xff;
+  edgeflow_msg[5] = (edgeflow.vel.x) & 0xff;
+  edgeflow_msg[6] = (edgeflow.vel.y >> 8) & 0xff;
+  edgeflow_msg[7] = (edgeflow.vel.y) & 0xff;
+  edgeflow_msg[8] = (edgeflow.vel.z >> 8) & 0xff;
+  edgeflow_msg[9] = (edgeflow.vel.z) & 0xff;
 
-  edgeflow_array[4] = (edgeflow.vel.x >> 8) & 0xff;
-  edgeflow_array[5] = (edgeflow.vel.x) & 0xff;
-  edgeflow_array[6] = (edgeflow.vel.y >> 8) & 0xff;
-  edgeflow_array[7] = (edgeflow.vel.y) & 0xff;
-  edgeflow_array[8] = (edgeflow.vel.z >> 8) & 0xff;
-  edgeflow_array[9] = (edgeflow.vel.z) & 0xff;
+  edgeflow_msg[10] = (edgeflow.vel_x_stereo_avoid_pixelwise >> 8) & 0xff;
+  edgeflow_msg[11] = (edgeflow.vel_x_stereo_avoid_pixelwise) & 0xff;
+  edgeflow_msg[12] = (edgeflow.vel_z_stereo_avoid_pixelwise >> 8) & 0xff;
+  edgeflow_msg[13] = (edgeflow.vel_z_stereo_avoid_pixelwise) & 0xff;
 
-  edgeflow_array[10] = (edgeflow.vel_x_stereo_avoid_pixelwise >> 8) & 0xff;
-  edgeflow_array[11] = (edgeflow.vel_x_stereo_avoid_pixelwise) & 0xff;
-  edgeflow_array[12] = (edgeflow.vel_z_stereo_avoid_pixelwise >> 8) & 0xff;
-  edgeflow_array[13] = (edgeflow.vel_z_stereo_avoid_pixelwise) & 0xff;
+  edgeflow_msg[14] = (edgeflow_snapshot.dist_traveled.x >> 8) & 0xff;
+  edgeflow_msg[15] = (edgeflow_snapshot.dist_traveled.x) & 0xff;
+  edgeflow_msg[16] = (edgeflow_snapshot.dist_traveled.y >> 8) & 0xff;
+  edgeflow_msg[17] = (edgeflow_snapshot.dist_traveled.y) & 0xff;
+  edgeflow_msg[18] = (edgeflow_snapshot.dist_traveled.z >> 8) & 0xff;
+  edgeflow_msg[19] = (edgeflow_snapshot.dist_traveled.z) & 0xff;
 
-  edgeflow_array[14] = (edgeflow_snapshot.dist_traveled.x >> 8) & 0xff;
-  edgeflow_array[15] = (edgeflow_snapshot.dist_traveled.x) & 0xff;
-  edgeflow_array[16] = (edgeflow_snapshot.dist_traveled.y >> 8) & 0xff;
-  edgeflow_array[17] = (edgeflow_snapshot.dist_traveled.y) & 0xff;
-  edgeflow_array[18] = (edgeflow_snapshot.dist_traveled.z >> 8) & 0xff;
-  edgeflow_array[19] = (edgeflow_snapshot.dist_traveled.z) & 0xff;
+  edgeflow_msg[20] = (edgeflow.flow_quality);
+  edgeflow_msg[21] = (edgeflow_snapshot.quality);
 
-  edgeflow_array[20] = (edgeflow.flow_quality);
-  edgeflow_array[21] = (edgeflow_snapshot.quality);
-#endif // EDGEFLOW_DEBUG
+  SendArray(edgeflow_msg, 22, 1);
+#endif
 }
 
 /*  calculate_edge_flow: calculate the global optical flow by edgeflow

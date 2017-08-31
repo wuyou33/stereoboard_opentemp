@@ -151,9 +151,15 @@ extern struct edgeflow_t edgeflow;
 extern struct snapshot_t edgeflow_snapshot;
 
 // Global Functions divergence
+<<<<<<< Updated upstream
 void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam, struct cam_state_t *cam_state_ref);
 void edgeflow_total(uint8_t *current_image_buffer, uint32_t frame_time);
+void edgeflow_to_sendarray(uint8_t *edgeflow_array);
+=======
+void edgeflow_init(int16_t img_w, int16_t img_h, int8_t use_monocam);
+void edgeflow_total(uint8_t *current_image_buffer, uint32_t frame_time, int16_t *data_in, uint8_t data_len);
 void send_edgeflow(void);
+>>>>>>> Stashed changes
 
 // Calculation functions
 void calculate_edge_flow(uint8_t in[], struct edgeflow_parameters_t *edgeflow_parameters,
