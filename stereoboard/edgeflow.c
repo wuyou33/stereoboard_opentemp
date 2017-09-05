@@ -28,11 +28,6 @@ void arm_fill_q31(int32_t val, int32_t *array, uint32_t size)
 #else
 #include "camera_type.h"
 #include "sys_time.h"
-#endif
-
-#include "stereo_math.h"
-#include "math/filter.h"
-#include "math/stats.h"
 
 #ifdef USE_PPRZLINK
 #include "pprz_datalink.h"
@@ -40,6 +35,12 @@ void arm_fill_q31(int32_t val, int32_t *array, uint32_t size)
 #else
 #include "raw_digital_video_stream.h"
 #endif
+
+#endif
+
+#include "stereo_math.h"
+#include "math/filter.h"
+#include "math/stats.h"
 
 enum FilterType {
   NONE,
@@ -235,8 +236,9 @@ void send_edgeflow(void)
 
   memcpy(edgeflow_msg, edgeflow_debug_msg, 128 * 5 * sizeof(uint8_t));
 
+#ifndef COMPILE_ON_LINUX
   SendArray(edgeflow_msg, 128, 5);
-
+#endif
 #elif defined(USE_PPRZLINK)
   uint8_t frame_freq = boundint8(edgeflow.hz.x / edgeflow_params.RES);
   uint8_t func_freq = boundint8(1e6 / edgeflow.dt);
@@ -247,11 +249,13 @@ void send_edgeflow(void)
 
   uint16_t avg_dist = edgeflow.avg_dist;
 
+#ifndef COMPILE_ON_LINUX
   pprz_msg_send_STEREOCAM_VELOCITY(&(pprz.trans_tx), &dev,
       0, &(res), &frame_freq, &func_freq,
       &vx, &vy, &vz, &dx, &dy, &dz,
       &(edgeflow.flow_quality), &(edgeflow_snapshot.quality),
       &avg_dist);
+#endif
 #else
   static uint8_t edgeflow_msg[22] = {0};
   edgeflow_msg[0] = edgeflow_params.RES;
@@ -281,8 +285,10 @@ void send_edgeflow(void)
   edgeflow_msg[20] = (edgeflow.flow_quality);
   edgeflow_msg[21] = (edgeflow_snapshot.quality);
 
+#ifndef COMPILE_ON_LINUX
   SendArray(edgeflow_msg, 22, 1);
-#endif
+#endif  // COMPILE_ON_LINUX
+#endif  // USE_PPRZLINK
 }
 
 /*  calculate_edge_flow: calculate the global optical flow by edgeflow
