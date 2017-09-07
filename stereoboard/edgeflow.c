@@ -86,8 +86,7 @@ void edgeflow_total(uint8_t *current_image_buffer, uint32_t image_time)
 
   edgeflow.edge_hist[edgeflow.current_frame_nr].frame_time = image_time;
 
-  if (cam_state != NULL &&
-      abs(edgeflow.edge_hist[edgeflow.current_frame_nr].frame_time - cam_state->us_timestamp) > 1e6) {
+  if (cam_state != NULL) {
     edgeflow_params.derotation = 1;
     edgeflow.edge_hist[edgeflow.current_frame_nr].phi = (int16_t)(cam_state->phi * edgeflow_params.RES);
     edgeflow.edge_hist[edgeflow.current_frame_nr].theta = (int16_t)(cam_state->theta * edgeflow_params.RES);

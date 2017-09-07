@@ -206,4 +206,25 @@ static uint32_t get_sum(uint8_t *nums, uint16_t n_elements)
   return sum;
 }
 
+
+#include "main_parameters.h"
+#include "camera_type.h"
+/* Converts pixel length to angle in rad
+ * @param pix Pixel value in image coordinate
+ * @param direction 0 is x, 1 is y
+ */
+static float pix2angle(int16_t pix, bool direction)
+{
+  float fov, num_pix;
+  if (direction){
+    fov = FOVY;
+    num_pix = IMAGE_HEIGHT;
+  } else {
+    fov = FOVX;
+    num_pix = IMAGE_WIDTH;
+  }
+
+  return ((float)pix / num_pix) * fov;
+}
+
 #endif

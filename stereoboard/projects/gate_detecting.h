@@ -11,22 +11,24 @@
 #define DEFAULT_BOARD_FUNCTION SEND_NONE
 
 #define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
+//#define CAMERA_CPLD_STEREO camera_cpld_stereo_left
 #define LED_TOGGLE
 
-#define TCM8230_DISABLE_AL
 #define TCM_ALC_ESRSPD 0x0C0
 #define TCM8230_EXTRA_SATURATION 1
 
 // Gate settings
 #define GATE_NSAMPLES 1500
-#define GATE_SHAPE DOOR
+#define GATE_SHAPE RECTANGLE
 #define GATE_ROTATE
+//#define GATE_DETECTION_GRAPHICS 1
 
 // uncomment (only) one group of the following to activate the method you want to run
 
 // For color
 // #define GATE_METHOD 0
 // #define USE_COLOR 1
+//#define TCM8230_DISABLE_AL
 
 // For grayscale
 // #define GATE_METHOD 1

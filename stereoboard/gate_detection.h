@@ -28,6 +28,8 @@ struct gate_t {
   float rot;          ///< Rotation angle of gate [-pi/2, pi/2]
 };
 
+void pprz_send_gate(struct gate_t *gate, float depth);
+
 void gate_set_intensity(uint8_t Y_m, uint8_t Y_M);
 void gate_set_color(uint8_t Y_m, uint8_t Y_M, uint8_t U_m, uint8_t U_M, uint8_t V_m, uint8_t V_M);
 

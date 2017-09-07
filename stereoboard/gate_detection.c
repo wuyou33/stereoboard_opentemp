@@ -16,7 +16,13 @@
 #include "main_parameters.h"
 #include "camera_type.h"
 #include "stereo_math.h"
+#include "math/stats.h"
+#include "math/geometry.h"
 #include "stereo_image.h"
+
+#ifdef USE_PPRZLINK
+#include "pprzlink/intermcu_msg.h"
+#endif
 
 #ifdef COMPILE_ON_LINUX
 #include <string.h>
@@ -618,6 +624,30 @@ void calculate_gate_position(int x_pix, int y_pix, int sz_pix, struct image_t *i
 }
 */
 
+#if 0 // def USE_PPRZLINK
+#include "pprz_datalink.h"
+#include "pprzlink/intermcu_msg.h"
+
+/* Send gate over pprzlink
+ * @param gate Gate to send
+ * @param depth Distance to gate, if not known set to 0
+ */
+void pprz_send_gate(struct gate_t *gate, float depth)
+{
+  float w = 2.f * gate->sz * FOVX / IMAGE_WIDTH;
+  float h = 2.f * (float)(gate->sz_left > gate->sz_right ? gate->sz_left : gate->sz_right)
+      * FOVY / IMAGE_HEIGHT;
+
+  float theta = pix2angle((gate->x - IMAGE_WIDTH/2), 0);
+  float phi = -pix2angle((gate->y - IMAGE_HEIGHT/2), 1); // positive y, causes negative phi
+
+  pprz_msg_send_STEREOCAM_GATE(&(pprz.trans_tx), &dev, 0, &(gate->q), &w, &h,
+      &phi, &theta, &depth);
+}
+#else
+void pprz_send_gate(struct gate_t *gate, float depth){}
+#endif
+
 uint16_t x, y;
 uint16_t x_tl, x_br, x_topl, x_bottoml, x_topr, x_bottomr;
 uint16_t y_tl, y_br, y_topl, y_bottoml, y_topr, y_bottomr;
@@ -644,7 +674,7 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
   best_gate->q = min_gate_quality;
   best_gate->sz = min_gate_size / 2;
 
-  uint16_t i;
+  uint16_t i, j;
 
   uint16_t bin_cnt[3] = {0}; // initialize the counters for each bin with zero
 
@@ -656,9 +686,35 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
     x = (rand() % roi_w) + roi[0].x;
     y = (rand() % roi_h) + roi[0].y;
 
+    if (!check_pixel_and_count(img, x, y, bin_cnt))
+    {
+      continue;
+    }
+
+    // if point is inside of an identified gate, exclude it
+    static struct point_t polygon[4];
+    bool inside_gate = false;
+    struct point_t p = {.x = x, .y = y};
+    for (j = 0; j < n_gates; j++)
+    {
+      polygon[0].x = gates[j].x - gates[j].sz - 2; polygon[0].y = gates[j].y - gates[j].sz_left - 2;
+      polygon[1].x = gates[j].x - gates[j].sz - 2; polygon[1].y = gates[j].y + gates[j].sz_left + 2;
+      polygon[2].x = gates[j].x + gates[j].sz + 2; polygon[2].y = gates[j].y - gates[j].sz_right - 2;
+      polygon[3].x = gates[j].x + gates[j].sz + 2; polygon[3].y = gates[j].y + gates[j].sz_right + 2;
+
+      if (isInside(polygon, 4, p))
+      {
+        inside_gate = true;
+        break;
+      }
+    }
+    if (inside_gate)
+    {
+      continue;
+    }
+
     // check if the pixel has the right color
-    if (check_pixel_and_count(img, x, y, bin_cnt) || find_gate_from_side(img, roi, roi_h)) {
-      //(find_gate_from_top(img, roi, roi_w))){// || find_gate_from_side(img, roi, roi_h))){
+    if ((find_gate_from_top(img, roi, roi_w) || find_gate_from_side(img, roi, roi_h))){
 
       // apply some limits based on shape needed to be fit
       if (GATE_SHAPE == SQUARE || GATE_SHAPE == CIRCLE) {
@@ -675,7 +731,7 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
       }
 
       // Door must be taller than it is wide
-      if (GATE_SHAPE == DOOR && gates[n_gates].sz > gates[n_gates].sz_left) {
+      if (GATE_SHAPE == DOOR && gates[n_gates].sz > gates[n_gates].sz_left * 1.2) {
         continue;
       }
 
@@ -683,10 +739,10 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
       if (gates[n_gates].n_sides > 2) {
         // check the gate quality:
         check_gate(img, &gates[n_gates]);
-        // only increment the number of gates if the quality is sufficient
+        // only increment the number of gates if the quality is better than previous gate
+        // if same quality but bigger then also add gate
         // else it will be overwritten by the next one
-        if (gates[n_gates].q > best_gate->q || (gates[n_gates].q == best_gate->q && gates[n_gates].sz > best_gate->sz)) {
-          //if (gates[n_gates].q > min_gate_quality && gates[n_gates].sz > best_gate->sz) {
+        if (gates[n_gates].q >= best_gate->q) {
           best_x = init_x;
           best_y = init_y;
           *best_gate = gates[n_gates];

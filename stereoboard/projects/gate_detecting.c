@@ -23,8 +23,8 @@ void disparity_gate_detector(void);
 void edge_gate_detector(void);
 
 #ifndef FULL_CALIBRATION
-static const uint16_t cal_width = IMAGE_WIDTH;
-static const uint16_t cal_height = IMAGE_HEIGHT;
+const uint16_t cal_width = IMAGE_WIDTH;
+const uint16_t cal_height = IMAGE_HEIGHT;
 #endif
 
 struct image_t color_img = {
@@ -52,25 +52,32 @@ struct image_t gradient = {
   .type = IMAGE_GRAYSCALE
 };
 
-static struct point_t roi[2];
+static struct point_t roi[2] = {{.x=0, .y=0},{.x=IMAGE_WIDTH, .y=IMAGE_HEIGHT}};
 static struct gate_t gate;
 
 void init_project(void)
 {
-  // initialize paramters
+  // initialize parameters
   memset(current_image_pair.buf, 0, current_image_pair.buf_size);
+  memset(left_img.buf, 0, left_img.buf_size);
+  memset(gradient.buf, 0, gradient.buf_size);
 
-  color_img.buf = current_image_pair.buf;
+  if (GATE_METHOD == 0){
+    color_img.buf = current_image_pair.buf;
+    gate_set_color(0, 255, 0, 255, 0, 255);
+  } else {
+    // set pixel search bounds
+    gate_set_intensity(0, 255);
+  }
 
-  // set pixel search bounds
-  gate_set_intensity(0, 255);
-  gate_set_color(0, 255, 0, 255, 0, 255);
-
-  // set region of intrest for gate detector
-  roi[0].x = (IMAGE_WIDTH - cal_width) / 2;
-  roi[0].y = (IMAGE_HEIGHT - cal_height) / 2;
-  roi[1].x = (IMAGE_WIDTH + cal_width) / 2;
-  roi[1].y = (IMAGE_HEIGHT+cal_height)/2;
+  // set region of interest for gate detector
+#ifdef FULL_CALIBRATION
+  static const uint16_t roi_left[4] = {2, 0, 126, 92};
+  roi[0].x = roi_left[0];
+  roi[0].y = roi_left[1];
+  roi[1].x = roi_left[2];
+  roi[1].y = roi_left[3];
+#endif
 }
 
 void run_project(void)
@@ -94,7 +101,7 @@ void run_project(void)
 }
 
 void color_gate_detector(void){
-  snake_gate_detection(&current_image_pair, &gate, false, NULL, NULL, NULL);
+  snake_gate_detection(&current_image_pair, &gate, false, NULL, roi, NULL);
 #ifdef GATE_DETECTION_GRAPHICS
   SendImage((uint8_t*)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
 #endif
@@ -102,7 +109,7 @@ void color_gate_detector(void){
 
 void grayscale_gate_detector(void){
   getLeftFromStereo(&left_img, &current_image_pair);
-  snake_gate_detection(&left_img, &gate, false, NULL, NULL, NULL);
+  snake_gate_detection(&left_img, &gate, false, NULL, roi, NULL);
 #ifdef GATE_DETECTION_GRAPHICS
   SendArray((uint8_t*)left_img.buf, left_img.w, left_img.h);
 #endif
@@ -118,7 +125,7 @@ void disparity_gate_detector(void){
 0, DISPARITY_RANGE, 1, 7, 4, y_min, y_max, sub_disp_histogram);
 
 #ifdef USE_INTEGRAL_IMAGE
-  gen_gate_detection(&disparity_image, NULL, &gate, integral_image);
+  gen_gate_detection(&disparity_image, roi, &gate, integral_image);
 #endif
 #ifdef GATE_DETECTION_GRAPHICS
   SendArray((uint8_t*)disparity_image.buf, disparity_image.w, disparity_image.h);
@@ -128,7 +135,7 @@ void disparity_gate_detector(void){
 void edge_gate_detector(void){
   getLeftFromStereo(&left_img, &current_image_pair);
   image_2d_gradients(&left_img, &gradient);
-  snake_gate_detection(&gradient, &gate, false, NULL, NULL, NULL);
+  snake_gate_detection(&gradient, &gate, false, NULL, roi, NULL);
 #ifdef GATE_DETECTION_GRAPHICS
   SendArray((uint8_t*)gradient.buf, gradient.w, gradient.h);
 #endif
