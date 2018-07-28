@@ -83,16 +83,16 @@ void init_project(void)
 void run_project(void)
 {
   switch(GATE_METHOD){
-    case 1:
+    case 0:
       color_gate_detector();
       break;
-    case 2:
+    case 1:
       grayscale_gate_detector();
       break;
-    case 3:
+    case 2:
       disparity_gate_detector();
       break;
-    case 4:
+    case 3:
       edge_gate_detector();
       break;
     default:

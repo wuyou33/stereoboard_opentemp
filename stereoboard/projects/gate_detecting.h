@@ -10,8 +10,6 @@
 #define STEREO_ALGORITHM 0 // 1 = Dense   0 = Sparse
 #define DEFAULT_BOARD_FUNCTION SEND_NONE
 
-#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
-//#define CAMERA_CPLD_STEREO camera_cpld_stereo_left
 #define LED_TOGGLE
 
 #define TCM_ALC_ESRSPD 0x0C0
@@ -21,14 +19,17 @@
 #define GATE_NSAMPLES 1500
 #define GATE_SHAPE RECTANGLE
 #define GATE_ROTATE
-//#define GATE_DETECTION_GRAPHICS 1
 
 // uncomment (only) one group of the following to activate the method you want to run
 
 // For color
-// #define GATE_METHOD 0
-// #define USE_COLOR 1
-//#define TCM8230_DISABLE_AL
+#define GATE_METHOD 0
+#define USE_COLOR 1
+#define TCM8230_DISABLE_AL
+#define CAMERA_CPLD_STEREO camera_cpld_stereo_left
+
+// For all other methods we use greyscale
+//#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 
 // For grayscale
 // #define GATE_METHOD 1
@@ -39,10 +40,10 @@
 // #USE_INTEGRAL_IMAGE
 
 // For edge
-#define GATE_METHOD 3
+//#define GATE_METHOD 3
 
 // To draw the result of the gate in the image and send the image over uart, uncomment the following
-// #define GATE_DETECTION_GRAPHICS 1
+#define GATE_DETECTION_GRAPHICS 1
 
 #define DISPARITY_RANGE 20
 
