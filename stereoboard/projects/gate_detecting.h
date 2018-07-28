@@ -22,7 +22,7 @@
 
 // uncomment (only) one group of the following to activate the method you want to run
 
-// For color
+// For color, use this with the color_viz visualization
 #define GATE_METHOD 0
 #define USE_COLOR 1
 #define TCM8230_DISABLE_AL
@@ -32,7 +32,7 @@
 //#define CAMERA_CPLD_STEREO camera_cpld_stereo_pixmux
 
 // For grayscale
-// #define GATE_METHOD 1
+//#define GATE_METHOD 1
 
 // For disparity
 // #define GATE_METHOD 2

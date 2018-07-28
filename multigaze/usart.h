@@ -13,13 +13,10 @@
 #define TXBUFFERSIZE    (64*64) // 4 KByte
 #define RXBUFFERSIZE    (64*64)
 
-
 #define USART_SUCCESS   1
 #define USART_FAIL      0
 
-
 #define UsartTx  Usart1Tx
-
 
 struct UartDataStruct {
   void *device;
@@ -45,6 +42,7 @@ struct UartDataStruct {
 // Low-level interaction
 void usart_init();
 
+uint8_t uart_tx_finished(struct UartDataStruct *dev);
 int usart_char_available(struct UartDataStruct *dev);
 uint8_t usart_rx_ringbuffer_pop(struct UartDataStruct *dev);
 uint8_t usart_tx_ringbuffer_push(struct UartDataStruct *dev, uint8_t *ch, uint16_t len);
@@ -86,8 +84,6 @@ static inline uint8_t Usart6Tx(uint8_t *ch, uint16_t len) { return usart_tx_ring
 static inline uint8_t Usart6Ch(void) { return usart_char_available(&USART6_Data);}
 static inline uint8_t Usart6Rx(void) { return usart_rx_ringbuffer_pop(&USART6_Data);}
 #endif
-
-
 
 // ISR callback
 void usart_isr(struct UartDataStruct *dev);

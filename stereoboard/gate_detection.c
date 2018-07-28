@@ -19,6 +19,7 @@
 #include "math/stats.h"
 #include "math/geometry.h"
 #include "stereo_image.h"
+#include "sys_time.h"
 
 #ifdef USE_PPRZLINK
 #include "pprzlink/intermcu_msg.h"
@@ -70,8 +71,8 @@ int WEIGHTED = 0; // color has no weight at the moment, since it is thresholded
 #endif
 float outlier_threshold = 20.0f;
 
-bool find_gate_from_side(struct image_t *img, struct point_t *roi, uint16_t roi_w);
-bool find_gate_from_top(struct image_t *img, struct point_t *roi, uint16_t roi_w);
+bool find_gate_from_side(struct image_t *img, struct roi_t *roi, uint16_t roi_w);
+bool find_gate_from_top(struct image_t *img, struct roi_t *roi, uint16_t roi_w);
 
 // Settings for the evolution:
 // 10 individuals 30 generations is a normal setting
@@ -143,8 +144,8 @@ uint16_t n_samples        = GATE_NSAMPLES;
 #else
 uint16_t n_samples        = 2500;
 #endif
-uint8_t min_gate_size     = 16;
-uint8_t min_gate_quality  = 15;
+uint8_t min_gate_size     = 10;
+uint8_t min_gate_quality  = 14;
 float gate_thickness      = 0.; // as fraction of gate size
 float angle_to_gate       = 0;
 
@@ -227,9 +228,16 @@ void draw_gate(struct image_t *im, struct gate_t *gate, uint8_t shape, uint8_t *
 
 // Checks for a single pixel if it is the right color
 // 1 means that it passes the filter
-bool check_pixel(struct image_t *im, uint16_t x, uint16_t y)
+bool check_pixel(struct image_t *im, uint16_t x, uint16_t y, struct roi_t *roi)
 {
-  if (x >= im->w || y >= im->h) {
+  if (roi != NULL)
+  {
+    if (x < roi->tl.x || x >= roi->br.x ||
+        y < roi->tl.y || y >= roi->br.y)
+    {
+      return false;
+    }
+  } else if (x >= im->w || y >= im->h) {
     return false;
   }
 
@@ -265,9 +273,16 @@ bool check_pixel(struct image_t *im, uint16_t x, uint16_t y)
 
 // Checks for a single pixel if it is the right color and counts the pixels that passed the filter in 3 vertical bins
 // 1 means that it passes the filter
-bool check_pixel_and_count(struct image_t *im, uint16_t x, uint16_t y, uint16_t *counter)
+bool check_pixel_and_count(struct image_t *im, uint16_t x, uint16_t y, uint16_t *counter, struct roi_t *roi)
 {
-  if (x >= im->w || y >= im->h) {
+  if (roi != NULL)
+  {
+    if (x < roi->tl.x || x >= roi->br.x ||
+        y < roi->tl.y || y >= roi->br.y)
+    {
+      return false;
+    }
+  } else if (x >= im->w || y >= im->h) {
     return false;
   }
 
@@ -318,7 +333,7 @@ bool check_pixel_and_count(struct image_t *im, uint16_t x, uint16_t y, uint16_t 
 
 // TODO: find a better way to evaluate a line, this way will work better for short lines than long lines due to integer rounding
 void check_line(struct image_t *im, struct point_t Q1, struct point_t Q2, uint32_t *n_points,
-                uint32_t *n_colored_points)
+                uint32_t *n_colored_points, struct roi_t *roi)
 {
   static float t_step = 0.2;//0.05;
   static uint16_t x, y;
@@ -339,10 +354,10 @@ void check_line(struct image_t *im, struct point_t Q1, struct point_t Q2, uint32
       (*n_points)++;
 
       // due to rounding in line estimation, its possible that correct pixel is actually in a one pixel vicinity of us
-      if (check_pixel(im, x, y)
-          || (x + 1 < im->w && check_pixel(im, x + 1, y))
-          || (y + 1 < im->h && check_pixel(im, x, y + 1))
-          || (x + 1 < im->w && y + 1 < im->h && check_pixel(im, x + 1, y + 1))) {
+      if (check_pixel(im, x, y, roi)
+          || (x + 1 < im->w && check_pixel(im, x + 1, y, roi))
+          || (y + 1 < im->h && check_pixel(im, x, y + 1, roi))
+          || (x + 1 < im->w && y + 1 < im->h && check_pixel(im, x + 1, y + 1, roi))) {
         // the point is of the right color:
         (*n_colored_points)++;
       }
@@ -351,7 +366,7 @@ void check_line(struct image_t *im, struct point_t Q1, struct point_t Q2, uint32
 }
 
 //#define USE_QUALITY_SIDES
-void check_gate(struct image_t *im, struct gate_t *gate)
+void check_gate(struct image_t *im, struct gate_t *gate, struct roi_t *roi)
 {
   uint32_t n_points = 0, n_colored_points = 0;
   uint32_t np, nc;
@@ -386,7 +401,7 @@ void check_gate(struct image_t *im, struct gate_t *gate)
 #endif
 
   // left
-  check_line(im, bl, tl, &np, &nc);
+  check_line(im, bl, tl, &np, &nc, roi);
 #ifdef USE_QUALITY_SIDES
   if (nc >= min_ratio_side * np) {
     gate->n_sides++;
@@ -396,7 +411,7 @@ void check_gate(struct image_t *im, struct gate_t *gate)
   n_colored_points += nc;
 
   // top
-  check_line(im, tl, tr, &np, &nc);
+  check_line(im, tl, tr, &np, &nc, roi);
 #ifdef USE_QUALITY_SIDES
   if (nc >= min_ratio_side * np) {
     gate->n_sides++;
@@ -406,7 +421,7 @@ void check_gate(struct image_t *im, struct gate_t *gate)
   n_colored_points += nc;
 
   // right
-  check_line(im, tr, br, &np, &nc);
+  check_line(im, tr, br, &np, &nc, roi);
 #ifdef USE_QUALITY_SIDES
   if (nc >= min_ratio_side * np) {
     gate->n_sides++;
@@ -415,15 +430,18 @@ void check_gate(struct image_t *im, struct gate_t *gate)
   n_points += np;
   n_colored_points += nc;
 
-  // bottom
-  check_line(im, bl, br, &np, &nc);
+  if(GATE_SHAPE != DOOR)
+  {
+    // bottom
+    check_line(im, bl, br, &np, &nc, roi);
 #ifdef USE_QUALITY_SIDES
-  if (nc >= min_ratio_side * np) {
-    gate->n_sides++;
-  }
+    if (nc >= min_ratio_side * np) {
+      gate->n_sides++;
+    }
 #endif
-  n_points += np;
-  n_colored_points += nc;
+    n_points += np;
+    n_colored_points += nc;
+  }
 
   struct point_t from, to;
   // confirm that we have a gate and not a coloured plate
@@ -433,7 +451,7 @@ void check_gate(struct image_t *im, struct gate_t *gate)
   from.y = gate->y;
   to.x = gate->x + gate->sz;
   to.y = gate->y;
-  check_line(im, from, to, &np, &nc);
+  check_line(im, from, to, &np, &nc, roi);
   if (np && 100 * nc / np > 50) {
     n_points = 0;
   }
@@ -443,7 +461,7 @@ void check_gate(struct image_t *im, struct gate_t *gate)
   from.y = gate->y - (gate->sz_left + gate->sz_right) / 2;
   to.x = gate->x;
   to.y = gate->y + (gate->sz_left + gate->sz_right) / 2;
-  check_line(im, from, to, &np, &nc);
+  check_line(im, from, to, &np, &nc, roi);
   if (np && 100 * nc / np > 50) {
     n_points = 0;
   }
@@ -460,35 +478,41 @@ void check_gate(struct image_t *im, struct gate_t *gate)
  *  y direction is up down. Minimum y is at top of image
  */
 uint32_t snake_up_down(struct image_t *im, uint16_t x, uint16_t y, uint16_t *y_tl, uint16_t *y_br, uint16_t *x_tl,
-                       uint16_t *x_br)
+                       uint16_t *x_br, struct roi_t *roi)
 {
+  struct roi_t limit = {.tl={0,0}, .br={im->w,im->h}};
+  if (roi == NULL)
+  {
+    roi = &limit;
+  }
+
   uint32_t num_points = 0;
   (*x_tl) = x;
   (*y_tl) = y;
 
   // snake towards negative y (up)
-  while ((*y_tl) > 1) {
+  while ((*y_tl) > roi->tl.y + 1) {
     num_points++;
-    if (check_pixel(im, (*x_tl), (*y_tl) - 1)) {   // check next pixel
+    if (check_pixel(im, (*x_tl), (*y_tl) - 1, roi)) {   // check next pixel
       (*y_tl)--;
-    } else if (check_pixel(im, (*x_tl), (*y_tl) - 2)) {   // check next pixel skipping one
+    } else if (check_pixel(im, (*x_tl), (*y_tl) - 2, roi)) {   // check next pixel skipping one
       (*y_tl) -= 2;
-    } else if ((*x_tl) < im->w - 1 && check_pixel(im, (*x_tl) + 1, (*y_tl) - 1)) {
+    } else if (check_pixel(im, (*x_tl) + 1, (*y_tl) - 1, roi)) {
       (*x_tl)++;
       (*y_tl)--;
-    } else if ((*x_tl) > 0 && check_pixel(im, (*x_tl) - 1, (*y_tl) - 1)) {
+    } else if (check_pixel(im, (*x_tl) - 1, (*y_tl) - 1, roi)) {
       (*x_tl)--;
       (*y_tl)--;
-    } else if ((*x_tl) < im->w - 1 && check_pixel(im, (*x_tl) + 1, (*y_tl) - 2)) {
+    } else if (check_pixel(im, (*x_tl) + 1, (*y_tl) - 2, roi)) {
       (*x_tl)++;
       (*y_tl) -= 2;
-    } else if ((*x_tl) > 1 && check_pixel(im, (*x_tl) - 1, (*y_tl) - 2)) {
+    } else if (check_pixel(im, (*x_tl) - 1, (*y_tl) - 2, roi)) {
       (*x_tl)--;
       (*y_tl) -= 2;
-    } else if ((*x_tl) < im->w - 2 && check_pixel(im, (*x_tl) + 2, (*y_tl) - 2)) {
+    } else if (check_pixel(im, (*x_tl) + 2, (*y_tl) - 2, roi)) {
       (*x_tl) += 2;
       (*y_tl) -= 2;
-    } else if ((*x_tl) > 1 && check_pixel(im, (*x_tl) - 2, (*y_tl) - 2)) {
+    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl) - 2, roi)) {
       (*x_tl) -= 2;
       (*y_tl) -= 2;
     } else {
@@ -500,28 +524,28 @@ uint32_t snake_up_down(struct image_t *im, uint16_t x, uint16_t y, uint16_t *y_t
   (*x_br) = x;
   (*y_br) = y;
   // snake towards positive y (down)
-  while ((*y_br) < im->h - 2) {
+  while ((*y_br) < roi->br.y - 2) {
     num_points++;
-    if (check_pixel(im, (*x_br), (*y_br) + 1)) {
+    if (check_pixel(im, (*x_br), (*y_br) + 1, roi)) {
       (*y_br)++;
-    } else if (check_pixel(im, (*x_br), (*y_br) + 2)) {   // check next pixel skipping one
+    } else if (check_pixel(im, (*x_br), (*y_br) + 2, roi)) {   // check next pixel skipping one
       (*y_br) += 2;
-    } else if ((*x_br) < im->w - 1 && check_pixel(im, (*x_br) + 1, (*y_br) + 1)) {
+    } else if (check_pixel(im, (*x_br) + 1, (*y_br) + 1, roi)) {
       (*x_br)++;
       (*y_br)++;
-    } else if ((*x_br) > 0 && check_pixel(im, (*x_br) - 1, (*y_br) + 1)) {
+    } else if (check_pixel(im, (*x_br) - 1, (*y_br) + 1, roi)) {
       (*x_br)--;
       (*y_br)++;
-    } else if ((*x_br) < im->w - 1 && check_pixel(im, (*x_br) + 1, (*y_br) + 2)) {
+    } else if (check_pixel(im, (*x_br) + 1, (*y_br) + 2, roi)) {
       (*x_br)++;
       (*y_br) += 2;
-    } else if ((*x_br) > 0 && check_pixel(im, (*x_br) - 1, (*y_br) + 2)) {
+    } else if (check_pixel(im, (*x_br) - 1, (*y_br) + 2, roi)) {
       (*x_br)--;
       (*y_br) += 2;
-    } else if ((*x_br) < im->w - 2 && check_pixel(im, (*x_br) + 2, (*y_br) + 2)) {
+    } else if (check_pixel(im, (*x_br) + 2, (*y_br) + 2, roi)) {
       (*x_br) += 2;
       (*y_br) += 2;
-    } else if ((*x_br) > 1 && check_pixel(im, (*x_br) - 2, (*y_br) + 2)) {
+    } else if (check_pixel(im, (*x_br) - 2, (*y_br) + 2, roi)) {
       (*x_br) -= 2;
       (*y_br) += 2;
     } else {
@@ -535,35 +559,42 @@ uint32_t snake_up_down(struct image_t *im, uint16_t x, uint16_t y, uint16_t *y_t
 /** snake_up_down will snake along a string of pixels setting the min and max of the snake
  *  x direction is left right
  */
-uint32_t snake_left_right(struct image_t *im, uint16_t x, uint16_t y, uint16_t *x_tl, uint16_t *x_br, uint16_t *y_tl, uint16_t *y_br)
+uint32_t snake_left_right(struct image_t *im, uint16_t x, uint16_t y, uint16_t *x_tl, uint16_t *x_br, uint16_t *y_tl,
+    uint16_t *y_br, struct roi_t *roi)
 {
+  struct roi_t limit = {.tl={0,0}, .br={im->w,im->h}};
+  if (roi == NULL)
+  {
+    roi = &limit;
+  }
+
   uint32_t num_points = 0;
   (*x_tl) = x;
   (*y_tl) = y;
 
   // snake towards negative x (left)
-  while ((*x_tl) > 1) {
+  while ((*x_tl) > roi->tl.x + 1) {
     num_points++;
-    if (check_pixel(im, (*x_tl) - 1, (*y_tl))) {
+    if (check_pixel(im, (*x_tl) - 1, (*y_tl), roi)) {
       (*x_tl)--;
-    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl))) {
+    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl), roi)) {
       (*x_tl) -= 2;
-    } else if ((*y_tl) < im->h - 1 && check_pixel(im, (*x_tl) - 1, (*y_tl) + 1)) {
+    } else if (check_pixel(im, (*x_tl) - 1, (*y_tl) + 1, roi)) {
       (*y_tl)++;
       (*x_tl)--;
-    } else if ((*y_tl) > 0 && check_pixel(im, (*x_tl) - 1, (*y_tl) - 1)) {
+    } else if (check_pixel(im, (*x_tl) - 1, (*y_tl) - 1, roi)) {
       (*y_tl)--;
       (*x_tl)--;
-    } else if ((*y_tl) < im->h - 1 && check_pixel(im, (*x_tl) - 2, (*y_tl) + 1)) {
+    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl) + 1, roi)) {
       (*y_tl)++;
       (*x_tl) -= 2;
-    } else if ((*y_tl) > 0 && check_pixel(im, (*x_tl) - 2, (*y_tl) - 1)) {
+    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl) - 1, roi)) {
       (*y_tl)--;
       (*x_tl) -= 2;
-    } else if ((*y_tl) < im->h - 2 && check_pixel(im, (*x_tl) - 2, (*y_tl) + 2)) {
+    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl) + 2, roi)) {
       (*y_tl) += 2;
       (*x_tl) -= 2;
-    } else if ((*y_tl) > 1 && check_pixel(im, (*x_tl) - 2, (*y_tl) - 2)) {
+    } else if (check_pixel(im, (*x_tl) - 2, (*y_tl) - 2, roi)) {
       (*y_tl) -= 2;
       (*x_tl) -= 2;
     } else {
@@ -575,28 +606,28 @@ uint32_t snake_left_right(struct image_t *im, uint16_t x, uint16_t y, uint16_t *
   (*y_br) = y;
   (*x_br) = x;
   // snake towards positive x (right)
-  while ((*x_br) < im->w - 2) {
+  while ((*x_br) < roi->br.x - 2) {
     num_points++;
-    if (check_pixel(im, (*x_br) + 1, (*y_br))) {
+    if (check_pixel(im, (*x_br) + 1, (*y_br), roi)) {
       (*x_br)++;
-    } else if (check_pixel(im, (*x_br) + 2, (*y_br))) {
+    } else if (check_pixel(im, (*x_br) + 2, (*y_br), roi)) {
       (*x_br) += 2;
-    } else if ((*y_br) < im->h - 1 && check_pixel(im, (*x_br) + 1, (*y_br) + 1)) {
+    } else if (check_pixel(im, (*x_br) + 1, (*y_br) + 1, roi)) {
       (*y_br)++;
       (*x_br)++;
-    } else if ((*y_br) > 0 && check_pixel(im, (*x_br) + 1, (*y_br) - 1)) {
+    } else if (check_pixel(im, (*x_br) + 1, (*y_br) - 1, roi)) {
       (*y_br)--;
       (*x_br)++;
-    } else if ((*y_br) < im->h - 1 && check_pixel(im, (*x_br) + 2, (*y_br) + 1)) {
+    } else if (check_pixel(im, (*x_br) + 2, (*y_br) + 1, roi)) {
       (*y_br)++;
       (*x_br) += 2;
-    } else if ((*y_br) > 0 && check_pixel(im, (*x_br) + 2, (*y_br) - 1)) {
+    } else if (check_pixel(im, (*x_br) + 2, (*y_br) - 1, roi)) {
       (*y_br)--;
       (*x_br) += 2;
-    } else if ((*y_br) < im->h - 2 && check_pixel(im, (*x_br) + 2, (*y_br) + 2)) {
+    } else if (check_pixel(im, (*x_br) + 2, (*y_br) + 2, roi)) {
       (*y_br) += 2;
       (*x_br) += 2;
-    } else if ((*y_br) > 1 && check_pixel(im, (*x_br) + 2, (*y_br) - 2)) {
+    } else if (check_pixel(im, (*x_br) + 2, (*y_br) - 2, roi)) {
       (*y_br) -= 2;
       (*x_br) += 2;
     } else {
@@ -624,7 +655,7 @@ void calculate_gate_position(int x_pix, int y_pix, int sz_pix, struct image_t *i
 }
 */
 
-#if 0 // def USE_PPRZLINK
+#ifdef USE_PPRZLINK
 #include "pprz_datalink.h"
 #include "pprzlink/intermcu_msg.h"
 
@@ -660,16 +691,18 @@ uint8_t init_x, init_y;
 // If the left/right stretch is also long enough, add the coords as a
 // candidate square, optionally drawing it on the image.
 bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool run_gen_alg, uint16_t *bins,
-                          struct point_t *roi, uint32_t *integral_image)
+                          struct roi_t *roi, uint32_t *integral_image)
 {
-  struct point_t ROI[2] = {{0, 0}, {img->w, img->h}};
+  uint32_t start_time = sys_time_get();
+  struct roi_t ROI = {.tl = {0,0}, .br = {img->w, img->h}};
   // ensure roi is positive area grater that 1
-  if (roi == NULL || roi[1].x - roi[0].x < 1 || roi[1].y - roi[0].y < 1) {
-    roi = ROI;
+  if (roi == NULL || roi->br.x - roi->tl.x < 1 ||
+      roi->br.y - roi->tl.y < 1) {
+    roi = &ROI;
   }
 
-  uint16_t roi_w = roi[1].x - roi[0].x;
-  uint16_t roi_h = roi[1].y - roi[0].y;
+  uint16_t roi_w = roi->br.x - roi->tl.x;
+  uint16_t roi_h = roi->br.y - roi->tl.y;
 
   best_gate->q = min_gate_quality;
   best_gate->sz = min_gate_size / 2;
@@ -680,13 +713,17 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
 
   n_gates = 0;
   uint8_t best_x = 0, best_y = 0;
-  //if (n_samples > img->w * img->h) {n_samples = img->w * img->h;}
   for (i = 0; i < n_samples; i++) {
-    // get a random coordinate:
-    x = (rand() % roi_w) + roi[0].x;
-    y = (rand() % roi_h) + roi[0].y;
+    // limit maximum computation time to 50ms
+    if (get_timer_interval_ms(start_time) > 50){
+      break;
+    }
 
-    if (!check_pixel_and_count(img, x, y, bin_cnt))
+    // get a random coordinate:
+    x = (rand() % roi_w) + roi->tl.x;
+    y = (rand() % roi_h) + roi->tl.y;
+
+    if (!check_pixel_and_count(img, x, y, bin_cnt, roi))
     {
       continue;
     }
@@ -713,9 +750,8 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
       continue;
     }
 
-    // check if the pixel has the right color
-    if ((find_gate_from_top(img, roi, roi_w) || find_gate_from_side(img, roi, roi_h))){
-
+    // check if the pixel has the right color/intensity
+    if(find_gate_from_top(img, roi, roi_w) || find_gate_from_side(img, roi, roi_h)){
       // apply some limits based on shape needed to be fit
       if (GATE_SHAPE == SQUARE || GATE_SHAPE == CIRCLE) {
         gates[n_gates].sz = (gates[n_gates].sz + gates[n_gates].sz_left + gates[n_gates].sz_right) / 3;
@@ -731,14 +767,14 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
       }
 
       // Door must be taller than it is wide
-      if (GATE_SHAPE == DOOR && gates[n_gates].sz > gates[n_gates].sz_left * 1.2) {
+      if (GATE_SHAPE == DOOR && gates[n_gates].sz_left < 1.2 * gates[n_gates].sz) {
         continue;
       }
 
       // determine quality of gate
       if (gates[n_gates].n_sides > 2) {
         // check the gate quality:
-        check_gate(img, &gates[n_gates]);
+        check_gate(img, &gates[n_gates], roi);
         // only increment the number of gates if the quality is better than previous gate
         // if same quality but bigger then also add gate
         // else it will be overwritten by the next one
@@ -773,25 +809,25 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
         start = n_gates - max_candidate_gates;
       }
 
-      struct point_t gen_roi[2];
+      struct roi_t gen_roi;
       uint16_t gate_nr;
       for (gate_nr = start; gate_nr < n_gates; gate_nr++) {
         int16_t ROI_size = (int16_t)(((float) gates[gate_nr].sz) * size_factor);
-        gen_roi[0].x = gates[gate_nr].x - ROI_size;
-        gen_roi[0].x = (gen_roi[0].x < 0) ? 0 : gen_roi[0].x;
-        gen_roi[1].x = gates[gate_nr].x + ROI_size;
-        gen_roi[1].x = (gen_roi[1].x < img->w) ? gen_roi[1].x : img->h;
-        gen_roi[0].y = gates[gate_nr].y - ROI_size;
-        gen_roi[0].y = (gen_roi[0].y < 0) ? 0 : gen_roi[0].y;
-        gen_roi[1].y = gates[gate_nr].y + ROI_size;
-        gen_roi[1].y = (gen_roi[1].y < img->h) ? gen_roi[1].y : img->w;
+        gen_roi.tl.x = gates[gate_nr].x - ROI_size;
+        gen_roi.tl.x = (gen_roi.tl.x < 0) ? 0 : gen_roi.tl.x;
+        gen_roi.br.x = gates[gate_nr].x + ROI_size;
+        gen_roi.br.x = (gen_roi.br.x < img->w) ? gen_roi.br.x : img->h;
+        gen_roi.tl.y = gates[gate_nr].y - ROI_size;
+        gen_roi.tl.y = (gen_roi.tl.y < 0) ? 0 : gen_roi.tl.y;
+        gen_roi.br.y = gates[gate_nr].y + ROI_size;
+        gen_roi.br.y = (gen_roi.br.y < img->h) ? gen_roi.br.y : img->w;
 
         // use best gate a seed for elite population
         struct gate_t gen_gate = gates[gate_nr];
         // detect the gate:
         // TODO: instead of define, use a parameter to decide on GATE_SHAPE:
-        fitness = gen_gate_detection(img, gen_roi, &gen_gate, integral_image);
-        check_gate(img, &gen_gate);
+        fitness = gen_gate_detection(img, &gen_roi, &gen_gate, integral_image);
+        check_gate(img, &gen_gate, roi);
 
         if (gen_gate.n_sides > 2 && gen_gate.q > best_gate->q) {
           // store the information in the gate:
@@ -833,16 +869,16 @@ bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool ru
 }
 
 
-bool find_gate_from_top(struct image_t *img, struct point_t *roi, uint16_t roi_w)
+bool find_gate_from_top(struct image_t *img, struct roi_t *roi, uint16_t roi_w)
 {
   uint16_t sz = 0, szy1 = 0, szy2 = 0;
   uint32_t tot_nc;
 
-  tot_nc = snake_left_right(img, x, y, &x_tl, &x_br, &y_tl, &y_br);
+  tot_nc = snake_left_right(img, x, y, &x_tl, &x_br, &y_tl, &y_br, roi);
   sz = x_br - x_tl;
 
   // check if we found a size that is long enough
-  if (sz > min_gate_size && sz < roi_w && x_tl > roi[0].x + 1 && x_tl < roi[1].x - 1) {
+  if (sz > min_gate_size && sz < roi_w) {
     x_tl += (uint16_t)(sz * gate_thickness);
     x_br -= (uint16_t)(sz * gate_thickness);
 
@@ -855,8 +891,8 @@ bool find_gate_from_top(struct image_t *img, struct point_t *roi, uint16_t roi_w
     gates[n_gates].rot = 0;
     gates[n_gates].x = (x_br + x_tl) / 2;
 
-    tot_nc += snake_up_down(img, x_tl, y_tl, &y_topl, &y_bottoml, &x_topl, &x_bottoml);
-    tot_nc += snake_up_down(img, x_br, y_br, &y_topr, &y_bottomr, &x_topr, &x_bottomr);
+    tot_nc += snake_up_down(img, x_tl, y_tl, &y_topl, &y_bottoml, &x_topl, &x_bottoml, roi);
+    tot_nc += snake_up_down(img, x_br, y_br, &y_topr, &y_bottomr, &x_topr, &x_bottomr, roi);
 
     y_topl += (uint16_t)(sz * gate_thickness);
     y_bottoml -= (uint16_t)(sz * gate_thickness);
@@ -906,8 +942,9 @@ bool find_gate_from_top(struct image_t *img, struct point_t *roi, uint16_t roi_w
       return false;
     }
 
-    // Need both sides of door and not find the bottom
-    if (GATE_SHAPE == DOOR && (gates[n_gates].n_sides < 3 || y > gates[n_gates].y)) {
+    // Need both sides of door and not find the bottom and not a P
+    if (GATE_SHAPE == DOOR && (gates[n_gates].n_sides < 3 || y > gates[n_gates].y ||
+        abs(gates[n_gates].sz_left - gates[n_gates].sz_right) > min_gate_size/2)) {
       gates[n_gates].sz_left = gates[n_gates].sz_right =  gates[n_gates].sz = 0;
       return false;
     }
@@ -932,7 +969,7 @@ bool find_gate_from_top(struct image_t *img, struct point_t *roi, uint16_t roi_w
       side_used = 1;
     }
 
-    tot_nc += snake_left_right(img, x, y, &x_tl, &x_br, &y_tl, &y_br);
+    tot_nc += snake_left_right(img, x, y, &x_tl, &x_br, &y_tl, &y_br, roi);
     // check if length long enough and horizontal closes shape (ie not an s)
     if ((x_br - x_tl >= min_gate_size) && (x_br - x_tl > 3 * gates[n_gates].sz / 2) &&
         ((side_used == 0 && (x_tl + min_gate_size / 2 < x)) || (side_used == 1 && !(x_br < x + min_gate_size / 2)))) {
@@ -977,16 +1014,16 @@ bool find_gate_from_top(struct image_t *img, struct point_t *roi, uint16_t roi_w
   return false;
 }
 
-bool find_gate_from_side(struct image_t *img, struct point_t *roi, uint16_t roi_h)
+bool find_gate_from_side(struct image_t *img, struct roi_t *roi, uint16_t roi_h)
 {
   uint16_t sz = 0, szx1 = 0, szx2 = 0;
   uint32_t tot_nc;
 
-  tot_nc = snake_up_down(img, x, y, &y_tl, &y_br, &x_tl, &x_br);
+  tot_nc = snake_up_down(img, x, y, &y_tl, &y_br, &x_tl, &x_br, roi);
   sz = y_br - y_tl;
 
   // check if we found a size that is long enough
-  if (sz > min_gate_size && sz < roi_h && y_tl > roi[0].y + 1 && y_tl < roi[1].y - 1) {
+  if (sz > min_gate_size && sz < roi_h) {
     y_tl += (uint16_t)(sz * gate_thickness);
     y_br -= (uint16_t)(sz * gate_thickness);
 
@@ -1003,8 +1040,8 @@ bool find_gate_from_side(struct image_t *img, struct point_t *roi, uint16_t roi_
     gates[n_gates].rot = atan2f((float)(x_br - x_tl), (float)(y_br - y_tl));
 #endif
 
-    tot_nc += snake_left_right(img, x_tl, y_tl, &x_topl, &x_topr, &y_topl, &y_topr);
-    tot_nc += snake_left_right(img, x_br, y_br, &x_bottoml, &x_bottomr, &y_bottoml, &y_bottomr);
+    tot_nc += snake_left_right(img, x_tl, y_tl, &x_topl, &x_topr, &y_topl, &y_topr, roi);
+    tot_nc += snake_left_right(img, x_br, y_br, &x_bottoml, &x_bottomr, &y_bottoml, &y_bottomr, roi);
 
     x_topl += (uint16_t)(sz * gate_thickness);
     x_bottoml -= (uint16_t)(sz * gate_thickness);
@@ -1070,7 +1107,7 @@ bool find_gate_from_side(struct image_t *img, struct point_t *roi, uint16_t roi_
       side_used = 1;
     }
 
-    tot_nc = snake_up_down(img, x, y, &y_tl, &y_br, &x_tl, &x_br);
+    tot_nc = snake_up_down(img, x, y, &y_tl, &y_br, &x_tl, &x_br, roi);
     // check if length long enough and vertical closes shape (ie not an s)
     if ((y_br - y_tl > min_gate_size) &&
         ((side_used == 0 && !(y_br > y + min_gate_size / 2)) || (side_used == 1 && (y_tl + min_gate_size / 2 > y)))) {
@@ -1106,7 +1143,8 @@ bool find_gate_from_side(struct image_t *img, struct point_t *roi, uint16_t roi_
 #endif
     }
     // Check if found both left and right
-    if (GATE_SHAPE == DOOR && gates[n_gates].n_sides < 3) {
+    if (GATE_SHAPE == DOOR && (gates[n_gates].n_sides < 3 ||
+        abs(gates[n_gates].sz_left - gates[n_gates].sz_right) > min_gate_size/2)) {
       gates[n_gates].sz_left = gates[n_gates].sz_right =  gates[n_gates].sz = 0;
       return false;
     }
@@ -1129,12 +1167,12 @@ bool find_gate_from_side(struct image_t *img, struct point_t *roi, uint16_t roi_
  * @author Guido
  */
 uint16_t w, h;  // todo, temp remove later
-float gen_gate_detection(struct image_t *image, struct point_t *roi, struct gate_t *gate, uint32_t *integral_image)
+float gen_gate_detection(struct image_t *image, struct roi_t *roi, struct gate_t *gate, uint32_t *integral_image)
 {
-  struct point_t ROI[2] = {{0, 0}, {image->w, image->h}};
+  struct roi_t ROI = {.tl = {0,0}, .br = {image->w, image->h}};
   // ensure roi is positive area grater that 1
-  if (roi == NULL || roi[1].x - roi[0].x < 1 || roi[1].y - roi[0].y < 1) {
-    roi = ROI;
+  if (roi == NULL || roi->br.x - roi->tl.x < 1 || roi->br.y - roi->tl.y < 1) {
+    roi = &ROI;
   }
 
   if (integral_image == NULL) {
@@ -1150,7 +1188,7 @@ float gen_gate_detection(struct image_t *image, struct point_t *roi, struct gate
   //float *angle_1, *angle_2;
   //float *psi;
   // 1) convert the disparity map to a vector of points:
-  n_points = convert_image_to_points(image, roi[0], roi[1], points, weights);
+  n_points = convert_image_to_points(image, roi, points, weights);
 
   // if there are enough points close by:
   if (n_points > min_points) {
@@ -1262,7 +1300,7 @@ float gen_run(struct gate_t *gate0, struct gate_t *gen_gate, uint32_t *integral_
     }
   }
 
-  float total_sum_weights = get_sum(weights, n_points);
+  float total_sum_weights = sum(weights, n_points);
 
   float fits[N_INDIVIDUALS];
   int32_t genome0[N_GENES];
@@ -1360,7 +1398,7 @@ float gen_run(struct gate_t *gate0, struct gate_t *gen_gate, uint32_t *integral_
   return fitness;
 }
 
-uint32_t convert_image_to_points(struct image_t *img, struct point_t roi_min, struct point_t roi_max,
+uint32_t convert_image_to_points(struct image_t *img, struct roi_t *roi,
                                  struct point_t points[], uint8_t weights[])
 {
   uint16_t y, x, sp;
@@ -1373,9 +1411,9 @@ uint32_t convert_image_to_points(struct image_t *img, struct point_t roi_min, st
   // starting point sp, we will sample different positions in the image, finally covering the
   // whole image.
   for (sp = 0; sp < GRID_STEP * GRID_STEP; sp++) {
-    for (y = roi_min.y + Y0[sp]; y < roi_max.y; y += GRID_STEP) {
-      for (x = roi_min.x + X0[sp]; x < roi_max.x; x += GRID_STEP) {
-        if (check_pixel(img, x, y)) {
+    for (y = roi->tl.y + Y0[sp]; y < roi->br.y; y += GRID_STEP) {
+      for (x = roi->tl.x + X0[sp]; x < roi->br.x; x += GRID_STEP) {
+        if (check_pixel(img, x, y, roi)) {
           // add the points to the array, and use disparity as the weight:
           points[p].x = x;
           points[p].y = y;

@@ -16,6 +16,8 @@
 #define BAD_FIT 127
 #define MAX_POINTS 1000
 
+extern uint8_t min_gate_quality;
+
 /* Gate structure */
 struct gate_t {
   int16_t x;            ///< The image x coordinate of the gate centre
@@ -28,17 +30,22 @@ struct gate_t {
   float rot;          ///< Rotation angle of gate [-pi/2, pi/2]
 };
 
+struct roi_t {
+  struct point_t tl;  // top left
+  struct point_t br;  // bottom right
+};
+
 void pprz_send_gate(struct gate_t *gate, float depth);
 
 void gate_set_intensity(uint8_t Y_m, uint8_t Y_M);
 void gate_set_color(uint8_t Y_m, uint8_t Y_M, uint8_t U_m, uint8_t U_M, uint8_t V_m, uint8_t V_M);
 
 // main gate detection function:
-float gen_gate_detection(struct image_t *image, struct point_t *roi, struct gate_t *gate, uint32_t *integral_image);
+float gen_gate_detection(struct image_t *image, struct roi_t *roi, struct gate_t *gate, uint32_t *integral_image);
 //, float *angle_1, float *angle_2, float *psi, uint16_t *s_left, uint16_t *s_right);
 
 // "private" functions:
-uint32_t convert_image_to_points(struct image_t *image, struct point_t roi_min, struct point_t roi_max,
+uint32_t convert_image_to_points(struct image_t *image, struct roi_t *roi,
                                  struct point_t points[], uint8_t weights[]);
 float gen_run(struct gate_t *gate0, struct gate_t *gen_gate, uint32_t *integral_image);
 float get_outlier_ratio(int16_t *genome, float total_sum_weights);
@@ -56,7 +63,7 @@ float distance_to_horizontal_segment(struct point_f Q1, struct point_f Q2, struc
 void draw_stick(struct image_i *Im, float x_center, float y_center, float radius, uint8_t *color);
 
 bool snake_gate_detection(struct image_t *img, struct gate_t *best_gate, bool run_gen_alg, uint16_t *bins,
-                          struct point_t *roi, uint32_t *integral_image);
+                          struct roi_t *roi, uint32_t *integral_image);
 
 // calculating the color fit cannot be done with the current stereo output:
 // float check_color_fit();
