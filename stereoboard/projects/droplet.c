@@ -1,4 +1,4 @@
-#include "nus_droplet.h"
+#include "droplet.h"
 
 #include "main_parameters.h"
 #include "main.h"
