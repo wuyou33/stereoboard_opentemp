@@ -41,6 +41,7 @@ LFLAGS         =  -lSTM32F4xx_StdPeriph_Driver -lgcc -lm -lc -lrdimon
 # to run from FLASH
 LFLAGS        += -Wl,-T,stm32_flash.ld,-Map,memory.map
 
+FATFS_PATH     = ../ext/fatfs/source
 PPRZ_PATH      = ../ext/pprzlink
 CV_PATH        = ../ext/drone_vision/cv
 STMLIB_PATH    = ../ext/libs/STM32F4xx_DSP_StdPeriph_Lib_V1.7.1
@@ -68,6 +69,7 @@ CFLAGS+=-DSTM32F40_41xxx -DUSE_STDPERIPH_DRIVER=1
 CFLAGS+=-I../common
 
 CFLAGS+=-I${CV_PATH}
+CFLAGS+=-I${FATFS_PATH}
 
 # Standard Peripheral Library
 STDP_LIB = libSTM32F4xx_StdPeriph_Driver.a
@@ -103,6 +105,7 @@ MAIN_SRCS += $(wildcard ../common/*.c)
 MAIN_SRCS += $(wildcard math/*.c)
 MAIN_SRCS += $(wildcard *.c)
 MAIN_SRCS += $(CV_PATH)/image.c $(CV_PATH)/encoding/jpeg.c
+MAIN_SRCS += $(FATFS_PATH)/ff.c
 
 # include PPRZLINK
 ifdef USE_PPRZLINK

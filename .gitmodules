@@ -10,3 +10,6 @@
 [submodule "ext/drone_vision"]
 	path = ext/drone_vision
 	url = https://github.com/tudelft/drone_vision.git
+[submodule "ext/fatfs"]
+	path = ext/fatfs
+	url = https://github.com/abbrev/fatfs.git

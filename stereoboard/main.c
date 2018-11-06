@@ -53,6 +53,7 @@
 #include "utils.h"
 #include "encoding/jpeg.h"
 #include "raw_digital_video_stream.h"
+#include "image_spi_sd.h"
 
 // include functions headers
 #include "distance_matrix.h"
@@ -228,7 +229,8 @@ int main(void)
   // Initialize the camera
   camera_init();
   sys_time_init();
-
+  spi_sd_init();
+  
 #ifndef SUB_SAMPLING
 #define SUB_SAMPLING 1
 #endif
@@ -818,6 +820,7 @@ int main(void)
 #else
         SendImage((uint8_t *)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
 #endif
+        //image_save_sd(&current_image_pair);
       }
 
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {
