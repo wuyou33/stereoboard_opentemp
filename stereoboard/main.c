@@ -818,6 +818,9 @@ int main(void)
 #else
         SendImage((uint8_t *)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
 #endif
+#ifdef LED_TOGGLE
+        led_toggle();
+#endif
       }
 
       if (current_stereoboard_algorithm == SEND_DISPARITY_MAP) {

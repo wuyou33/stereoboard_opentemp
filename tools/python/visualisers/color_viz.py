@@ -54,7 +54,7 @@ class Viewer:
                       self.imgYUV[:,1::2,2] = data[:,2::4]
 
                       # Create a color image
-                      self.imgRGB = cv2.cvtColor(self.imgYUV, cv2.COLOR_YUV2RGB)
+                      self.imgRGB = cv2.cvtColor(self.imgYUV, cv2.COLOR_YUV2BGR)
                       # if (not '3.0.0'==cv2.__version__) and (not '3.0.0-dev'==cv2.__version__):
                       self.imgRGB = cv2.resize(self.imgRGB,(0,0),fx=self.scale,fy=self.scale ,interpolation=cv2.INTER_CUBIC)
                       
