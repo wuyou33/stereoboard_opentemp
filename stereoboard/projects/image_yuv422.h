@@ -1,8 +1,14 @@
 /*
- * project parameters
+ * Project parameters
  *
- *  This file contains the board configuration defaults for this project
+ * @tested 766816775a2a1a6692c54ff9d15bf79e7413e49c
  *
+ * @details
+ *
+ * - Capture a raw image in YUV422 format
+ * - Send image over UART4 with baudrate 1Mbps
+ * - Use pythontools color_viz.py to view the image
+  *
  */
 
 #ifndef PROJECT_HEADER_H_
@@ -54,6 +60,8 @@
 #define UsartRx Usart4Rx
 #define UsartCh Usart4Ch
 #define USART4_BAUD 1000000
+
+#define LED_TOGGLE 1
 
 //////////////////////////////////////////////////////
 // Image Encoding
