@@ -53,7 +53,8 @@
 #include "utils.h"
 #include "encoding/jpeg.h"
 #include "raw_digital_video_stream.h"
-#include "image_spi_sd.h"
+#include "log_sd.h"
+#include "spi_sd.h"
 
 // include functions headers
 #include "distance_matrix.h"
@@ -229,8 +230,10 @@ int main(void)
   // Initialize the camera
   camera_init();
   sys_time_init();
-  spi_sd_init();
-  
+  // Initialize the sd card
+#ifdef SD_IMAGE_LOG
+  SD_IO_Init();
+#endif
 #ifndef SUB_SAMPLING
 #define SUB_SAMPLING 1
 #endif
@@ -820,7 +823,9 @@ int main(void)
 #else
         SendImage((uint8_t *)current_image_pair.buf, current_image_pair.w, current_image_pair.h);
 #endif
-        //image_save_sd(&current_image_pair);
+#ifdef SD_IMAGE_LOG
+        log_image_jpeg(&current_image_pair); // or log_image_bmp(&current_image_pair);
+#endif
 #ifdef LED_TOGGLE
         led_toggle();
 #endif

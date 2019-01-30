@@ -1,277 +1,187 @@
 /**
   ******************************************************************************
-  * @file    diskio.c 
-  * @brief   FatFs low level disk I/O module.
+  * @file    sd_diskio.c
+  * @author  MCD Application Team
+  * @version V1.3.0
+  * @date    08-May-2015
+  * @brief   SD Disk I/O driver
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; COPYRIGHT 2015 STMicroelectronics</center></h2>
+  *
+  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
+  * You may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at:
+  *
+  *        http://www.st.com/software_license_agreement_liberty_v2
+  *
+  * Unless required by applicable law or agreed to in writing, software 
+  * distributed under the License is distributed on an "AS IS" BASIS, 
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  *
+  ******************************************************************************
+  */ 
+
 /* Includes ------------------------------------------------------------------*/
 #include "diskio.h"
-#include "image_spi_sd.h"
+#include "spi_sd.h"
 
-extern SD_CARD_INFO SD_CardInfo;
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Block Size in Bytes */
+#define BLOCK_SIZE                512
 
-/**
-  * @brief  Gets Disk Status 
-  * @param  pdrv: Physical drive number (0..)
-  * @retval DSTATUS: Operation status
-  */
-DSTATUS disk_status (
-	BYTE pdrv		/* Physical drive nmuber to identify the drive */
-)
-{
-  switch (pdrv)
-	{
-		case 0 :
-			return RES_OK;
-		case 1 :
-			return RES_OK;
-		case 2 :
-			return RES_OK;
-		default:
-			return STA_NOINIT;
-	}
-}
+/* Private variables ---------------------------------------------------------*/
+/* Disk status */
+static volatile DSTATUS Stat = STA_NOINIT;
+
+/* Private function prototypes -----------------------------------------------*/
+DSTATUS disk_initialize (BYTE);
+DSTATUS disk_status (BYTE);
+DRESULT disk_read (BYTE, BYTE*, DWORD, UINT);
+DRESULT disk_write (BYTE, const BYTE*, DWORD, UINT);
+DRESULT disk_ioctl (BYTE, BYTE, void*);
+
+/* Private functions ---------------------------------------------------------*/
 
 /**
   * @brief  Initializes a Drive
-  * @param  pdrv: Physical drive number (0..)
+  * @param  lun : not used 
   * @retval DSTATUS: Operation status
   */
-DSTATUS disk_initialize (
-	BYTE pdrv				/* Physical drive nmuber to identify the drive */
-)
+DSTATUS disk_initialize(BYTE lun)
 {
-  int Status;
-	switch(pdrv)
-	{
-    case 0:
-      Status = SD_Init();
-      if(Status == 0)
-      {
-        return RES_OK;
-      }
-      else
-      {
-        return STA_NOINIT;
-      }
-    case 1:
-      return RES_OK;
-    case 2:
-		  return RES_OK;
-    case 3:
-		  return RES_OK;
-    default:
-		  return STA_NOINIT;
-	}
+  Stat = STA_NOINIT;
+  
+  /* Configure the uSD device */
+  if(BSP_SD_Init() == MSD_OK)
+  {
+    Stat &= ~STA_NOINIT;
+  }
+
+  return Stat;
 }
 
 /**
-  * @brief  Reads Sector(s) 
-  * @param  pdrv: Physical drive number (0..)
+  * @brief  Gets Disk Status
+  * @param  lun : not used
+  * @retval DSTATUS: Operation status
+  */
+DSTATUS disk_status(BYTE lun)
+{
+  Stat = STA_NOINIT;
+
+  if(BSP_SD_GetStatus() == MSD_OK)
+  {
+    Stat &= ~STA_NOINIT;
+  }
+  
+  return Stat;
+}
+
+/**
+  * @brief  Reads Sector(s)
+  * @param  lun : not used
   * @param  *buff: Data buffer to store read data
   * @param  sector: Sector address (LBA)
   * @param  count: Number of sectors to read (1..128)
   * @retval DRESULT: Operation result
   */
-DRESULT disk_read (
-	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
-	BYTE *buff,		/* Data buffer to store read data */
-	DWORD sector,	        /* Sector address in LBA */
-	UINT count		/* Number of sectors to read */
-)
+DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 {
-  int Status;
-	if(!count)
-	{
-    return RES_PARERR;
-	}
-	switch(pdrv)
-	{
-    case 0:
-      if(count == 1)
-      {
-        Status = SD_ReadSingleBlock(sector, buff);
-        if(Status == 0)
-        {
-          return RES_OK;
-        }
-        else
-        {
-          return RES_ERROR;
-        }
-		  }
-		  else
-		  {
-        Status = SD_ReadMultiBlock(sector, buff, count);
-        if(Status == 0)
-        {
-          return RES_OK;
-        }
-        else
-        {
-          return RES_ERROR;
-        }
-		  }
-    case 1:
-      if(count == 1)
-      {
-        return RES_OK;
-      }
-      else
-      {
-        return RES_OK;
-      }
-    default:
-		  return RES_ERROR;
-	}
+  DRESULT res = RES_OK;
+  
+  if(BSP_SD_ReadBlocks((uint32_t*)buff, 
+                       (uint64_t) (sector * BLOCK_SIZE), 
+                       BLOCK_SIZE, 
+                       count) != MSD_OK)
+  {
+    res = RES_ERROR;
+  }
+  
+  return res;
 }
 
 /**
-  * @brief  Writes Sector(s)  
-  * @param  pdrv: Physical drive number (0..)
+  * @brief  Writes Sector(s)
+  * @param  lun : not used
   * @param  *buff: Data to be written
   * @param  sector: Sector address (LBA)
   * @param  count: Number of sectors to write (1..128)
   * @retval DRESULT: Operation result
   */
-DRESULT disk_write (
-	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
-	const BYTE *buff,	/* Data to be written */
-	DWORD sector,		/* Sector address in LBA */
-	UINT count        	/* Number of sectors to write */
-)
+DRESULT disk_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 {
-  int Status;
-	if(!count)
-	{
-    return RES_PARERR;
-	}
-	switch(pdrv)
-	{
-    case 0:
-      if(count == 1)
-		  {
-        Status = SD_WriteSingleBlock(sector, (uint8_t*)(&buff[0]));
-        if(Status == 0)
-        {
-          return RES_OK;
-        }
-        else
-        {
-          return RES_ERROR;
-        }
-		  }                                                
-		  else
-      {
-        Status = SD_WriteMultiBlock(sector, (uint8_t*)(&buff[0]), count);
-        if(Status == 0)
-        {
-          return RES_OK;
-        }
-        else
-        {
-          return RES_ERROR;
-        }
-      }
-    case 1:
-      if(count == 1)
-      {
-        return RES_OK;
-      }                                                
-      else
-      {
-        return RES_OK;
-      }
-    default:
-      return RES_ERROR;
-	}
+  DRESULT res = RES_OK;
+  
+  if(BSP_SD_WriteBlocks((uint32_t*)buff, 
+                        (uint64_t)(sector * BLOCK_SIZE), 
+                        BLOCK_SIZE, count) != MSD_OK)
+  {
+    res = RES_ERROR;
+  }
+  
+  return res;
 }
 
 /**
-  * @brief  I/O control operation  
-  * @param  pdrv: Physical drive number (0..)
+  * @brief  I/O control operation
+  * @param  lun : not used
   * @param  cmd: Control code
   * @param  *buff: Buffer to send/receive control data
   * @retval DRESULT: Operation result
   */
-DRESULT disk_ioctl (
-	BYTE pdrv,		/* Physical drive nmuber (0..) */
-	BYTE cmd,		/* Control code */
-	void *buff		/* Buffer to send/receive control data */
-)
+DRESULT disk_ioctl(BYTE lun, BYTE cmd, void *buff)
 {
-  if (pdrv == 0)
-	{
-    SD_GetCardInfo(&SD_CardInfo);
-    switch(cmd)
-    {
-      case CTRL_SYNC:
-        return RES_OK;
-      case GET_SECTOR_COUNT:
-        *(DWORD*)buff = SD_CardInfo.Capacity/SD_CardInfo.BlockSize;
-        return RES_OK;
-      case GET_BLOCK_SIZE:
-        *(WORD*)buff = SD_CardInfo.BlockSize;
-        return RES_OK;
-      case CTRL_POWER:
-        break;
-      case CTRL_LOCK:
-        break;
-      case CTRL_EJECT:
-        break;
-      case MMC_GET_TYPE:
-        break;
-      case MMC_GET_CSD:
-        break;
-      case MMC_GET_CID:
-        break;
-      case MMC_GET_OCR:
-        break;
-      case MMC_GET_SDSTAT:
-        break;
-    } 
+  DRESULT res = RES_ERROR;
+  SD_CardInfo CardInfo;
+  
+  if (Stat & STA_NOINIT) return RES_NOTRDY;
+  
+  switch (cmd)
+  {
+  /* Make sure that no pending write process */
+  case CTRL_SYNC :
+    res = RES_OK;
+    break;
+  
+  /* Get number of sectors on the disk (DWORD) */
+  case GET_SECTOR_COUNT :
+    BSP_SD_GetCardInfo(&CardInfo);
+    *(DWORD*)buff = CardInfo.CardCapacity / BLOCK_SIZE;
+    res = RES_OK;
+    break;
+  
+  /* Get R/W sector size (WORD) */
+  case GET_SECTOR_SIZE :
+    *(WORD*)buff = BLOCK_SIZE;
+    res = RES_OK;
+    break;
+  
+  /* Get erase block size in unit of sector (DWORD) */
+  case GET_BLOCK_SIZE :
+    *(DWORD*)buff = BLOCK_SIZE;
+    break;
+  
+  default:
+    res = RES_PARERR;
   }
-  else if(pdrv == 1)
-  {
-    switch (cmd) 
-    {
-      case CTRL_SYNC:
-        return RES_OK;
-      case GET_SECTOR_COUNT:
-        return RES_OK;
-      case GET_SECTOR_SIZE:
-        return RES_OK;
-      case GET_BLOCK_SIZE:
-        return RES_OK;
-      case CTRL_POWER:
-        break;
-      case CTRL_LOCK:
-        break;
-      case CTRL_EJECT:
-        break;
-      case MMC_GET_TYPE:
-        break;
-      case MMC_GET_CSD:
-        break;
-      case MMC_GET_CID:
-        break;
-      case MMC_GET_OCR:
-        break;
-      case MMC_GET_SDSTAT:
-        break;	
-    }
-	}
-	else
-  {
-    return RES_PARERR;
-	}
-	return RES_PARERR;
+  
+  return res;
 }
 
 /**
-  * @brief  Gets Time, to be defined 
+  * @brief  Gets Time, to be defined
   * @param  None
   * @retval Time in DWORD
   */
-DWORD get_fattime (void)
+DWORD get_fattime(void)
 {
   return 0;
-}
+} 
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
